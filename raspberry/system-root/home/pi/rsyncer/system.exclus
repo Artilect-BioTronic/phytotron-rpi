@@ -1,0 +1,13 @@
+.directory
+.dolphin
+.Trash*
+@eaDir
+Thumbs.db
+/cdrom/*
+/lost+found
+/media/*
+/mnt/*
+/proc/*
+/sys/*
+/tmp/*
+/dev/*
