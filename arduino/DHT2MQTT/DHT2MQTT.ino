@@ -10,7 +10,7 @@
 #define DHTPIN  2         // Pin which is connected to the DHT sensor.
 #define DHTTYPE DHT22     // DHT 22 (AM2302)
 
-#define MAIN_MQTT_TOPIC "arduino"
+#define DATA_ERROR F("Error")
 
 // See guide for details on sensor wiring and usage:
 //   https://learn.adafruit.com/dht/overview
@@ -19,13 +19,22 @@ DHT_Unified dht(DHTPIN, DHTTYPE);
 RTC_DS1307 rtc;
 
 uint32_t delayMS;
-String topic = MAIN_MQTT_TOPIC;
+String topic ;
 String data = "";
+String date;
 int qos = 2;
 bool retain = false;
 
 void MQTToSerial_pub(String top, String payload, int q, bool ret) {
-  
+  Serial.print(F("{'topic':'"));
+  Serial.print(top);
+  Serial.print(F("', 'data':'"));
+  Serial.print(payload);
+  Serial.print(F("', 'qos':'"));
+  Serial.print(q);
+  Serial.print(F("', 'retain':'"));
+  Serial.print(ret);
+  Serial.println(F("'}"));
 }
 
 void MQTToSerial_sub() {
@@ -63,12 +72,6 @@ void setup() {
     Serial.print(':');
     Serial.print(now.second(), DEC);
     Serial.println();
-    Serial.print(F(" since midnight 1/1/1970 = "));
-    Serial.print(now.unixtime());
-    Serial.print("s = ");
-    Serial.print(now.unixtime() / 86400L);
-    Serial.println("d");
-
   
   // Initialize DHT22 sensor
   dht.begin();
@@ -107,39 +110,40 @@ void loop() {
 
   //Get date & time
   DateTime now = rtc.now();
-    
-  Serial.print(now.year(), DEC);
-  Serial.print('/');
-  Serial.print(now.month(), DEC);
-  Serial.print('/');
-  Serial.print(now.day(), DEC);
-  Serial.print(" ");
-  Serial.print(now.hour(), DEC);
-  Serial.print(':');
-  Serial.print(now.minute(), DEC);
-  Serial.print(':');
-  Serial.print(now.second(), DEC);
-  Serial.println();
+  date = "";
+  date.concat(now.year());
+  date.concat('/');
+  date.concat(now.month());
+  date.concat('/');
+  date.concat(now.day());
+  date.concat('_');
+  date.concat(now.hour());
+  date.concat(':');
+  date.concat(now.minute());
+  date.concat(':');
+  date.concat(now.second());
+  date.concat(':');
   
   // Get temperature event and print its value.
   sensors_event_t event;  
   dht.temperature().getEvent(&event);
-  if (isnan(event.temperature)) {
-    Serial.println(F("Error reading temperature!"));
-  }
-  else {
-    Serial.print(F("Temperature: "));
-    Serial.print(event.temperature);
-    Serial.println(F(" *C"));
-  }
+  
+  if (isnan(event.temperature)) data = DATA_ERROR;
+  else data = event.temperature;
+
+  topic = "arduino/DHT22/temperature/date";
+  MQTToSerial_pub(topic, date, 2, true);
+  topic = "arduino/DHT22/temperature/value";
+  MQTToSerial_pub(topic, data, 2, true);
+  
   // Get humidity event and print its value.
   dht.humidity().getEvent(&event);
-  if (isnan(event.relative_humidity)) {
-    Serial.println(F("Error reading humidity!"));
-  }
-  else {
-    Serial.print(F("Humidity: "));
-    Serial.print(event.relative_humidity);
-    Serial.println("%");
-  }
+  if (isnan(event.relative_humidity)) data = DATA_ERROR;
+  else data = event.relative_humidity;
+
+  topic = "arduino/DHT22/humidity/date";
+  MQTToSerial_pub(topic, date, 2, true);
+  topic = "arduino/DHT22/humidity/value";
+  MQTToSerial_pub(topic, data, 2, true);
+  
 }
