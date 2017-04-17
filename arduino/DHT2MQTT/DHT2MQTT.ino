@@ -11,24 +11,27 @@
 #define DHTTYPE DHT22     // DHT 22 (AM2302)
 
 #define DATA_ERROR F("Error")
-
-// See guide for details on sensor wiring and usage:
-//   https://learn.adafruit.com/dht/overview
+#define ROOT_TOPIC F("arduino/")
 
 DHT_Unified dht(DHTPIN, DHTTYPE);
 RTC_DS1307 rtc;
 
 uint32_t delayMS;
-String topic ;
+String topic = "" ;
 String data = "";
 String date;
 int qos = 2;
 bool retain = false;
 
 void MQTToSerial_pub(String top, String payload, int q, bool ret) {
+  
+  String t = "";
+  t.concat(ROOT_TOPIC);
+  t.concat(top);
+  
   Serial.print(F("{'topic':'"));
-  Serial.print(top);
-  Serial.print(F("', 'data':'"));
+  Serial.print(t);
+  Serial.print(F("', 'payload':'"));
   Serial.print(payload);
   Serial.print(F("', 'qos':'"));
   Serial.print(q);
@@ -43,7 +46,10 @@ void MQTToSerial_sub() {
 
 void setup() {
   Serial.begin(115200);
-
+  delay(100);
+  Serial.println("Booting...");
+  Serial.print("RTC...");
+  
   // Initialize RTC DS1307
   if (! rtc.begin()) {
     Serial.println("Couldn't find RTC");
@@ -57,49 +63,53 @@ void setup() {
     // January 21, 2014 at 3am you would call:
     // rtc.adjust(DateTime(2014, 1, 21, 3, 0, 0));
   }
+  Serial.println("OK!");
+  
   //Print details about date and time
     DateTime now = rtc.now();
     
-    Serial.print(now.year(), DEC);
-    Serial.print('/');
-    Serial.print(now.month(), DEC);
-    Serial.print('/');
-    Serial.print(now.day(), DEC);
-    Serial.print(" ");
-    Serial.print(now.hour(), DEC);
-    Serial.print(':');
-    Serial.print(now.minute(), DEC);
-    Serial.print(':');
-    Serial.print(now.second(), DEC);
-    Serial.println();
+  date = "";
+  date.concat(now.year());
+  date.concat('/');
+  date.concat(now.month());
+  date.concat('/');
+  date.concat(now.day());
+  date.concat('_');
+  date.concat(now.hour());
+  date.concat(':');
+  date.concat(now.minute());
+  date.concat(':');
+  date.concat(now.second());
+  
+  MQTToSerial_pub(F("last_start"), date, 2, true);
   
   // Initialize DHT22 sensor
   dht.begin();
 
-  Serial.println("DHTxx Unified Sensor Example");
   // Print temperature sensor details.
   sensor_t sensor;
+
+  // Send sensors details
   dht.temperature().getSensor(&sensor);
-  Serial.println(F("------------------------------------"));
-  Serial.println(F("Temperature"));
-  Serial.print  (F("Sensor:       ")); Serial.println(sensor.name);
-  Serial.print  (F("Driver Ver:   ")); Serial.println(sensor.version);
-  Serial.print  (F("Unique ID:    ")); Serial.println(sensor.sensor_id);
-  Serial.print  (F("Max Value:    ")); Serial.print(sensor.max_value); Serial.println(" *C");
-  Serial.print  (F("Min Value:    ")); Serial.print(sensor.min_value); Serial.println(" *C");
-  Serial.print  (F("Resolution:   ")); Serial.print(sensor.resolution); Serial.println(" *C");  
-  Serial.println(F("------------------------------------"));
-  // Print humidity sensor details.
+
+  MQTToSerial_pub(F("DHT22/temperature/sensor"),     sensor.name,               2, true);
+  MQTToSerial_pub(F("DHT22/temperature/version"),    String(sensor.version),    2, true);
+  MQTToSerial_pub(F("DHT22/temperature/sensor_id"),  String(sensor.sensor_id),  2, true);
+  MQTToSerial_pub(F("DHT22/temperature/max_value"),  String(sensor.max_value),  2, true);
+  MQTToSerial_pub(F("DHT22/temperature/min_value"),  String(sensor.min_value),  2, true);
+  MQTToSerial_pub(F("DHT22/temperature/resolution"), String(sensor.resolution), 2, true);
+  
   dht.humidity().getSensor(&sensor);
-  Serial.println(F("------------------------------------"));
-  Serial.println(F("Humidity"));
-  Serial.print  (F("Sensor:       ")); Serial.println(sensor.name);
-  Serial.print  (F("Driver Ver:   ")); Serial.println(sensor.version);
-  Serial.print  (F("Unique ID:    ")); Serial.println(sensor.sensor_id);
-  Serial.print  (F("Max Value:    ")); Serial.print(sensor.max_value); Serial.println("%");
-  Serial.print  (F("Min Value:    ")); Serial.print(sensor.min_value); Serial.println("%");
-  Serial.print  (F("Resolution:   ")); Serial.print(sensor.resolution); Serial.println("%");  
-  Serial.println(F("------------------------------------"));
+
+  MQTToSerial_pub(F("DHT22/humidity/sensor"),      sensor.name,                2, true);
+  MQTToSerial_pub(F("DHT22/humidity/version"),     String(sensor.version),     2, true);
+  MQTToSerial_pub(F("DHT22/humidity/sensor_id"),   String(sensor.sensor_id),   2, true);
+  MQTToSerial_pub(F("DHT22/humidity/max_value"),   String(sensor.max_value),   2, true);
+  MQTToSerial_pub(F("DHT22/humidity/min_value"),   String(sensor.min_value),   2, true);
+  MQTToSerial_pub(F("DHT22/humidity/resolution"),  String(sensor.resolution),  2, true);
+  
+  MQTToSerial_pub(F("DHT22/min_delay"),            String(sensor.min_delay),   2, true);
+  
   // Set delay between sensor readings based on sensor details.
   delayMS = sensor.min_delay / 1000;
 }
@@ -122,7 +132,6 @@ void loop() {
   date.concat(now.minute());
   date.concat(':');
   date.concat(now.second());
-  date.concat(':');
   
   // Get temperature event and print its value.
   sensors_event_t event;  
@@ -131,9 +140,9 @@ void loop() {
   if (isnan(event.temperature)) data = DATA_ERROR;
   else data = event.temperature;
 
-  topic = "arduino/DHT22/temperature/date";
+  topic = "DHT22/temperature/date";
   MQTToSerial_pub(topic, date, 2, true);
-  topic = "arduino/DHT22/temperature/value";
+  topic = "DHT22/temperature/value";
   MQTToSerial_pub(topic, data, 2, true);
   
   // Get humidity event and print its value.
@@ -141,9 +150,9 @@ void loop() {
   if (isnan(event.relative_humidity)) data = DATA_ERROR;
   else data = event.relative_humidity;
 
-  topic = "arduino/DHT22/humidity/date";
+  topic = "DHT22/humidity/date";
   MQTToSerial_pub(topic, date, 2, true);
-  topic = "arduino/DHT22/humidity/value";
+  topic = "DHT22/humidity/value";
   MQTToSerial_pub(topic, data, 2, true);
   
 }
