@@ -5,6 +5,8 @@ Phytotron Project - Raspberry Pi part...
 
 Contient la documentation du projet en développement et notamment un how-to
 
+Voir surtout le Wiki du dépôt GitHub: https://github.com/Artilect-BioTronic/phytotron-rpi/wiki
+
 ## Dossier "raspberry-pi"
 
 Contient un sous-dossier "system-root" qui contient les fichiers de configuration modifiés et/ou créés manuellement ainsi que les scripts utilisés pour l'installation et les tests du système.
