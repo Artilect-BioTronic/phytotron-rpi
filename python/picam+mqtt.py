@@ -4,9 +4,9 @@
 # sur un broker MQTT
 
 import picamera
-import paho.mqtt.publish as publish
-from datetime import datetime
+import paho.mqtt.publish as mqtt
 from time import sleep
+import datetime
 
 
 # Camera settings
@@ -20,18 +20,19 @@ mqtt_port=      1883
 mqtt_auth=      {'username':'phytotron',
                  'password':'biotronic'}
 mqtt_client_id= 'picamera'
-
+mqtt_qos=2
 
 # Photo parameters
 photo_path =            '/home/pi/photos/'
-photo_name_format =     '%Y-%m-%d_%H-%M-%S.jpg'     #strftime() format
-photo_mqtt_topic = 'pi/photo/'
+photo_format =          'jpg'
+photo_mqtt_topic =      'pi/photo/'
 
 ########
 # Main #
 ########
 
-file_name = datetime.now().strftime(photo_name_format)
+file_date = datetime.datetime.now().replace(microsecond=0).isoformat()
+file_name = file_date + "." + photo_format
 
 # Taking a photo
 #################
@@ -47,11 +48,12 @@ cam.capture(photo_path+file_name)
 
 # MQTT publication
 ###################
-mqtt_data = [{'topic':photo_mqtt_topic+"path",         'payload':photo_path,  'qos':2, 'retain':False},
-             {'topic':photo_mqtt_topic+"last_photo",   'payload':file_name,   'qos':2, 'retain':False}]
+mqtt_data = [{'topic':photo_mqtt_topic+"path",              'payload':photo_path,  'qos':mqtt_qos, 'retain':False},
+             {'topic':photo_mqtt_topic+"last_photo_name",   'payload':file_name,   'qos':mqtt_qos, 'retain':False},
+             {'topic':photo_mqtt_topic+"last_photo_date",   'payload':file_date,   'qos':mqtt_qos, 'retain':False}]
 
-publish.multiple(mqtt_data,
-                 hostname=  mqtt_server,
-                 port=      mqtt_port,
-                 client_id= mqtt_client_id,
-                 auth=      mqtt_auth)
+mqtt.multiple(mqtt_data,
+              hostname=  mqtt_server    ,
+              port=      mqtt_port      ,
+              client_id= mqtt_client_id ,
+              auth=      mqtt_auth      )
