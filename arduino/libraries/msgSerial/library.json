@@ -1,0 +1,12 @@
+{
+  "name": "msgSerial",
+  "keywords": "serial, message",
+  "description": "Send and receive cmd to arduino, through serial",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/CrazyFraug/NotHere.git"
+  },
+  "frameworks": "arduino",
+  "platforms": "atmelavr"
+}

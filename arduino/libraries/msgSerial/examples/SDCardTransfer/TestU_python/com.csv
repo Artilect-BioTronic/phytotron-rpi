@@ -1,0 +1,8 @@
+Date;Heure;Chauffage;Refroidissement;Humidification
+10/04/2017;20:00:00;Chauffage_ON;;
+10/04/2017;21:00:00;Chauffage_OFF;;
+10/04/2017;22:00:00;Chauffage_ON;;Humidification_ON
+10/04/2017;22:01:00;;Refroidissement_OFF;
+10/04/2017;22:02:00;;Refroidissement_ON;
+10/04/2017;22:03:00;;;Humidification_OFF
+
