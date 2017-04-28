@@ -13,6 +13,7 @@
 #include <SD.h>
 #include <RCSwitch.h>
 
+#define TRACE(code)   code
 
 //reglages
 //const unsigned long intervalleEnregistrement = 60000 ; // en millisecondes
@@ -109,10 +110,6 @@ unsigned long tempsAffichage = 0 ;
 
 void setup(void)
 {
-  telecommande.enableTransmit ( pinTelecommande ) ;
-  commandeSwitch ( humiditicateurArret ) ;
-  commandeSwitch ( refroidissementArret ) ;
-  commandeSwitch ( chauffageArret ) ;
   Serial1.begin ( 9600 ) ;
   Serial.begin ( 115200 ) ;
   while ( !Serial )
@@ -120,6 +117,13 @@ void setup(void)
     ; // wait for serial port to connect. Needed for Leonardo only
   }
 
+  TRACE(Serial.println(String("Hello, my sketch name is: ")+ __FILE__));
+  
+  telecommande.enableTransmit ( pinTelecommande ) ;
+  commandeSwitch ( humiditicateurArret ) ;
+  commandeSwitch ( refroidissementArret ) ;
+  commandeSwitch ( chauffageArret ) ;
+  
   lcd.init ( ) ;
   lcd.createChar ( 0 , degres ) ;
   //  dht.begin ( ) ;
@@ -131,7 +135,6 @@ void setup(void)
     Serial.println("Couldn't find sensor!");
     while (1);
   }
-
 
   //initialisation carte SD
   if ( !SD.begin ( chipSelect ) )
@@ -233,7 +236,6 @@ void setup(void)
     erreur ( 8 ) ; //non ecriture fichier mesure sur carte SD
   }
 
-
   releveRTC ( ) ; //on releve date et heure sur l'horloge RTC
   releveValeurs ( ) ;
   afficheLCDregulier ( ) ;
@@ -251,11 +253,13 @@ void setup(void)
       afficheLCDregulier ( ) ;
     }
   }
-  while ( secondes != 0 ) ; //Pour partir à une Minute entiére
+//  while ( secondes != 0 ) ; //Pour partir à une Minute entiére
+  while ( 0 ) ; //Pour partir    de suitttttttttte
   //tempsEnregistrement = tempsAffichage = millis ( ) ;
   minutesEnregistrementPrecedent = minutes ;
   secondesAffichagePrecedent = secondes ;
 
+  TRACE(Serial.println("setup finished, let s start loop"));
   /*
     while ( tempsEnregistrement > intervalleEnregistrement )
     {
