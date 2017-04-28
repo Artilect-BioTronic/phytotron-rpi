@@ -15,9 +15,11 @@
 
 
 //reglages
-const unsigned long intervalleEnregistrement = 60000 ;
-const unsigned long intervalleAffichage = 1000 ;
-const byte nbCommandeSwitch = 10 ;
+//const unsigned long intervalleEnregistrement = 60000 ; // en millisecondes
+const byte intervalleEnregistrement = 1 ; // en minutes
+//const unsigned long intervalleAffichage = 1000 ; // en millisecondes
+const byte intervalleAffichage = 1 ; // en secondes
+const byte nbCommandeSwitch = 5 ;
 const int humiditicateurMarche = 5393 ;
 const int humiditicateurArret = 5396 ;
 const int refroidissementMarche = 4433 ;
@@ -50,8 +52,10 @@ unsigned long debutMenu = 0 ;
 boolean reglageTemp = false ;
 boolean reglageHum = false ;
 byte consigneTemp = 20 ;
+byte consigneTempProvisoire = 20 ;
 byte plageTemp = 2 ;
 byte consigneHum = 50 ;
+byte consigneHumProvisoire = 50 ;
 byte plageHum = 0 ;
 bool commandeChauffage = false ;
 bool commandeRefroidissement = false ;
@@ -90,15 +94,26 @@ String minutesDix ;
 String secondesDix ;
 String heureString ;
 String dateString ;
-unsigned long tempsEnregistrement = 0 ;
+//unsigned long tempsEnregistrement = 0 ;
+byte minutesEnregistrementPrecedent = 0 ;
+byte minutes = 0 ;
+byte secondesAffichagePrecedent = 0 ;
+byte secondes = 0 ;
 unsigned long tempsAffichage = 0 ;
 
 // Variables pour communication serie
-char lecturePortSerie ;
-String messageRecu = "" ;
+//char lecturePortSerie ;
+//String messageRecu = "" ;
+//String messageRecuUSB = "" ;
+//String messageRecuRaspi = "" ;
 
 void setup(void)
 {
+  telecommande.enableTransmit ( pinTelecommande ) ;
+  commandeSwitch ( humiditicateurArret ) ;
+  commandeSwitch ( refroidissementArret ) ;
+  commandeSwitch ( chauffageArret ) ;
+  Serial1.begin ( 9600 ) ;
   Serial.begin ( 115200 ) ;
   while ( !Serial )
   {
@@ -190,7 +205,7 @@ void setup(void)
     regFileEcriture.print ( separateurFichier ) ;
     regFileEcriture.print ( numeroDix ( consigneHum ) ) ;
     regFileEcriture.println ( "" ) ;
-    regFileEcriture.close();
+    regFileEcriture.close ( ) ;
   }
   else
   {
@@ -219,27 +234,27 @@ void setup(void)
   }
 
 
-
+  releveRTC ( ) ; //on releve date et heure sur l'horloge RTC
   releveValeurs ( ) ;
   afficheLCDregulier ( ) ;
   tmElements_t tm ;
-  RTC.read ( tm ) ;
-
-  while ( tm.Second != 0 )  //Pour partir à une Minute entiére
+  secondesAffichagePrecedent = secondes ;
+  do
   {
-    RTC.read ( tm ) ;
-    delay ( 100 ) ;
-
+    releveRTC ( ) ; //on releve date et heure sur l'horloge RTC
     // affichage regulier
-    if ( ( ( millis ( ) - tempsAffichage > intervalleAffichage ) ) && ! menu )
+    if ( ( secondes != secondesAffichagePrecedent ) && ! menu )
     {
-      tempsAffichage = tempsAffichage + intervalleAffichage ;
+      secondesAffichagePrecedent = secondes ;
+      //tempsAffichage = tempsAffichage + intervalleAffichage ;
       releveValeurs ( ) ;
       afficheLCDregulier ( ) ;
     }
-
   }
-  tempsEnregistrement = tempsAffichage = millis ( ) ;
+  while ( secondes != 0 ) ; //Pour partir à une Minute entiére
+  //tempsEnregistrement = tempsAffichage = millis ( ) ;
+  minutesEnregistrementPrecedent = minutes ;
+  secondesAffichagePrecedent = secondes ;
 
   /*
     while ( tempsEnregistrement > intervalleEnregistrement )
@@ -252,22 +267,19 @@ void setup(void)
       tempsAffichage = tempsAffichage - intervalleAffichage ;
     }
   */
-  releveValeurs ( ) ;
-  afficheLCDregulier ( ) ;
-  telecommande.enableTransmit ( pinTelecommande ) ;
-  commandeSwitch ( humiditicateurArret ) ;
-  commandeSwitch ( refroidissementArret ) ;
-  commandeSwitch ( chauffageArret ) ;
 }
 
 
 void loop ( )
 {
+  releveRTC ( ) ; //on releve date et heure sur l'horloge RTC
   // enregistrement regulier
-  if ( millis ( ) - tempsEnregistrement > intervalleEnregistrement )
+  //if ( millis ( ) - tempsEnregistrement > intervalleEnregistrement )
+  if ( minutes != minutesEnregistrementPrecedent )
   {
     //preparation du prochain enregistrement
-    tempsEnregistrement = tempsEnregistrement + intervalleEnregistrement ;
+    //tempsEnregistrement = tempsEnregistrement + intervalleEnregistrement ;
+    minutesEnregistrementPrecedent = minutes ;
     releveValeurs ( ) ;
     File dataFile = SD.open ( NomFichierMesure , FILE_WRITE ) ;
     if ( dataFile )
@@ -292,9 +304,11 @@ void loop ( )
   }
 
   // affichage regulier
-  if ( ( ( millis ( ) - tempsAffichage > intervalleAffichage ) ) && ! menu )
+  //if ( ( ( millis ( ) - tempsAffichage > intervalleAffichage ) ) && ! menu )
+  if ( ( secondes !=  secondesAffichagePrecedent ) && ! menu )
   {
-    tempsAffichage = tempsAffichage + intervalleAffichage ;
+    //tempsAffichage = tempsAffichage + intervalleAffichage ;
+    secondesAffichagePrecedent = secondes ;
     releveValeurs ( ) ;
     afficheLCDregulier ( ) ;
   }
@@ -332,6 +346,8 @@ void loop ( )
       afficheLCD ( "" , 7, 1 ) ;
       lcd.blink ( ) ;
       menu = true ;
+      consigneTempProvisoire = consigneTemp ;
+      consigneHumProvisoire = consigneHum ;
     }
 
     if ( valeurStick < 10 && selection ) // droite
@@ -352,15 +368,15 @@ void loop ( )
     {
       if ( reglageTemp )
       {
-        consigneTemp ++ ;
+        consigneTempProvisoire ++ ;
         lcd.setCursor ( 0 , 1 ) ;
-        lcd.print ( numeroDix ( consigneTemp ) ) ;
+        lcd.print ( numeroDix ( consigneTempProvisoire ) ) ;
       }
       if ( reglageHum )
       {
-        consigneHum ++ ;
+        consigneHumProvisoire ++ ;
         lcd.setCursor ( 13 , 1 ) ;
-        lcd.print ( numeroDix ( consigneHum ) ) ;
+        lcd.print ( numeroDix ( consigneHumProvisoire ) ) ;
       }
       selection = false ;
     }
@@ -369,16 +385,16 @@ void loop ( )
     {
       if ( reglageTemp )
       {
-        consigneTemp -- ;
+        consigneTempProvisoire -- ;
         lcd.setCursor ( 0 , 1 ) ;
-        lcd.print ( numeroDix ( consigneTemp ) ) ;
+        lcd.print ( numeroDix ( consigneTempProvisoire ) ) ;
       }
 
       if ( reglageHum )
       {
-        consigneHum -- ;
+        consigneHumProvisoire -- ;
         lcd.setCursor ( 13 , 1 ) ;
-        lcd.print ( numeroDix ( consigneHum ) ) ;
+        lcd.print ( numeroDix ( consigneHumProvisoire ) ) ;
       }
       selection = false ;
     }
@@ -386,6 +402,8 @@ void loop ( )
     if ( 850 < valeurStick && valeurStick < 870 && selection && ! validation ) // appuye
     {
       //enregistre les consignes
+      consigneHum = consigneHumProvisoire ;
+      consigneTemp = consigneTempProvisoire ;
       validation = true ;
       //Serial.println ( "appuye" ) ;
     }
@@ -548,8 +566,6 @@ void loop ( )
     }
   }
 
-
-
   // Refroidissement prise " B "
   if ( temperatureEntiere > ( consigneTemp + ( plageTemp * 2 ) ) && ! commandeRefroidissement )
   {
@@ -604,39 +620,60 @@ void loop ( )
     }
   }
 
-
-
-
-
-
-  // Lecture port serie
-
+  // Lecture port serie USB
   if ( Serial.available ( ) > 0 )
   {
+    String messageRecuUSB = "" ;
     while ( Serial.available ( ) > 0)
     {
-      lecturePortSerie = Serial.read ( ) ;
-      messageRecu = String ( messageRecu + lecturePortSerie ) ;
+      char lecturePortSerieUSB = Serial.read ( ) ;
+      messageRecuUSB = String ( messageRecuUSB + lecturePortSerieUSB ) ;
+    }
+    Serial.print ( "messageRecuUSB =>" ) ;   // send an initial string
+    Serial.print ( messageRecuUSB ) ;   // send an initial string
+    Serial.println ( "<=" ) ;   // send an initial string
+    if ( messageRecuUSB == "cons" )
+    {
+      dump ( NomFichierConsignes ) ;
+    }
+    if ( messageRecuUSB == "mes" )
+    {
+      dump ( NomFichierMesure ) ;
+    }
+    if ( messageRecuUSB == "com" )
+    {
+      dump ( NomFichierCommandes ) ;
+    }
+    messageRecuUSB = "" ;
+  }
+
+  // Lecture port serie RasbPi
+  if ( Serial1.available ( ) > 0 )
+  {
+    String messageRecuRaspi = "" ;
+    while ( Serial1.available ( ) > 0)
+    {
+      char lecturePortSerieRaspi = Serial1.read ( ) ;
+      messageRecuRaspi = String ( messageRecuRaspi + lecturePortSerieRaspi ) ;
     }
     Serial.print ( "messageRecu =>" ) ;   // send an initial string
-    Serial.print ( messageRecu ) ;   // send an initial string
+    Serial.print ( messageRecuRaspi ) ;   // send an initial string
     Serial.println ( "<=" ) ;   // send an initial string
+    if ( messageRecuRaspi == "cons" )
+    {
+      dump ( NomFichierConsignes ) ;
+    }
+    if ( messageRecuRaspi == "mes" )
+    {
+      dump ( NomFichierMesure ) ;
+    }
+    if ( messageRecuRaspi == "com" )
+    {
+      dump ( NomFichierCommandes ) ;
+    }
+    messageRecuRaspi = "" ;
   }
-  if ( messageRecu == "cons" )
-  {
-    dump ( NomFichierConsignes ) ;
-  }
-  if ( messageRecu == "mes" )
-  {
-    dump ( NomFichierMesure ) ;
-  }
-  if ( messageRecu == "com" )
-  {
-    dump ( NomFichierCommandes ) ;
-  }
-  messageRecu = "" ;
 }
-
 
 //fonction permettant de transformer un integer en chaine de 2 caracteres ( zero en premier par defaut )
 String numeroDix ( int valeur )
@@ -650,7 +687,6 @@ String numeroDix ( int valeur )
     return String ( valeur ) ;
   }
 }
-
 
 //fonction d'affichage d'erreurs sur liaison serie
 void erreur ( byte numeroErreur )
@@ -666,11 +702,13 @@ void releveRTC ( void )
   tmElements_t tm;
   if ( RTC.read ( tm ) )
   {
+    minutes = tm.Minute ;
+    secondes = tm.Second ;
     heureString = String ( numeroDix ( tm.Hour )
                            + ":"
-                           + numeroDix ( tm.Minute )
+                           + numeroDix ( minutes )
                            + ":"
-                           + numeroDix ( tm.Second ) ) ;
+                           + numeroDix ( secondes ) ) ;
 
     dateString = String ( numeroDix ( tm.Day )
                           + "/"
@@ -690,7 +728,6 @@ void afficheLCD ( String texte , unsigned int positionColonne , boolean ligne  )
 
 void releveValeurs ( void )
 {
-  releveRTC ( ) ; //on releve date et heure sur l'horloge RTC
   sensors_event_t event; // Lancer les mesures
   /*
     dht.temperature().getEvent(&event); //temperature par DHT11
