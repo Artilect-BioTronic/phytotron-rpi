@@ -1,9 +1,0 @@
-line2bis baba gogo
-g
-line3: no more
-line1
-line2: nothing
-line3: no more
-line1
-line2: nothing
-line3: no more
