@@ -1,6 +1,5 @@
 #include "Arduino.h"
 
-//#define CALL_FROM_MSG_FROM_MQTT
 #include "msgSerial.h"
 
 #define LOG_DEBUG(str)   Serial.println(str)
@@ -30,15 +29,6 @@ stListPin listPin[] = {
 };
 int listPinSize = sizeof(listPin) / sizeof(stListPin);
 */
-
-
-// list of available commands (user) that the arduino will accept
-//extern Command cmdos[] ;
-//extern int cmdosSize ;
-
-// list of available commands (system ctrl) that the arduino will accept
-//extern Command cmds[] ;
-//extern int cmdsSize ;
 
 
 // functions to send back messages
@@ -395,7 +385,7 @@ int sendSketchId(const String& dumb)
 // send an identifiant for the version of the sketch
 //   we use the __DATE__ and __TIME__ when it was built
 // you have to define those  var  in your sketch.ino
-//   with   setFile(F(__FILE__), F(__DATE__), F(__TIME__))
+//   with   sketchInfo.setFileDateTime(F(__FILE__), F(__DATE__), F(__TIME__))
 int sendSketchBuild(const String& dumb)
 {
     String msg2py= "idBuild:" + sketchInfo.getDate() +','+ sketchInfo.getTime() ;

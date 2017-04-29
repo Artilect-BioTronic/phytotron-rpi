@@ -5,7 +5,6 @@
 
 #include "msgSerial.h"
 
-DEFINE_FILE_DATE_TIME
 
 #define PIN_CAPTOR  10
 #define PIN_LED 13
@@ -20,34 +19,15 @@ int listPinSize = sizeof(listPin) / sizeof(stListPin);
 int switchLed1(const String& dumb);
 
 
-CommandC cmdcos[] = {
-  CommandC("SendValue",     &sendMessageStatus),
-  CommandC("S",             &sendMessageStatus),
-  CommandC("ledBlink",      &ledBlinkTime),
-  CommandC("lit1/switch",   &switchLed1)
-};
-//CommandC cmc5("tt",   &switchLed1);
-
 Command cmdTmp[] = {
-  Command("SendValue",     &sendMessageStatus),
-  Command("S",             &sendMessageStatus),
-  Command("sl",      &switchLed1),
-  Command("lit1/switch",   &switchLed1)
+    Command("SendValue",     &sendMessageStatus),
+    Command("S",             &sendMessageStatus),
+    Command("sl",      &switchLed1),
+    Command("ledBlink",      &ledBlinkTime),
+    Command("lit1/switch",   &switchLed1)
 };
-CommandList cmdl("CMDl", "CM+", SIZE_OF_TAB_AND_TAB(cmdTmp) );
+CommandList cmdListUser("CMDl", "CM+", SIZE_OF_TAB(cmdTmp), cmdTmp );
 SerialListener serList(Serial);
-
-// list of available commandes (system ctrl) that the arduino will accept
-// example:  int sendSketchId(const String& dumb);
-
-// list of available commands (user) that the arduino will accept
-Command cmdos[] = {
-  Command("SendValue",     &sendMessageStatus),
-  Command("S",             &sendMessageStatus),
-  Command("sl",            &switchLed1),
-  Command("lit1/switch",   &switchLed1)
-};
-int cmdosSize = sizeof(cmdos) / sizeof(Command);
 
 // list of available commands (system ctrl) that the arduino will accept
 Command cmds[] = {
@@ -60,7 +40,8 @@ Command cmds[] = {
   Command("pinRead",   &cmdPinRead),
   Command("pinWrite",  &cmdPinWrite)
 };
-int cmdsSize = sizeof(cmds) / sizeof(Command);
+CommandList cmdListSys("CMDat", "AT+", SIZE_OF_TAB(cmds), cmds );
+//int cmdsSize = sizeof(cmds) / sizeof(Command);
 
 
 /*---------------------------------------------------------------*/
@@ -71,24 +52,21 @@ void setup()
 {
     pinMode(PIN_LED, OUTPUT);
     Serial.begin(9600);
-    serList.addCmdList(cmdl);
-    
+    serList.addCmdList(cmdListUser);
+    serList.addCmdList(cmdListSys);
+
     inputMessage.reserve(200);
     
+    sketchInfo.setFileDateTime(F(__FILE__), F(__DATE__), F(__TIME__));
     // I send identification of sketch
-//    sendSketchId("");
-//    sendSketchBuild("");
-    
+    sendSketchId("");
+    sendSketchBuild("");
+
 }
  
 void loop()
 {
-//  checkMessageReceived();
   serList.checkMessageReceived();
-
-//  static bool etatLed=true;
-//  etatLed = ! etatLed;
-//  digitalWrite(13,etatLed);
 
   // I slow down Arduino
   delay(10);

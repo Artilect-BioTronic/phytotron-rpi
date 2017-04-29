@@ -17,14 +17,15 @@ def logp (msg, gravity='trace'):
    print('['+gravity+']' + msg)
 
 msgStartCmd='CM+'
+msgStartCmd2='AT+'
 msgEnd='\n'
 
 devSerial='/dev/ttyACM0'
 
 
 def sendCmdArd(aCmd):
-   cmd2arduino = msgStartCmd + aCmd + msgEnd
-   ser.write(cmd2arduino)
+    cmd2arduino = msgStartCmd + aCmd + msgEnd
+    ser.write(cmd2arduino)
 
 def sendCmdArdReceive(aCmd):
     sendCmdArd(aCmd)
@@ -32,6 +33,10 @@ def sendCmdArdReceive(aCmd):
 
 def scar(aCmd):
     sendCmdArd(aCmd)
+    emptyRx(ser)
+
+def scar2(aCmd):
+    ser.write(msgStartCmd2 + aCmd + msgEnd)
     emptyRx(ser)
 
 
