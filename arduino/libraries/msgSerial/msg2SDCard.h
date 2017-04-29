@@ -24,6 +24,10 @@ private:
     boolean isPreOpened_;
     long filePos_;
 
+    int readlnNoOpen(String& aString);
+    int readNcharNoOpen(String& strBuf, int nbChar);
+    int moveToNoOpen(const String& aString);
+
 public:
     static const char MOVE_BEGIN[];
     static const char MOVE_END[];
@@ -36,11 +40,9 @@ public:
     int tmpOpen();
     int tmpClose();
     int readNchar(String& strBuf, int nbChar);
-    int readNcharNoOpen(String& strBuf, int nbChar);
     int readln(String& aString);
     int writeln(const String& aString);
     int moveTo(const String& aString);
-    int moveToNoOpen(const String& aString);
     int rename(const String& aOld, const String& aNew);
     int remove(const String& aString);
     int mkdir(const String& aString);
@@ -50,8 +52,27 @@ public:
 };
 
 
+/** Prepare to open a file before read / write can be done
+ *
+ * \param[in] argFile Path name to the file
+ *
+ * The file stays open until call to srClose
+ * You d better use  srPreOpen
+ *
+ * \return 0 for success and negative for failure
+ */
 int srStayOpen(const String& argFile);
 
+/** Prepare to open a file before read / write can be done
+ *
+ * \param[in] argFile Path name to the file
+ *
+ * There is an attempt to open the file, then it is closed.
+ * At each call to srReadNchar / srWriteln the file will be open
+ * temporarily and it will be closed immediately
+ *
+ * \return 0 for success and negative for failure
+ */
 int srPreOpen(const String& argFile);
 
 int srClose(const String& dumb);

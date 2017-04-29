@@ -228,13 +228,6 @@ logp ("arduino buffer garbage: " + str(response), 'info')
 time.sleep(1)
 
 
-# just to play
-sendCmdArd("SendValue")
-emptyRx(ser)
-
-
-response = sendGetArd("SendValue")
-
 openHDFile(fileHDN)
 print ('file: '+ fileHDN + ' opened')
 
@@ -265,6 +258,4 @@ ser.close()
 sys.exit(0)
 
 #===============================
-
-
 

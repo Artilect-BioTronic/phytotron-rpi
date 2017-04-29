@@ -147,16 +147,11 @@ logp ("arduino buffer garbage: " + str(response), 'info')
 time.sleep(1)
 
 
-# just to play
-sendCmdArd("SendValue")
-emptyRx(ser)
-
-
 # open modes are different from basic SD.h library
 # open modes are (0X08 to 0X01): O_SYNC | O_APPEND | O_WRITE | O_READ
 # open modes are (0X80 to 0X10): O_EXCL | O_CREAT | O_AT_END | O_TRUNC
 # open with R/W, create if necessary
-[response, cr] = sendGetArd("srStayOpen:" + fileSDN + ",67")
+[response, cr] = sendGetArd("srStayOpen:" + fileSDN + ",71")
 if cr == -1 :
    print ('open : ', fileSDN, ' failed', '\nbye')
    sys.exit(-1)
@@ -202,18 +197,3 @@ ser.close()
 sys.exit(0)
 
 #===============================
-
-emptyRx(ser)
-
-emptyRx(ser)
-ser.write("CM+srOpen:" + fileSD +"\n")
-emptyRx(ser)
-ser.write("CM+srReadln""\n")
-emptyRx(ser)
-ser.write("CM+srClose""\n")
-emptyRx(ser)
-
-ser.close()
-
-
-

@@ -122,10 +122,36 @@ void dump(String aFileName){
 
 // the file is read until \n char, string goes in readString
 // returns the number of read char,  0 if none, -1 if error
+// it open / close file if needed and call to readlnNoOpen for reading
 int Cmd2File::readln(String& aString)
 {
     aString = "";
-    if ( (! isOpened_) || (file_->available() <= 0) )
+    if ( (! isOpened_) && (! isPreOpened_) )
+        return -1;
+
+    if (isPreOpened_)  { // we open  before each access
+        int cr = tmpOpen();
+        if (cr != 0)
+            return cr-10;
+    }
+
+    int cr = readlnNoOpen(aString);
+
+    if (isPreOpened_)   // we close  after each access
+        tmpClose();
+
+    if (cr <=0)
+        return cr;
+    else
+        return aString.length();
+}
+
+// the file is read until \n char, string goes in readString
+// returns the number of read char,  0 if none, -1 if error
+int Cmd2File::readlnNoOpen(String& aString)
+{
+    aString = "";
+    if ( (! isOpened_) && (! isPreOpened_) )
         return -1;
 
     int newChar = 0;
@@ -318,7 +344,13 @@ int Cmd2File::remove(const String& aString)
     if ( (aString.length() <= 0) || (aString.length() > 100) )
         return -1;
 
-    if (SD.remove(aString.c_str()))
+    boolean cr=false;
+    if (aString.endsWith("/"))   // remove a dir
+        cr = SD.rmdir(aString.c_str());
+    else   //  remove a file
+        cr = SD.remove(aString.c_str());
+
+    if ( cr )
         return 0;
     else
         return -2;
@@ -451,7 +483,7 @@ int srReadln(const String& dumb)
     int cr = cmd2File.readln(readString);
 
     if (cr < 0)
-        msgSPrintln(String("srReadln/KO"));
+        msgSPrintln(String("srReadln/KO:") +cr);
     else
         // I send back the  String  that was read
         msgSPrintln(String(F("srReadln/OK:")) + readString);
