@@ -1,0 +1,49 @@
+Group gAtmo     "Atmosphère"    <living>
+Group gWater    "Eau"           <water>
+Group gLight    "Lumière"       <light>
+Group gSoil     "Sol/Substrat"  <garden>           
+Group gEnv      "Environnement" <sun>
+Group gDev      "Phytotron"     <greenhouse>
+
+Group Status
+Group Shutters
+
+/* active groups */
+Group:Switch:OR(ON, OFF)        Lumieres    "Toutes les lumières [(%d)]"
+Group:Switch:OR(ON, OFF)        Radiateurs  "Tous les radiateurs [(%d)]"            <heating>
+Group:Number:AVG                Temperature "Temperature moyenne [%.1f °C]"         <temperature>   (Status)
+Group:Number:AVG                Humidity    "Humidité relative moyenne [%.1f %%]"    <humidity>          (Status)
+Group:Contact:OR(OPEN, CLOSED)  Porte       "Ouverture porte [(%d)]"                <contact>
+
+/* Lights */
+Dimmer Inside_Light    "Eclairage intérieur [%s]"       (gLight, Lumieres, gDev)   {mqtt=">[local_mqtt:/phytotron/light/switch:command:*:default],<[local_mqtt:/phytotron/light/+/state:state:default]"}
+
+/* Temperature control */
+Switch Heater   "Radiateur"      <heating>   (gDev, Radiateurs) {mqtt=">[local_mqtt:/phytotron/radiateur/command:command:*:default],<[local_mqtt:/phytotron/radiateur/state:state:default]"}
+Switch Climate  "Compresseur"    <climate>   (gDev, Radiateurs) {mqtt=">[local_mqtt:/phytotron/clim/command:command:*:default],<[local_mqtt:/phytotron/clim/+/clim/state:state:default]"}
+
+/* Temperatures */
+Number Inside_Temperature       "Temperature [%.1f °C]"         <temperature>   (Temperature, gAtmo)
+Number Inside_Humidity          "Humidité relative [%.1f %%]"   <humidity>      (Humidity, gAtmo)
+
+Group  Weather_Chart
+Number Outside_Temperature      "Temperature [%.1f °C]"         <temperature>   (gEnv, Temperature) {mqtt="<[local_mqtt:sense_hat/temperature/value:state:default]"}
+Number Outside_Humidity         "Humidité relative [%.1f %%]"   <humidity>      (gEnv, Humidity)    {mqtt="<[local_mqtt:sense_hat/humidity/value:state:default]"}
+
+/* Windows */
+
+Contact Frontdoor     "Porte [MAP(en.map):%s]"  (Porte, gDev)
+
+/* Demo items */
+
+DateTime CurrentDate            "Date [%1$tA, %1$td.%1$tm.%1$tY]"   <calendar>  { channel="ntp:ntp:demo:dateTime" }
+Switch DemoSwitch               "Switch"
+Dimmer DimmedLight              "Dimmer [%d %%]"        <slider>
+Color  RGBLight                 "RGB Light"             <slider>
+Rollershutter DemoShutter       "Roller Shutter"
+Dimmer DemoBlinds               "Blinds [%d %%]"        <rollershutter>
+Number Scene_General            "Scene"                 <sofa>
+Number Radio_Station            "Radio"                 <network>
+Dimmer Volume                   "Volume [%.1f %%]"
+Location DemoLocation           "Artilect Fablab Toulouse"
+Number Wifi_Level "Wifi Level [%d/4]" <signal> (FF_Office)

@@ -1,0 +1,52 @@
+sitemap phytotron label="Menu Principal"
+{
+	Frame label="Groupes" {
+		Group item=gAtmo  label="Atmosphère"  icon="smoke"
+		Group item=gWater label="Eau"         icon="water"
+		Group item=gLight label="Lumière"     icon="sun"
+		Group item=gSoil  label="Sol/Substrat" icon="bath"
+		Group item=gEnv   label="Environnement"   icon="garden"
+		Group item=gDev   label="Phytotron"   icon="greenhouse"
+	}
+	Frame label="Groupes" {
+		Switch item=Lumieres mappings=[OFF="All Off"]
+		Group item=Lumieres
+		Switch item=Radiateurs mappings=[OFF="All Off"]
+		Group item=Radiateurs
+		Text item=Temperature
+	}
+	Frame label="Conditions extérieures" {
+		Text item=Outside_Temperature valuecolor=[Weather_LastUpdate=="NULL"="lightgray",>25="orange",>15="green",<=5="blue"] 
+		Text item=Outside_Humidity
+	}
+    Frame label="Demo" {
+		Text item=CurrentDate
+		Text label="Group Demo" icon="firstfloor" {
+			Switch item=Lumieres mappings=[OFF="All Off"]
+			Group item=Heating
+			Group item=Windows
+			Text item=Temperature
+		}
+		Text label="Widget Overview" icon="chart" {
+			Frame label="Binary Widgets" {
+				Switch item=DemoSwitch label="Toggle Switch"
+				Switch item=DemoSwitch label="Button Switch" mappings=[ON="On"]
+			}
+			Frame label="Discrete Widgets" {
+				Selection item=Scene_General label="Scene Selection" mappings=[0=off, 1=TV, 2=Dinner, 3=Reading]
+				Switch item=Scene_General label="Scene" mappings=[1=TV, 2=Dinner, 3=Reading]
+				Setpoint item=Temperature_Setpoint minValue=16 maxValue=28 step=0.5
+			}
+			Frame label="Percent-based Widgets" {
+				Slider item=DimmedLight switchSupport
+				Colorpicker item=RGBLight icon="slider"
+				Switch item=DemoShutter
+				Slider item=DemoBlinds
+			}
+			Frame label="Map/Location" {
+				Mapview item=DemoLocation height=10
+			}
+		}
+		Image icon="photo" url="http://:8080/static/last_photo.jpg" label="Webcam du phytotron" refresh=60000
+	}
+}
