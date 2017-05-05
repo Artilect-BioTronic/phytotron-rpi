@@ -1,10 +1,12 @@
 #include "Arduino.h"
 
 #define LOG_DEBUG(str)   Serial.println(str)
-#define LOG_ERROR(str)   Serial.println(str)
+#define LOG_ERROR(str)   msgSError(str)
 
 #include "msgSerial.h"
 
+#include "SPI.h"
+#include "SdFat.h"
 #include "msg2SDCard.h"
 
 DEFINE_FILE_DATE_TIME
@@ -21,21 +23,15 @@ int listPinSize = sizeof(listPin) / sizeof(stListPin);
 // list of available commands (user) that the arduino will accept
 int switchLed1(const String& dumb);
 int switchLed13(const String& dumb);
-int srOpen(const String& dumb);
-int srClose(const String& dumb);
-int srReadln(const String& dumb);
-int srRead(const String& dumb);
-int srWrite(const String& dumb);
-int srMove(const String& dumb);
 
 SerialListener serList(Serial);
 
 Command cmdUser[] = {
     Command("SendValue",     &sendMessageStatus),
     Command("S",             &sendMessageStatus),
-    Command("srOpen",        &srOpen),    // :file
-    Command("srClose",       &srClose),   // :
-    Command("srReadln",      &srReadln),  // :
+//    Command("srPreOpen",     &srPreOpen),    // :file
+//    Command("srClose",       &srClose),   // :
+//    Command("srReadln",      &srReadln),  // :
 //    Command("srRead",        &srRead),  // : ?
 //    Command("srWrite",       &srWrite),
 //    Command("srMove",        &srMove),
@@ -73,23 +69,17 @@ void setup()
     Serial.begin(9600);
     serList.addCmdList(cmdLUser);
     serList.addCmdList(cmdLSys);
-
-    inputMessage.reserve(200);
     
+    // I fill info on sketch
+    sketchInfo.setFileDateTime(F(__FILE__), F(__DATE__), F(__TIME__));
     // I send identification of sketch
     sendSketchId("");
     sendSketchBuild("");
-
 }
  
 void loop()
 {
-//  checkMessageReceived();
   serList.checkMessageReceived();
-
-//  static bool etatLed=true;
-//  etatLed = ! etatLed;
-//  digitalWrite(13,etatLed);
 
   // I slow down Arduino
   delay(10);
@@ -103,45 +93,7 @@ void loop()
 // switch the led On or Off
 int switchLed1(const String& sOnOff)
 {
-    // sCmdAndBlinkTime contains cmd and value with this format cmd:value
-    // value must exist
-    int ind = sOnOff.indexOf(":");
-    if (ind < 0)   {
-      LOG_ERROR(F("switchLed cmd needs 1 value"));
-      String msg2py = msg2pyStart + "switchLed/KO" + msg2pyEnd;
-      Serial.print(msg2py);
-      return 1;
-    }
-
-    // we get value part
-    String sValue = sOnOff.substring(ind+1);
-    // value must be  ON  or  OFF
-    if ( ( ! sValue.equals("ON")) && ( ! sValue.equals("OFF")) )   {
-      LOG_ERROR(F("switchLed: value must be ON or OFF"));
-      String msg2py = msg2pyStart + F("switchLed/KO") + msg2pyEnd;
-      Serial.print(msg2py);
-      return 2;
-    }
-
-    int iValue=0;
-    // converts ON / OFF  to  1 / 0
-    if (sValue.equals("ON"))
-      iValue = 1;
-    else if (sValue.equals("OFF"))
-      iValue = 0;
-    else
-      Serial.println ("jamais de la vie");
-
-    digitalWrite(PIN_LED, iValue);
-
-    // I send back OK msg
-    String msg2py = msg2mqttStart + F("switchLed/OK:") + sValue + msg2pyEnd;
-    Serial.print(msg2py);
-    // I send back state msg
-    msg2py = msg2mqttStart + F("etat:") + sValue + msg2pyEnd;
-    Serial.print(msg2py);
-
-    return 0;
+    return switchLed13(sOnOff);
 }
 
 // switch the led On or Off
@@ -152,8 +104,7 @@ int switchLed13(const String& sOnOff)
     int ind = sOnOff.indexOf(":");
     if (ind < 0)   {
       msgSError(F("switchLed cmd needs 1 value"));
-      String msg2py = msg2pyStart + "switchLed/KO" + msg2pyEnd;
-      Serial.print(msg2py);
+      msgSPrint(F("switchLed/KO"));
       return 1;
     }
 
@@ -161,9 +112,8 @@ int switchLed13(const String& sOnOff)
     String sValue = sOnOff.substring(ind+1);
     // value must be  ON  or  OFF
     if ( ( ! sValue.equals("ON")) && ( ! sValue.equals("OFF")) )   {
-      LOG_ERROR(F("switchLed: value must be ON or OFF"));
-      String msg2py = msg2pyStart + F("switchLed/KO") + msg2pyEnd;
-      Serial.print(msg2py);
+      msgSError(F("switchLed: value must be ON or OFF"));
+      msgSPrint(F("switchLed/KO"));
       return 2;
     }
 
@@ -174,16 +124,15 @@ int switchLed13(const String& sOnOff)
     else if (sValue.equals("OFF"))
       iValue = 0;
     else
-      Serial.println ("jamais de la vie");
+        msgSPrint(F("switchLed/KO"));
+
 
     digitalWrite(PIN_LED, iValue);
 
     // I send back OK msg
-    String msg2py = msg2mqttStart + F("switchLed/OK:") + sValue + msg2pyEnd;
-    Serial.print(msg2py);
+    msgSPrint(String(F("switchLed/OK:")) + sValue);
     // I send back state msg
-    msg2py = msg2mqttStart + F("etat:") + sValue + msg2pyEnd;
-    Serial.print(msg2py);
+    msgSPrint(String(F("state:")) + sValue);
 
     return 0;
 }

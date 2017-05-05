@@ -4,7 +4,7 @@
 //   https://github.com/greiman/SdFat
 //#include "SD.h"
 #include "SdFat.h"
-extern SdFat SD;
+SdFat SD;
 
 #include "msgSerial.h"
 

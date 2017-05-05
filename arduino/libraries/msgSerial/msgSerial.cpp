@@ -329,9 +329,7 @@ void SerialListener::checkMessageReceived()
 int sendMessageStatus(const String& dumb)
 {
     int sensorVal = getSensorValue(); 
-    String msg2pyMosquitto = msg2mqttStart + "temp" + ":" + sensorVal 
-                            + msg2pyEnd;
-    Serial.print(msg2pyMosquitto);
+    msgSPrint(String("temp:") +sensorVal);
     return 0;
 }
 

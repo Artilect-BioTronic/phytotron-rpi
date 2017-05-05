@@ -55,7 +55,7 @@ struct Command {
 };
 
 extern boolean inputMessageReceived;
-extern String inputMessage, msg2pyStart, msg2mqttStart, msg2pyEnd, prefAT, prefDO ;
+extern String msg2pyStart, msg2mqttStart, msg2pyEnd, prefAT, prefDO ;
 
 // You can keep all those functions here
 //   they DO NOT take program space if you dont call them in main sketch.ino
