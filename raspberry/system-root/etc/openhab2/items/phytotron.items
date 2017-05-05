@@ -34,6 +34,11 @@ Number Outside_Humidity         "Humidité_Externe relative [%.1f %%]"   <humidi
 Number Mesures_Chart_Period     "Chart Period"                <clock>
 Group gTempChart
 
+/* Test items */
+Group gTest
+Switch Led13   "Led13"         (gTest) {mqtt=">[local_mqtt:/phytotron/oh/sl13:command:*:default],<[local_mqtt:/phytotron/+/sl13/state:state:default]"}
+
+
 /* Windows */
 
 Contact Frontdoor     "Porte [MAP(en.map):%s]"  (Porte, gDev)

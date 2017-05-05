@@ -16,22 +16,22 @@ clientId='myNameOfClient'
 logfile=sys.stdout
 logStartTime=0.
 
-myTopic1='/domotique/garage/topictest/'
-myTopic2='/domotique/garage/topictest2/'
+devSerial='/dev/ttyUSB0'   # serial port the arduino is connected to
 
-devSerial='/dev/ttyUSB1'   # serial port the arduino is connected to
-cmdSendValue='SendValue'
+mqTopic1='/domotique/garage/topictest/'
+mqTopic2='/domotique/garage/topictest2/'
 
-
-# serial msg to arduino begin  with  prefAT / prefDO and end with endOfLine
-prefAT='AT+'
-prefDO='DO+'
+# serial msg to arduino begin  with  prefTopic2 / prefTopic1 and end with endOfLine
+prefTopic1='CM+'
+prefTopic2='AT+'
 endOfLine='\n'
 # arduino responds with those 2 kind of messages
 msg2py='2py'
 msg2mqtt='2mq'
 
 sleepBetweenLoop=5    # sleep time (eg: 1s) to slow down loop
+sleepResponse=0.09    # sleep to leave enough time for the arduino to respond immediately
+
 namePy='py0'
 topFromPy= namePy + '/'
 topFromOH='oh/'
@@ -66,39 +66,39 @@ def reOpenLogfile(logfileName):
 
 
 def read_args(argv):
-	# optional args have default values above
-	global logfile, hostMQTT, namePy, myTopic1, myTopic2, devSerial
-	logfileName = ''
-	try:
-		opts, args = getopt.getopt(argv,"hl:b:n:t:u:d:",["logfile=","broker=","namepy=","mytopic1=","mytopic2=","devserial="])
-	except getopt.GetoptError:
-		print ('serial2MQTTduplex.py -l <logfile> -n <namepy> -b <broker> -t <mytopic1> -u <mytopic2> -d <devserial>')
-		sys.exit(2)
-	for opt, arg in opts:
-		if opt == '-h':
-			print ('serial2MQTTduplex.py -l <logfile> -n <namepy> -b <broker> -t <mytopic1> -u <mytopic2> -d <devserial>')
-			sys.exit()
-		elif opt in ("-l", "--logfile"):
-			logfileName = arg
-		elif opt in ("-b", "--broker"):
-			hostMQTT = arg
-		elif opt in ("-n", "--namepy"):
-			namePy = arg
-		elif opt in ("-t", "--mytopic1"):
-			myTopic1 = arg
-		elif opt in ("-u", "--mytopic2"):
-			myTopic2 = arg
-		elif opt in ("-d", "--devserial"):
-			devSerial = arg
-	logp('logfile is '+ logfileName, 'debug')
-	logp('broker is '+ hostMQTT, 'debug')
-	logp('namepy is '+ namePy, 'debug')
-	logp('mytopic1 is '+ myTopic1, 'debug')
-	logp('mytopic2 is '+ myTopic2, 'debug')
-	logp('devserial is '+ devSerial, 'debug')
-	# I try to open logfile
-	if logfileName != '' :
-		reOpenLogfile(logfileName)
+    # optional args have default values above
+    global logfile, hostMQTT, namePy, mqTopic1, mqTopic2, devSerial
+    logfileName = ''
+    try:
+        opts, args = getopt.getopt(argv,"hl:b:n:t:u:d:",["logfile=","broker=","namepy=","mqTopic1=","mqTopic2=","devserial="])
+    except getopt.GetoptError:
+        print ('serial2MQTTduplex.py -l <logfile> -n <namepy> -b <broker> -t <mqTopic1> -u <mqTopic2> -d <devserial>')
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print ('serial2MQTTduplex.py -l <logfile> -n <namepy> -b <broker> -t <mqTopic1> -u <mqTopic2> -d <devserial>')
+            sys.exit()
+        elif opt in ("-l", "--logfile"):
+            logfileName = arg
+        elif opt in ("-b", "--broker"):
+            hostMQTT = arg
+        elif opt in ("-n", "--namepy"):
+            namePy = arg
+        elif opt in ("-t", "--mqTopic1"):
+            mqTopic1 = arg
+        elif opt in ("-u", "--mqTopic2"):
+            mqTopic2 = arg
+        elif opt in ("-d", "--devserial"):
+            devSerial = arg
+    logp('logfile is '+ logfileName, 'debug')
+    logp('broker is '+ hostMQTT, 'debug')
+    logp('namepy is '+ namePy, 'debug')
+    logp('mqTopic1 is '+ mqTopic1, 'debug')
+    logp('mqTopic2 is '+ mqTopic2, 'debug')
+    logp('devserial is '+ devSerial, 'debug')
+    # I try to open logfile
+    if logfileName != '' :
+        reOpenLogfile(logfileName)
 
 
 logStartTime = time.time()
@@ -117,70 +117,109 @@ def checkLogfileSize(logfile):
 
 # The callback for when the client receives a CONNACK response from the server.
 def on_connect(client, userdata, rc):
-	print("Connected to mosquitto with result code "+str(rc))
-	# Subscribing in on_connect() means that if we lose the connection and
-	# reconnect then subscriptions will be renewed.
-	mqttc.subscribe(myTopic1+ topFromOH +'#')
-	mqttc.message_callback_add(myTopic1+ topFromOH+ '#', on_message_myTopicOH)
-	mqttc.subscribe(myTopic1+ topFromSys +'#')
-	mqttc.message_callback_add(myTopic1+ topFromSys+ '#', on_message_myTopicSys)
+    print("Connected to mosquitto with result code "+str(rc))
+    # Subscribing in on_connect() means that if we lose the connection and
+    # reconnect then subscriptions will be renewed.
+    mqttc.subscribe(mqTopic1+ topFromOH +'#')
+    mqttc.message_callback_add(mqTopic1+ topFromOH+ '#', on_message_mqTopicOH)
+    mqttc.subscribe(mqTopic2+ topFromOH +'#')
+    mqttc.message_callback_add(mqTopic2+ topFromOH+ '#', on_message_mqTopicOH)
+    mqttc.subscribe(mqTopic1+ topFromSys +'#')
+    mqttc.message_callback_add(mqTopic1+ topFromSys+ '#', on_message_mqTopicSys)
 
 # The callback for when a PUBLISH message is received from the server.
 # usually we dont go to  on_message
 #  because we go to a specific callback that we have defined for each topic
 def on_message(client, userdata, msg):
-	logp('msg:' +msg.topic+" : "+str(msg.payload), 'info')
-	cmd2arduino = prefAT + str(msg.payload) + endOfLine
-	ser.write(cmd2arduino)
+    logp('msg:' +msg.topic+" : "+str(msg.payload), 'info')
+    cmd2arduino = prefTopic2 + str(msg.payload) + endOfLine
+    ser.write(cmd2arduino)
+    # I immediately wait a moment for the arduino to respond
+    time.sleep(sleepResponse)
+    readArduinoAvailableMsg(ser)
 
 # The callback for when a PUBLISH message is received from the server.
 # usually  we go to a specific callback that we have defined for each topic
-def on_message_myTopicOH(client, userdata, msg):
-	logp("myTopicOH:"+msg.topic+" : "+str(msg.payload), 'info')
-	cmd = msg.topic.replace(myTopic1, '').replace(topFromOH, '').replace('#','')
-	cmd2arduino = prefDO + cmd + ':' + str(msg.payload)+ endOfLine
-	ser.write(cmd2arduino)
+def on_message_mqTopicOH(client, userdata, msg):
+    logp("mqTopicOH:"+msg.topic+" : "+str(msg.payload), 'info')
+    if msg.topic.startswith(mqTopic1) :
+        mqTopic   = mqTopic1
+        prefTopic = prefTopic1
+    else :
+        mqTopic   = mqTopic2
+        prefTopic = prefTopic2
+    cmd = msg.topic.replace(mqTopic, '').replace(topFromOH, '').replace('#','')
+    cmd2arduino = prefTopic + cmd + ':' + str(msg.payload)+ endOfLine
+    ser.write(cmd2arduino)
+    # I immediately wait a moment for the arduino to respond
+    time.sleep(sleepResponse)
+    readArduinoAvailableMsg(ser)
 
 # The callback for when a PUBLISH message is received from the server.
 # usually  we go to a specific callback that we have defined for each topic
-def on_message_myTopicSys(client, userdata, msg):
-	logp("spec callbackSys,"+msg.topic+":"+str(msg.payload), 'info')
-	cmd = msg.topic.replace(myTopic1, '').replace(topFromSys, '').replace('#','')
-	cmd2arduino = prefAT + cmd + ':' + str(msg.payload)+ endOfLine
-	ser.write(cmd2arduino)
-
-# in this function, the script query a value to arduino
-#   arduino will answer by sending the value of its sensor
-# Currently the function is not used, because OpenHab query the value
-#   and the python script transmits the querry transparently
-def queryValue():
-	cmd = (prefDO + cmdSendValue + endOfLine).encode('utf-8')
-	ser.write(cmd)
-	logp (cmd)
-
+def on_message_mqTopicSys(client, userdata, msg):
+    logp("spec callbackSys,"+msg.topic+":"+str(msg.payload), 'info')
+    cmd = msg.topic.replace(mqTopic1, '').replace(topFromSys, '').replace('#','')
+    cmd2arduino = prefTopic2 + cmd + ':' + str(msg.payload)+ endOfLine
+    ser.write(cmd2arduino)
+    # I immediately wait a moment for the arduino to respond
+    time.sleep(sleepResponse)
+    readArduinoAvailableMsg(ser)
 
 # read all available messages from arduino
 def readArduinoAvailableMsg(seri):
-	while seri.inWaiting():
-		# because of readline function, dont forget to open with timeout
-		response = seri.readline().replace('\n', '')
-		#logp ("answer is:" + response, 'debug')
-		tags = response.split(';')
-		if tags[0] == msg2mqtt:
-			# msg2mqtt: message to send to mqtt
-			# I dont analyse those messages, I transmit to mqtt
-			(topic, value) = tags[1].split(':')
-			pyTopic = myTopic1 + topFromPy + topic
-			# trace
-			logp('{} = {}'.format(pyTopic, value), 'to MQTT')
-			mqttc.publish(pyTopic, value, retain=True)
-		elif tags[0] == msg2py:
-			# msg2py: message 2 python only
-			# python use this to check connection with arduino
-			logp ('msg2py '+response, 'info')
-		else :
-			# I dont analyse, but I print
-			logp (response, 'unknown from '+devSerial)
+    while seri.inWaiting():
+        # because of readline function, dont forget to open with timeout
+        response = seri.readline().replace('\n', '')
+        #logp ("answer is:" + response, 'debug')
+        if response.startswith(prefTopic1):
+            # prefTopic1: message to send to mqtt
+            # I dont analyse those messages, I transmit to mqtt
+            tags = response.replace(prefTopic1, '',1).split(':')
+            # security: I strip wildcard in topic before publishing
+            topic = tags[0].replace('+', '').replace('#', '')
+            pyTopic = mqTopic1 + topFromPy + topic
+            if len(tags) > 1 :
+                value = ':'.join(tags[1:])
+            else :
+                value = ''
+            # trace
+            logp('{} = {}'.format(pyTopic, value), 'to MQTT')
+            mqttc.publish(pyTopic, value, retain=True)
+        elif response.startswith(prefTopic2):
+            # prefTopic2: message to send to mqtt
+            # I dont analyse those messages, I transmit to mqtt
+            tags = response.replace(prefTopic2, '',1).split(':')
+            # security: I strip wildcard in topic before publishing
+            topic = tags[0].replace('+', '').replace('#', '')
+            pyTopic = mqTopic2 + topFromPy + topic
+            if len(tags) > 1 :
+                value = ':'.join(tags[1:])
+            else :
+                value = ''
+            # trace
+            logp('{} = {}'.format(pyTopic, value), 'to MQTT')
+            mqttc.publish(pyTopic, value, retain=True)
+        elif response.startswith(msg2py):
+            # msg2py: message 2 python only
+            # python use this to check connection with arduino
+            logp ('msg2py '+response.replace(msg2py, '',1), 'info')
+        elif response.startswith(msg2mqtt):
+            # msg2mqtt: message to send to mqtt
+            # I dont analyse those messages, I transmit to mqtt
+            tags = response.replace(msg2mqtt, '',1).split(':')
+            topic = tags[0].replace('+', '').replace('#', '')
+            pyTopic = mqTopic1 + topFromPy + topic
+            if len(tags) > 1 :
+                value = ':'.join(tags[1:])
+            else :
+                value = ''
+            # trace
+            logp('{} = {}'.format(pyTopic, value), 'to MQTT')
+            mqttc.publish(pyTopic, value, retain=True)
+        else :
+            # I dont analyse, but I print
+            logp (response, 'unknown from '+devSerial)
 
 
 # connection to arduino

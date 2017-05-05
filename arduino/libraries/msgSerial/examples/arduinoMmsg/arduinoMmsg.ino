@@ -56,7 +56,7 @@ Command cmdSys[] = {
     Command("pinRead",   &cmdPinRead),
     Command("pinWrite",  &cmdPinWrite)
 };
-CommandList cmdLSys("cmdSys", "AT+", SIZE_OF_TAB(cmdSys), cmdSys );
+CommandList cmdLSys("cmdSys", "CS+", SIZE_OF_TAB(cmdSys), cmdSys );
 
 
 /*---------------------------------------------------------------*/
