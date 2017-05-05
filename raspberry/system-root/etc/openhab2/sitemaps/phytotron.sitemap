@@ -16,7 +16,8 @@ sitemap phytotron label="Menu Principal"
 		Text item=Temperature
 	}
 	Frame label="Conditions extérieures" {
-		Text item=Outside_Temperature valuecolor=[Weather_LastUpdate=="NULL"="lightgray",>25="orange",>15="green",<=5="blue"] 
+		Text item=Outside_Temperature 
+// valuecolor=[Weather_LastUpdate=="NULL"="lightgray",>25="orange",>15="green",<=5="blue"] 
 		Text item=Outside_Humidity
 	}
 	Frame label="Courbes de mesures" {

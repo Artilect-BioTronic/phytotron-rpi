@@ -42,6 +42,7 @@ Contact Frontdoor     "Porte [MAP(en.map):%s]"  (Porte, gDev)
 
 DateTime CurrentDate            "Date [%1$tA, %1$td.%1$tm.%1$tY]"   <calendar>  { channel="ntp:ntp:demo:dateTime" }
 Switch DemoSwitch               "Switch"
+Number Temperature_Setpoint     "set [%.1f]"            <temperature>
 Dimmer DimmedLight              "Dimmer [%d %%]"        <slider>
 Color  RGBLight                 "RGB Light"             <slider>
 Rollershutter DemoShutter       "Roller Shutter"
