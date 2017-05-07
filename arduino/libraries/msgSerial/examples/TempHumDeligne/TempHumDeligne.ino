@@ -1,3 +1,14 @@
+// Phytotron
+// régulation température/humidité...
+// pour Mega et carte Memoire de Snootlab
+// Ne pas utiliser la pin 13 pour la led
+// Relier pins pour compatibilite Mega/Memoire
+//SDA   18-20
+//SCL   19-21
+//SCK   13-52
+//MISO  12-50
+//MOSI  11_51
+//SS    10-53
 
 
 // Bibliothéques
@@ -5,15 +16,15 @@
 #include <Adafruit_Sensor.h>
 #include <Deuligne.h>
 #include "Adafruit_HTU21DF.h"
-//#include <DHT.h>
-//#include <DHT_U.h>
+#include <DHT.h>
+#include <DHT_U.h>
 #include <TimeLib.h>
 #include <DS1307RTC.h>
 #include <SPI.h>
 #include <SD.h>
 #include <RCSwitch.h>
+#include <OneWire.h>
 
-#define TRACE(code)   code
 
 //reglages
 //const unsigned long intervalleEnregistrement = 60000 ; // en millisecondes
@@ -73,23 +84,53 @@ const String  NomFichierCommandes  = "com.csv" ;
 const unsigned long  positionEnregistrementFichierConsignes  = 7 ; // position avant derniere consigne temperature
 const String separateurFichier  = ";" ;
 
+
 //Capteurs
 #define DHTPIN  2 // pin capteur humidite
 // Uncomment the type of sensor in use:
-//#define DHTTYPE           DHT11     // DHT 11
+#define DHTTYPE           DHT11     // DHT 11
 //#define DHTTYPE           DHT22     // DHT 22 (AM2302)
 //#define DHTTYPE           DHT21     // DHT 21 (AM2301)
-//DHT_Unified dht( DHTPIN , DHTTYPE ) ;
+DHT_Unified dht( DHTPIN , DHTTYPE ) ;
 Adafruit_HTU21DF htu = Adafruit_HTU21DF();
+boolean HTU21 = false ; // présence capteur HTU21
+
+//capteur(s) temperature Dallas
+const int PinOneWire = 69 ; // pin capteur temperature Dallas
+const int PinAlimOneWire = 68 ; // pin capteur temperature Dallas
+byte octet ;
+byte present = 0;
+byte type_s;
+byte data[12];
+byte addr[8];
+float celsius ;
+String TempDs18b20 = "" ;
+String moment = "" ;
+String emission = "" ; // pour envoyer le message au Kikiwi
+String emissionEnCours = "" ; // pour préparer la trame suivante
+byte noCapteur = 0 ; // pour éventuellement compter le nombre de capteurs
+byte i;
+byte phase = 0 ;
+int mesure = 0 ;
+unsigned long Temps = 0 ;
+unsigned long TempsMesure = 0 ;
+unsigned long TempsEnregistrement = 0 ;
+unsigned long TempsMesurePrecedent = 0 ;
+unsigned long TempsEnregistrementPrecedent = 0 ;
+
+
 
 
 //Prises telecommandees
 RCSwitch telecommande = RCSwitch ( ) ;
 const int pinTelecommande = 7 ;
+OneWire  Ds18b20 ( PinOneWire ) ;
 
 // Variables pour temps et mesures
-byte temperatureEntiere ;
-byte humiditeEntiere ;
+byte temperatureInterieureEntiere ;
+byte humiditeInterieureEntiere ;
+byte temperatureExterieureEntiere ;
+byte humiditeExterieureEntiere ;
 String heuresDix ;
 String minutesDix ;
 String secondesDix ;
@@ -110,6 +151,13 @@ unsigned long tempsAffichage = 0 ;
 
 void setup(void)
 {
+  Wire.begin ( ) ;
+  pinMode ( PinAlimOneWire , OUTPUT ) ;
+  digitalWrite ( PinAlimOneWire , HIGH ) ;
+  telecommande.enableTransmit ( pinTelecommande ) ;
+  commandeSwitch ( humiditicateurArret ) ;
+  commandeSwitch ( refroidissementArret ) ;
+  commandeSwitch ( chauffageArret ) ;
   Serial1.begin ( 9600 ) ;
   Serial.begin ( 115200 ) ;
   while ( !Serial )
@@ -117,24 +165,35 @@ void setup(void)
     ; // wait for serial port to connect. Needed for Leonardo only
   }
 
-  TRACE(Serial.println(String("Hello, my sketch name is: ")+ __FILE__));
-  
-  telecommande.enableTransmit ( pinTelecommande ) ;
-  commandeSwitch ( humiditicateurArret ) ;
-  commandeSwitch ( refroidissementArret ) ;
-  commandeSwitch ( chauffageArret ) ;
-  
   lcd.init ( ) ;
   lcd.createChar ( 0 , degres ) ;
-  //  dht.begin ( ) ;
+  dht.begin ( ) ;
   releveRTC ( ) ; //on releve date et heure sur l'horloge RTC
   sensor_t sensor; //Initialise the sensor
-  //  dht.temperature().getSensor(&sensor);
-  //  dht.humidity().getSensor(&sensor);
-  if (!htu.begin()) {
-    Serial.println("Couldn't find sensor!");
-    while (1);
+  dht.temperature().getSensor(&sensor);
+  dht.humidity().getSensor(&sensor);
+
+
+
+
+
+
+
+  if (!htu.begin())
+  {
+    Serial.println("Capteur HTU21 absent");
+    HTU21 = false ;
+    //while (1);
   }
+  else
+  {
+    HTU21 = true ;
+  }
+
+
+
+
+
 
   //initialisation carte SD
   if ( !SD.begin ( chipSelect ) )
@@ -236,6 +295,7 @@ void setup(void)
     erreur ( 8 ) ; //non ecriture fichier mesure sur carte SD
   }
 
+
   releveRTC ( ) ; //on releve date et heure sur l'horloge RTC
   releveValeurs ( ) ;
   afficheLCDregulier ( ) ;
@@ -253,30 +313,19 @@ void setup(void)
       afficheLCDregulier ( ) ;
     }
   }
-//  while ( secondes != 0 ) ; //Pour partir à une Minute entiére
-  while ( 0 ) ; //Pour partir    de suitttttttttte
+  while ( secondes != 0 ) ; //Pour partir à une Minute entiére
   //tempsEnregistrement = tempsAffichage = millis ( ) ;
   minutesEnregistrementPrecedent = minutes ;
   secondesAffichagePrecedent = secondes ;
-
-  TRACE(Serial.println("setup finished, let s start loop"));
-  /*
-    while ( tempsEnregistrement > intervalleEnregistrement )
-    {
-      tempsEnregistrement = tempsEnregistrement - intervalleEnregistrement ;
-    }
-
-    while ( tempsAffichage > intervalleAffichage )
-    {
-      tempsAffichage = tempsAffichage - intervalleAffichage ;
-    }
-  */
 }
 
 
 void loop ( )
 {
+  Temps = millis ( ) ;
   releveRTC ( ) ; //on releve date et heure sur l'horloge RTC
+  mesureTemperature18B20 ( ) ;
+
   // enregistrement regulier
   //if ( millis ( ) - tempsEnregistrement > intervalleEnregistrement )
   if ( minutes != minutesEnregistrementPrecedent )
@@ -292,11 +341,11 @@ void loop ( )
       dataFile.print ( separateurFichier ) ;
       dataFile.print ( heureString ) ;
       dataFile.print ( separateurFichier ) ;
-      //     dataFile.print ( numeroDix ( temperatureEntiere ) ) ;
-      dataFile.print ( temperatureEntiere ) ;
+      //     dataFile.print ( numeroDix ( temperatureInterieureEntiere ) ) ;
+      dataFile.print ( temperatureInterieureEntiere ) ;
       dataFile.print ( separateurFichier ) ;
-      //      dataFile.print ( numeroDix ( humiditeEntiere ) ) ;
-      dataFile.print ( humiditeEntiere ) ;
+      //      dataFile.print ( numeroDix ( humiditeInterieureEntiere ) ) ;
+      dataFile.print ( humiditeInterieureEntiere ) ;
       dataFile.println ( "" ) ;
       dataFile.close();
     }
@@ -315,6 +364,7 @@ void loop ( )
     secondesAffichagePrecedent = secondes ;
     releveValeurs ( ) ;
     afficheLCDregulier ( ) ;
+    Serial1.println ( String ( dateString + ";" + heureString ) ) ;
   }
 
 
@@ -337,7 +387,6 @@ void loop ( )
     if ( ! menu )
     {
       //Serial.println ( "entree menu" ) ;
-
       afficheLCD ( effacement , 0 , 0 ) ;
       afficheLCD ( "Reglages" , 4 , 0 ) ;
       afficheLCD ( effacement , 0 , 1 ) ;
@@ -463,7 +512,7 @@ void loop ( )
 
   // Asservissements
   // Humidite prise " D"
-  if ( humiditeEntiere < ( consigneHum - plageHum ) & ! commandeHum )
+  if ( humiditeInterieureEntiere < ( consigneHum - plageHum ) & ! commandeHum )
   {
     //telecommande.send ( 5393 , 24 ) ; // marche
     commandeSwitch ( humiditicateurMarche ) ;
@@ -489,7 +538,7 @@ void loop ( )
       erreur ( 12 ) ;
     }
   }
-  if ( humiditeEntiere > consigneHum & commandeHum )
+  if ( humiditeInterieureEntiere > consigneHum & commandeHum )
   {
     //telecommande.send ( 5396 , 24 ) ; // arret
     commandeSwitch ( humiditicateurArret ) ;
@@ -517,7 +566,7 @@ void loop ( )
   }
 
   // Chauffage prise " A "
-  if ( temperatureEntiere < ( consigneTemp - ( plageTemp * 2 ) ) && ! commandeChauffage )
+  if ( temperatureInterieureEntiere < ( consigneTemp - ( plageTemp * 2 ) ) && ! commandeChauffage )
   {
     //telecommande.send ( 1361 , 24 ) ; // marche
     commandeSwitch ( chauffageMarche ) ;
@@ -543,7 +592,7 @@ void loop ( )
       erreur ( 14 ) ;
     }
   }
-  if ( temperatureEntiere > ( consigneTemp - plageTemp ) && commandeChauffage )
+  if ( temperatureInterieureEntiere > ( consigneTemp - plageTemp ) && commandeChauffage )
   {
     //telecommande.send ( 1364 , 24 ) ; // arret
     commandeSwitch ( chauffageArret ) ;
@@ -571,7 +620,7 @@ void loop ( )
   }
 
   // Refroidissement prise " B "
-  if ( temperatureEntiere > ( consigneTemp + ( plageTemp * 2 ) ) && ! commandeRefroidissement )
+  if ( temperatureInterieureEntiere > ( consigneTemp + ( plageTemp * 2 ) ) && ! commandeRefroidissement )
   {
     //telecommande.send ( 4433 , 24 ) ; // marche
     commandeSwitch ( refroidissementMarche ) ;
@@ -597,7 +646,7 @@ void loop ( )
       erreur ( 16 ) ;
     }
   }
-  if ( temperatureEntiere < ( consigneTemp + plageTemp ) && commandeRefroidissement )
+  if ( temperatureInterieureEntiere < ( consigneTemp + plageTemp ) && commandeRefroidissement )
   {
     //telecommande.send ( 4436 , 24 ) ; // arret
     commandeSwitch ( refroidissementArret ) ;
@@ -728,47 +777,173 @@ void afficheLCD ( String texte , unsigned int positionColonne , boolean ligne  )
 {
   lcd.setCursor ( positionColonne , ligne ) ;
   lcd.print ( texte ) ;
+
+
+
+
+
+
+  Serial.print ( texte ) ;
+
+
+
+
+
+
 }
 
 void releveValeurs ( void )
 {
   sensors_event_t event; // Lancer les mesures
-  /*
-    dht.temperature().getEvent(&event); //temperature par DHT11
-    if (isnan(event.temperature))
-    {
+  dht.temperature().getEvent(&event); //temperature par DHT11
+  if (isnan(event.temperature))
+  {
     erreur ( 10 ) ;
-    }
-    else
-    {
-    temperatureEntiere = event.temperature ;
-    }
-    dht.humidity ( ) . getEvent ( &event ) ; //humidite par DHT11
-    if ( isnan( event . relative_humidity ) )
-    {
+  }
+  else
+  {
+    temperatureExterieureEntiere = event.temperature ;
+  }
+  dht.humidity ( ) . getEvent ( &event ) ; //humidite par DHT11
+  if ( isnan( event . relative_humidity ) )
+  {
     erreur ( 11 ) ; ;
-    }
-    else
-    {
-    humiditeEntiere = event.relative_humidity ;
-    }
-  */
-  temperatureEntiere = int ( htu.readTemperature ( ) ) ;
-  humiditeEntiere = int ( htu.readHumidity ( ) ) ;
-
+  }
+  else
+  {
+    humiditeExterieureEntiere = event.relative_humidity ;
+  }
+  if ( HTU21 )
+  {
+    temperatureInterieureEntiere = int ( htu.readTemperature ( ) ) ;
+    humiditeInterieureEntiere = int ( htu.readHumidity ( ) ) ;
+  }
+  else
+  {
+    temperatureInterieureEntiere = 00 ;
+    humiditeInterieureEntiere = 00 ;
+  }
 }
 
 void afficheLCDregulier ( void )
 {
-  afficheLCD ( numeroDix ( temperatureEntiere ) , 0 , 0 ) ;
+  afficheLCD ( numeroDix ( temperatureInterieureEntiere ) , 0 , 0 ) ;
   lcd.setCursor ( 2 , 0 ) ;
   lcd.write ( 0 ) ;
   afficheLCD ( "C" , 3 , 0 ) ;
   afficheLCD ( dateString , 6 , 0 ) ;
-  afficheLCD ( numeroDix ( humiditeEntiere ) , 0 , 1 ) ;
+  afficheLCD ( numeroDix ( humiditeInterieureEntiere ) , 0 , 1 ) ;
   afficheLCD ( "%" , 2 , 1 ) ;
   afficheLCD ( heureString , 8 , 1 ) ;
+
+  Serial.print("Temperature int = ");
+  Serial.println(temperatureInterieureEntiere);
+  Serial.print("Humidité int = ");
+  Serial.println(humiditeInterieureEntiere);
+  Serial.print("Temperature ext = ");
+  Serial.println(temperatureExterieureEntiere);
+  Serial.print("Humidité ext = ");
+  Serial.println(humiditeExterieureEntiere);
+
+  Serial.print("temperature Dallas = ");
+  //Serial.println(mesure);
+  Serial.print ( emission ) ;
+  Serial.println ( "" ) ;
 }
+
+
+
+
+
+void mesureTemperature18B20 (void)
+{
+  if ( phase == 0 && ( Temps - TempsMesurePrecedent ) > 150  ) // a chaque nouveau capteur et apres un certain temps
+  {
+    TempsMesurePrecedent += 150 ; // on lance le chrono
+    if ( !Ds18b20.search(addr)) // est-ce que le dernier est passé ?
+    {
+      noCapteur = 0 ; // on recommence au debut
+      Ds18b20.reset_search ( ) ; // on demande l'identification
+      delay ( 10 ) ;
+      emission = emissionEnCours ; // on met a jour le texte qui va etre emis
+      emissionEnCours = "" ; // on efface la variable en cours puisque on est au debut
+    }
+    else // il y a un capteur a mesurer
+    {
+      phase = 1 ; // au coup suivant on ne passeras pas par la
+      if ( noCapteur > 0 ) // si autre que le premier
+      {
+        emissionEnCours += ";" ; //  mettre un point virgule !
+      }
+      noCapteur ++ ; // un de plus
+    }
+  }
+  if ( phase == 1 ) // bon, on va mesurer enfin
+  {
+    switch (addr[0]) // premiere adresse de capteur
+    {
+      case 0x10:
+        //       Serial.println("  Chip = DS18S20");  // or old DS1820
+        type_s = 1;
+        break;
+      case 0x28:
+        //       Serial.println("  Chip = DS18B20");
+        type_s = 0;
+        break;
+      case 0x22:
+        //       Serial.println("  Chip = DS1822");
+        type_s = 0;
+        break;
+      default:
+        //       Serial.println("Device is not a DS18x20 family device.");
+        //       temperature18B20 = String ( "Erreur Identification capteur" ) ;
+        return;
+    }
+    Ds18b20.reset(); // on change de capteur
+    Ds18b20.select(addr); // on charge son adresse
+    Ds18b20.write(0x44, 1);        // start conversion, with parasite power on at the end
+    phase = 2 ;  // la prochaine fois on ne passera pas par la
+  }
+  if ( phase == 2  && ( Temps - TempsMesurePrecedent ) > 800 )
+  {
+    TempsMesurePrecedent += 800 ;
+    phase = 0 ; // on recommencera !
+    present = Ds18b20.reset ( ) ;
+    Ds18b20.select ( addr ) ; // on selectionne le capteur suivant
+    Ds18b20.write ( 0xBE ) ;         // Read Scratchpad
+    for ( i = 0 ; i < 9 ; i++ )
+    {
+      data[i] = Ds18b20.read ( ) ; // on lit les donnees
+    }
+    mesure = ( data [ 1 ] << 8) | data [ 0 ] ;
+    if ( type_s ) // suivant le nb de bits de resolution
+    {
+      mesure = mesure << 3; // 9 bit resolution default
+      if ( data [ 7 ] == 0x10 )
+      {
+        mesure = (  mesure & 0xFFF0 ) + 12 - data [ 6 ] ;
+      }
+    }
+    else
+    {
+      byte cfg = ( data [ 4 ] & 0x60 ) ;
+      // at lower res, the low bits are undefined, so let's zero them
+      if ( cfg == 0x00 ) mesure = mesure & ~7 ;  // 9 bit resolution, 93.75 ms
+      else if ( cfg == 0x20 ) mesure = mesure & ~3 ; // 10 bit res, 187.5 ms
+      else if ( cfg == 0x40 ) mesure = mesure & ~1 ; // 11 bit res, 375 ms
+      //// default is 12 bit resolution, 750 ms conversion time
+    }
+    emissionEnCours += String ( ( float ) mesure / 16.0 ) ; // on ecris la nouvelle valeur sur la chaine
+  }
+}
+
+
+
+
+
+
+
+
 
 
 void dump ( String nomFichier )
@@ -798,3 +973,5 @@ void commandeSwitch ( int valeur )
     telecommande.send ( valeur , 24 ) ; // marche
   }
 }
+
+
