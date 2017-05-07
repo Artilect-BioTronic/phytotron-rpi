@@ -16,27 +16,36 @@ Group:Number:AVG                Humidity    "Humidité relative moyenne [%.1f %%
 Group:Contact:OR(OPEN, CLOSED)  Porte       "Ouverture porte [(%d)]"                <contact>
 
 /* Lights */
-Dimmer Inside_Light    "Eclairage intérieur [%s]"       (gLight, Lumieres, gDev)   {mqtt=">[local_mqtt:/phytotron/light/switch:command:*:default],<[local_mqtt:/phytotron/light/+/state:state:default]"}
+Dimmer Inside_Light    "Eclairage intérieur [%s]"       (gLight, Lumieres, gDev)   {mqtt=">[local_mqtt:/phytotron/oh/light/switch:command:*:default],<[local_mqtt:/phytotron/+/light/state:state:default]"}
 
 /* Temperature control */
-Switch Heater   "Radiateur"      <heating>   (gDev, Radiateurs) {mqtt=">[local_mqtt:/phytotron/radiateur/command:command:*:default],<[local_mqtt:/phytotron/radiateur/state:state:default]"}
-Switch Climate  "Compresseur"    <climate>   (gDev, Radiateurs) {mqtt=">[local_mqtt:/phytotron/clim/command:command:*:default],<[local_mqtt:/phytotron/clim/+/clim/state:state:default]"}
+Switch Heater   "Radiateur"      <heating>   (gDev, Radiateurs) {mqtt=">[local_mqtt:/phytotron/oh/ctrl/radiateur/switch:command:*:default],<[local_mqtt:/phytotron/+/ctrl/radiateur/state:state:default]"}
+Switch Climate  "Compresseur"    <climate>   (gDev, Radiateurs) {mqtt=">[local_mqtt:/phytotron/oh/ctrl/clim/switch:command:*:default],<[local_mqtt:/phytotron/+/ctrl/clim/state:state:default]"}
 
 /* Temperatures */
-Number Inside_Temperature       "Temperature_Interne [%.1f °C]"         <temperature>   (Temperature, gAtmo, gTempChart) {mqtt="<[local_mqtt:/phytotron/mesures/+/temperatureIn/value:state:default]"}
-Number Inside_Humidity          "Humidité_Interne relative [%.1f %%]"   <humidity>      (Humidity, gAtmo) {mqtt="<[local_mqtt:/phytotron/mesures/+/humidityIn/value:state:default]"}
+Number Inside_Temperature       "Temperature_Interne [%.1f °C]"         <temperature>   (Temperature, gAtmo, gTempChart) {mqtt="<[local_mqtt:/phytotron/+/mesure/tempIn:state:default]"}
+Number Inside_Humidity          "Humidité_Interne relative [%.1f %%]"   <humidity>      (Humidity, gAtmo) {mqtt="<[local_mqtt:/phytotron/+/mesure/humidIn:state:default]"}
+Number TempInConsigne      "TempIn [%.1f °C]"   <temperature>   {mqtt="<[local_mqtt:/phytotron/+/csgn/tempIn/used:state:default], >[local_mqtt:/phytotron/oh/csgn/tempIn/cmd:command:*:default]"}
+Number HumidityInConsigne  "HumidityIn [%.1f %%]"  <humidity>   {mqtt="<[local_mqtt:/phytotron/+/csgn/humidityIn/used:state:default], >[local_mqtt:/phytotron/oh/csgn/humidityIn/cmd:command:*:default]"}
 
 Group  Weather_Chart
-Number Outside_Temperature      "Temperature_Externe [%.1f °C]"         <temperature>   (gEnv, Temperature, gTempChart) {mqtt="<[local_mqtt:/phytotron/mesures/+/temperatureOut/value:state:default]"}
-Number Outside_Humidity         "Humidité_Externe relative [%.1f %%]"   <humidity>      (gEnv, Humidity) {mqtt="<[local_mqtt:/phytotron/mesures/+/humidityOut/value:state:default]"}
+Number Outside_Temperature      "Temperature_Externe [%.1f °C]"         <temperature>   (gEnv, Temperature, gTempChart) {mqtt="<[local_mqtt:/phytotron/+/mesure/tempOut:state:default]"}
+Number Outside_Humidity         "Humidité_Externe relative [%.1f %%]"   <humidity>      (gEnv, Humidity) {mqtt="<[local_mqtt:/phytotron/+/mesure/humidOut:state:default]"}
 
 /* courbes de mesure */
 Number Mesures_Chart_Period     "Chart Period"                <clock>
 Group gTempChart
 
+/* Administration items */
+Group gAdmin
+DateTime PiDateTest            "Heure temoin  [%1$tH:%1$tM:%1$tS]"   <clock>  (gAdmin)  {mqtt="<[local_mqtt:/phytotron/+/admin/piClock:state:default]"}
+// "Heure [%1$tA, %1$tH:%1$tM:%1$tS]"  YYYY-MM-DDTHH:MM:SS  [%1$tA, %1$td.%1$tm.%1$tY]
+//Number test_ds_gp     "apparition test"                <clock>  (gAdmin)
+
 /* Test items */
 Group gTest
 Switch Led13   "Led13"         (gTest) {mqtt=">[local_mqtt:/phytotron/oh/sl13:command:*:default],<[local_mqtt:/phytotron/+/sl13/state:state:default]"}
+Number MultipleLe2   "le 2e du pack 1,2,3: [%.1f]"      <temperature>   (gTest) {mqtt="<[local_mqtt:/phytotron/+/mulTest:state:REGEX(.*,(.*),.*)]"}
 
 
 /* Windows */

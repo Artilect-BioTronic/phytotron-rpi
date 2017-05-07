@@ -1,7 +1,17 @@
 sitemap phytotron label="Menu Principal"
 {
 	Frame label="Groupes" {
-		Group item=gAtmo  label="Atmosphère"  icon="smoke"
+//		Group item=gAtmo  label="Atmosphère"  icon="smoke"
+		Text  label="Atmosphère"  icon="smoke"  {
+			Text item=Inside_Temperature
+			Text item=Inside_Humidity
+//			Text item=TempInConsigne
+//			Text item=HumidityInConsigne
+			Setpoint item=TempInConsigne  label="modify TempIn 0:40:0.5  [%.1f °C]"  minValue=0 maxValue=40 step=0.5
+			Setpoint item=HumidityInConsigne  label="modify HumidityIn 0:100:1  [%.1f %%]"  minValue=0 maxValue=100 step=1.
+			Setpoint item=TempInConsigne  label="modify TempIn 0:40:2  [%.1f °C]"  minValue=0 maxValue=40 step=2
+			Setpoint item=HumidityInConsigne  label="modify HumidityIn  0:100:5  [%.1f %%]"  minValue=0 maxValue=100 step=5.
+		}
 		Group item=gWater label="Eau"         icon="water"
 		Group item=gLight label="Lumière"     icon="sun"
 		Group item=gSoil  label="Sol/Substrat" icon="bath"
@@ -21,7 +31,7 @@ sitemap phytotron label="Menu Principal"
 		Text item=Outside_Humidity
 	}
 	Frame label="Courbes de mesures" {
-		Group item=gMesures label="Mesures"   {
+		Text label="Mesures"  icon="chart" {
 			Frame label="Temperatures" {
 				Text item=Outside_Temperature
 				Text item=Inside_Temperature
@@ -33,6 +43,9 @@ sitemap phytotron label="Menu Principal"
 				Chart item=gTempChart period=W refresh=3600 visibility=[Mesures_Chart_Period==2]
 			}
 		}
+	}
+	Frame label="Admin Matériel" {
+		Group item=gAdmin label="Admin"
 	}
 	Frame label="Tests" {
 		Group item=gTest label="Tests"
