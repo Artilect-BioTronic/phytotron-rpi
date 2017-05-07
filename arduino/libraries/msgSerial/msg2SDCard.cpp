@@ -653,7 +653,7 @@ int srLs(const String& arg)
       return 2;
     }
 
-    int cr = cmd2File.ls(Serial, iMode);
+    int cr = cmd2File.ls(SERIAL_MSG, iMode);
 
     if (cr == 0)
         msgSPrintln(String(F("srLs/OK")));

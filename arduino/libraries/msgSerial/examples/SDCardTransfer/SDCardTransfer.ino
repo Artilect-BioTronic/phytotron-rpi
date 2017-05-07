@@ -20,6 +20,13 @@ SerialListener serList(Serial);
 
 Command cmdUser[] = {
     Command("SendValue",     &sendMessageStatus),
+    Command("S",             &sendMessageStatus)
+};
+CommandList cmdListUser("cmdUser", "CM+", SIZE_OF_TAB(cmdUser), cmdUser );
+
+Command cmdSys[] = {
+    Command("idSketch",  &sendSketchId),
+    Command("idBuild",   &sendSketchBuild),
     Command("srStayOpen",    &srStayOpen),    // :bob.txt,67  filenameDOS8.3 (short names), openMode (O_READ... specific to SdFat lib)
     Command("srPreOpen",     &srPreOpen),     // :prepare to open at each read/write (it is closed immediately after)
     Command("srClose",       &srClose),   // pas de param
@@ -31,16 +38,9 @@ Command cmdUser[] = {
     Command("srLs",          &srLs),      // :15  donner les options du ls
     Command("srRename",      &srRename),  // :/adir/old,new
     Command("srMkdir",       &srMkdir),   // :/adir
-    Command("srRemove",      &srRemove),  // :file.txt
-    Command("S",             &sendMessageStatus)
+    Command("srRemove",      &srRemove)  // :file.txt
 };
-CommandList cmdListUser("cmdUser", "CM+", SIZE_OF_TAB(cmdUser), cmdUser );
-
-Command cmdSys[] = {
-    Command("idSketch",  &sendSketchId),
-    Command("idBuild",   &sendSketchBuild)
-};
-CommandList cmdListSys("cmdSys", "CS+", SIZE_OF_TAB(cmdSys), cmdSys );
+CommandList cmdListSys("cmdSys", "AT+", SIZE_OF_TAB(cmdSys), cmdSys );
 
 
 // change this to match your SD shield or module;

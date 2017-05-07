@@ -9,12 +9,11 @@
 #include "SdFat.h"
 #include "msg2SDCard.h"
 
-DEFINE_FILE_DATE_TIME
 
 #define PIN_CAPTOR  10
-#define PIN_LED 13
+#define PIN_LED13 13
 stListPin listPin[] = {
-  stListPin(PIN_LED, "LED"),
+  stListPin(PIN_LED13, "LED"),
   stListPin(PIN_CAPTOR, "CAPTOR unknownTest")
 };
 int listPinSize = sizeof(listPin) / sizeof(stListPin);
@@ -56,7 +55,7 @@ Command cmdSys[] = {
     Command("pinRead",   &cmdPinRead),
     Command("pinWrite",  &cmdPinWrite)
 };
-CommandList cmdLSys("cmdSys", "CS+", SIZE_OF_TAB(cmdSys), cmdSys );
+CommandList cmdLSys("cmdSys", "AT+", SIZE_OF_TAB(cmdSys), cmdSys );
 
 
 /*---------------------------------------------------------------*/
@@ -127,7 +126,7 @@ int switchLed13(const String& sOnOff)
         msgSPrint(F("switchLed/KO"));
 
 
-    digitalWrite(PIN_LED, iValue);
+    digitalWrite(PIN_LED13, iValue);
 
     // I send back OK msg
     msgSPrint(String(F("switchLed/OK:")) + sValue);

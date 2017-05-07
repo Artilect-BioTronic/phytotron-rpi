@@ -3,7 +3,7 @@
 #include "msgSerial.h"
 
 #define LOG_DEBUG(str)   Serial.println(str)
-#define LOG_ERROR(str)   Serial.println(str)
+#define LOG_ERROR(str)   SERIAL_MSG.println(str)
 
 SketchInfo sketchInfo;
 
@@ -35,7 +35,7 @@ int listPinSize = sizeof(listPin) / sizeof(stListPin);
 
 size_t msgSPrint(const String& aMsg)   {
     String msg2py = msg2mqttStart + aMsg + msg2pyEnd;
-    return Serial.print(msg2py);
+    return SERIAL_MSG.print(msg2py);
 }
 
 size_t msgSPrintln(const String& aMsg)   {
@@ -43,12 +43,12 @@ size_t msgSPrintln(const String& aMsg)   {
 }
 
 size_t msgSError(const String& aMsg)   {
-    return Serial.println(aMsg);
+    return SERIAL_MSG.println(aMsg);
 }
 
 size_t msgSPrint2(const String& aMsg)   {
     String msg2py = msg2pyStart + aMsg + msg2pyEnd;
-    return Serial.print(msg2py);
+    return SERIAL_MSG.print(msg2py);
 }
 
 
@@ -79,29 +79,14 @@ int blinkTime=1000;   // used by blinkTime function
 //   note that it empties serial buffer immediately
 //   note that it does not test  memory allocation  for inputMessage
 //   in case the msg never ends, because there is no  \n end of line
+// note that  serialEvent() is useless, you can call  checkMessageReceived
+//   directly in loop.
 /*
 void serialEvent() 
 {
-  serialEventMFMQTT();
+  serList.checkMessageReceived();
 }
 */
-
-void serialEventMFMQTT() 
-{
-  // serialEvent is called between each loop
-  // we block msg transfer from buffer to inputMessage, that
-  //   means that a 2nd message will stay in buffer, until 
-  //   inputMessage is analyzed
-  while(Serial.available() && ( ! inputMessageReceived )  )
-  {
-    char inChar = (char)Serial.read();
-    
-    if(inChar == '\n') 
-      inputMessageReceived = true;
-    else
-      inputMessage += inChar;
-  }
-}
 
 CommandList::CommandList(const String &nameListCmd, const String &prefix,
                          const int nbObjects, const Command arrayCmd[],
@@ -233,94 +218,6 @@ void SerialListener::checkMessageReceived()
     _inputMessageReceived = false;
 }
 
-// check if a message has been received and analyze it
-// in your main sketch.ino, you have to update global var inputMessageReceived and inputMessage
-// checkMessageReceived calls the function corresponding to  cmds/cmdos array
-//void checkMessageReceived()
-//{
-//  if(inputMessageReceived)
-//  {
-//      LOG_DEBUG(F("MessageReceived, I am parsing..."));
-//      // if it is a cmd for user
-//      if (inputMessage.startsWith(prefDO))
-//      {
-//        LOG_DEBUG(F("Message is a DO cmd, I am parsing..."));
-        
-//        String command = inputMessage.substring(prefDO.length());
-//        bool cmdoNotFound = true;
-//        for (int i=0; i<cmdosSize; i++)
-//        {
-//          if (command.startsWith(cmdos[i].cmdName))
-//          {
-//              cmdoNotFound = false;
-//              int cr = cmdos[i].cmdFunction(command);
-//          }
-//        }
-//        if (cmdoNotFound)  {
-//          LOG_ERROR(String(F("DO cmd not recognized ! :")) + command);
-//        }
-//      }
-//      // if it is a cmd for system ctrl
-//      else if (inputMessage.startsWith("do+"))
-//      {
-//        LOG_DEBUG(F("Message is a do+ cmd, I am parsing..."));
-
-//        String command = inputMessage.substring(prefDO.length());
-//        bool cmdNotFound = true;
-//        for (int i=0; i < CommandC::getNbObjects(); i++)
-//        {
-//          CommandC* pCmd = CommandC::getObject(i);
-
-//          if (command.startsWith(pCmd->cmdName))
-//          {
-//              cmdNotFound = false;
-//              int cr = pCmd->cmdFunction(command);
-//              if (cr != 0)   {
-//                // I send pb msg
-//                String msg2py = msg2pyStart + pCmd->cmdName + "/KO:"
-//                               + cr + msg2pyEnd;
-//                Serial.print(msg2py);
-//              }
-//              // if cr=0  I dont send OK msg, this is specific to function
-//          }
-//          else
-//              LOG_DEBUG(pCmd->cmdName + " not recognized");
-//        }
-//      }
-//      // if it is a cmd for system ctrl
-//      else if (inputMessage.startsWith(prefAT))
-//      {
-//        LOG_DEBUG(F("Message is a AT cmd, I am parsing..."));
-        
-//        String command = inputMessage.substring(prefAT.length());
-//        bool cmdNotFound = true;
-//        for (int i=0; i<cmdsSize; i++)
-//        {
-//          if (command.startsWith(cmds[i].cmdName))
-//          {
-//              cmdNotFound = false;
-//              int cr = cmds[i].cmdFunction(command);
-//              if (cr != 0)   {
-//                // I send pb msg
-//                String msg2py = msg2pyStart + cmds[i].cmdName + "/KO:"
-//                               + cr + msg2pyEnd;
-//                Serial.print(msg2py);
-//              }
-//              // if cr=0  I dont send OK msg, this is specific to function
-//          }
-//        }
-//        if (cmdNotFound)  {
-//          LOG_ERROR(String(F("AT cmd not recognized ! :")) + command);
-//        }
-//      }
-//      else   {
-//        LOG_DEBUG(F("Message is not a AT or DO cmd"));
-//      }
-//      inputMessage = "";
-//      inputMessageReceived = false;
-//  }
-//}
-
 
 /*---------------------------------------------------------------*/
 /*                  list of user function                        */
@@ -368,16 +265,6 @@ int sendSketchId(const String& dumb)
     msgSPrint2(msg2py);
     return 0;
 }
-//int sendSketchIdOld(const String& dumb)
-//{
-//    // __FILE__  contains the full path. we strip it
-//    String sketchFullName (STR__FILE__);
-//    int lastSlash = sketchFullName.lastIndexOf('/') +1;  // '/' is not for windows !
-//    String msg2py= msg2pyStart + "idSketch" + ":"
-//                  + sketchFullName.substring(lastSlash) + msg2pyEnd;
-//    Serial.print(msg2py);
-//    return 0;
-//}
 
 
 // send an identifiant for the version of the sketch
@@ -431,7 +318,7 @@ int sendListPin(const String& dumb)
        availPin = availPin + ", " + listPin[i].numPin +" "+ listPin[i].namePin;
     
     String msg2py = msg2pyStart + "listPin" + ":" + availPin + msg2pyEnd;
-    Serial.print(msg2py);
+    SERIAL_MSG.print(msg2py);
     return 0;
 }
 
@@ -445,7 +332,7 @@ int ledBlinkTime(const String& sCmdAndBlinkTime)
     if (ind < 0)   {
       LOG_ERROR(F("ledBlinkTime cmd needs 1 value"));
       String msg2py = msg2pyStart + "ledBlinkTime/KO" + msg2pyEnd;
-      Serial.print(msg2py);
+      SERIAL_MSG.print(msg2py);
       return 1;
     }
     
@@ -457,13 +344,13 @@ int ledBlinkTime(const String& sCmdAndBlinkTime)
     if ( (iValue == 0) && ( ! sValue.equals("0")) )   {
       LOG_ERROR(F("ledBlinkTime: value must be 1 integer"));
       String msg2py = msg2pyStart + "ledBlinkTime/KO" + msg2pyEnd;
-      Serial.print(msg2py);
+      SERIAL_MSG.print(msg2py);
       return 2;
     }
     else if (iValue < 0)   {
       LOG_ERROR(F("ledBlinkTime: value must be integer > 0"));
       String msg2py = msg2pyStart + "ledBlinkTime/KO" + msg2pyEnd;
-      Serial.print(msg2py);
+      SERIAL_MSG.print(msg2py);
       return 3;
     }
 
@@ -471,7 +358,7 @@ int ledBlinkTime(const String& sCmdAndBlinkTime)
     
     // I send back OK msg
     String msg2py = msg2pyStart + "ledBlinkTime/OK:" + blinkTime + msg2pyEnd;
-    Serial.print(msg2py);
+    SERIAL_MSG.print(msg2py);
     
     return 0;
 }
@@ -498,7 +385,7 @@ int switchLed(const String& sOnOff)
     if (ind < 0)   {
       LOG_ERROR(F("switchLed cmd needs 1 value"));
       String msg2py = msg2pyStart + "switchLed/KO" + msg2pyEnd;
-      Serial.print(msg2py);
+      SERIAL_MSG.print(msg2py);
       return 1;
     }
     
@@ -508,7 +395,7 @@ int switchLed(const String& sOnOff)
     if ( ( ! sValue.equals("ON")) && ( ! sValue.equals("OFF")) )   {
       LOG_ERROR(F("switchLed: value must be ON or OFF"));
       String msg2py = msg2pyStart + F("switchLed/KO") + msg2pyEnd;
-      Serial.print(msg2py);
+      SERIAL_MSG.print(msg2py);
       return 2;
     }
 
@@ -519,16 +406,16 @@ int switchLed(const String& sOnOff)
     else if (sValue.equals("OFF"))
       iValue = 0;
     else
-      Serial.println ("jamais de la vie");
+      SERIAL_MSG.println ("jamais de la vie");
    
     digitalWrite(PIN_LED13, iValue);
     
     // I send back OK msg
     String msg2py = msg2mqttStart + F("switchLed/OK:") + sValue + msg2pyEnd;
-    Serial.print(msg2py);
+    SERIAL_MSG.print(msg2py);
     // I send back state msg
     msg2py = msg2mqttStart + F("etat:") + sValue + msg2pyEnd;
-    Serial.print(msg2py);
+    SERIAL_MSG.print(msg2py);
     
     return 0;
 }
@@ -584,7 +471,7 @@ int cmdPinMode(const String& pin_mode) {
 
     // I send back OK msg
     String msg2py = msg2pyStart + "pinMode/OK" + msg2pyEnd;
-    Serial.print(msg2py);
+    SERIAL_MSG.print(msg2py);
     
     return 0;
 }
@@ -647,7 +534,7 @@ int cmdPinRead(const String& pin_digitAnalog) {
 
     // I send back OK msg
     String msg2py = msg2pyStart + "pinRead:" + iValue + msg2pyEnd;
-    Serial.print(msg2py);
+    SERIAL_MSG.print(msg2py);
     
     return 0;
 }
@@ -732,48 +619,8 @@ int cmdPinWrite(const String& pin_digitAnalog_val) {
 
     // I send back OK msg
     String msg2py = msg2pyStart + "pinWrite/OK" + msg2pyEnd;
-    Serial.print(msg2py);
+    SERIAL_MSG.print(msg2py);
     
     return 0;
-}
-
-// because of bad communication, some messages may be stucked in
-//   serial buffer. If so, we trace it
-int  checkNoStuckMessageInBuffer() {
-  static bool msgHasBegun;
-  static long lastPrint = millis();
-  static int nbWarn;
-
-  // we update if a msg has just begun 
-  if (inputMessage.length()>0)   {
-    if ( ! msgHasBegun )   {
-      msgHasBegun = true;
-      lastPrint = millis();
-    }
-  }
-  else   {
-     msgHasBegun = false;
-     nbWarn = 0;
-  }
-  
-  // I display input message every second, if it is not complete
-  // It should not happen since the message will be processed too quickly
-  if (( ! inputMessageReceived ) && (msgHasBegun) && (nbWarn < 2) )   {
-    if ( (millis() - lastPrint > 1000) && inputMessage.length()>0 )   {
-      if (nbWarn == 0)   {
-        Serial.println(String(F("msg incomplete:")) + inputMessage + F(":end"));
-        lastPrint = millis();
-        nbWarn = 1;
-        return 1;
-      }
-      else if (nbWarn == 1)   {
-        Serial.println(String(F("msg incomplete:")) + inputMessage + F(":last warning"));
-        nbWarn = 2;
-        return 2;
-      }
-    }
-  }
-  
-  return 0;
 }
 

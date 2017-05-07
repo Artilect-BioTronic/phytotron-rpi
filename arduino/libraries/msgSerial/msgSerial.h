@@ -3,16 +3,9 @@
 
 #include "Arduino.h"
 
-// You have to define STR__FILE__ in your main file sketch.ino, this way
-// STR__FILE__ = F(__FILE__);
-extern const char* STR__FILE__ ;
-extern const char* STR__DATE__ ;
-extern const char* STR__TIME__ ;
+#define SERIAL_MSG Serial
 
-#define DEFINE_FILE_DATE_TIME \
-    const char* STR__FILE__ = __FILE__; \
-    const char* STR__DATE__ = __DATE__; \
-    const char* STR__TIME__ = __TIME__;
+// You have to define STR__FILE__ in your main file sketch.ino, this way
 
 class SketchInfo   {
 public:
@@ -104,12 +97,9 @@ int cmdsSize = sizeof(cmds) / sizeof(Commande);
 */
 
 // you need to read serial and empty buffer into inputMessage
-// for this you can call  serialEventMFMQTT in serialEvent function, like that
+// for this you can call method  checkMessageReceived  in  loop function, like that
 /*
-void serialEvent() 
-{
-  serialEventMFMQTT();
-}
+  serListener.checkMessageReceived();
 */
 
 // the macro will replace the array var  with its size and the array
@@ -188,7 +178,7 @@ class CommandC
   }
 };
 
-void serialEventMFMQTT();
+//void serialEventMFMQTT();
 
 // because of bad communication, some messages may be stucked in
 //   serial buffer. If so, we trace it
