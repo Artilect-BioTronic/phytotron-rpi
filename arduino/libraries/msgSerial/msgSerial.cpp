@@ -51,6 +51,18 @@ size_t msgSPrint2(const String& aMsg)   {
     return SERIAL_MSG.print(msg2py);
 }
 
+String getCommand(const String& aCmdVal) {
+    // the aCmdVal contains  command:val   (with val=arg1,arg2 ...)
+    int ind = aCmdVal.indexOf(":");
+
+    // if there is no val, then no ':', then ind=-1,
+    if (ind < 0)   {
+      return aCmdVal;    //   then whole string is the command
+    }
+
+    // we get command part
+    return aCmdVal.substring(0,ind);
+}
 
 uint8_t CommandC::nbObjects = 0;
 CommandC* CommandC::arrayObjects[nbObjectsMax];
@@ -311,14 +323,14 @@ int sendListCmdDO(const String& dumb)   // TODO: adapt
 // send the list of Pin definition
 int sendListPin(const String& dumb)
 {
-    String availPin = "";
-    if (listPinSize >= 0)
-       availPin = availPin + " " + listPin[0].numPin +" "+ listPin[0].namePin;
-    for (int i=1; i<listPinSize; i++)
-       availPin = availPin + ", " + listPin[i].numPin +" "+ listPin[i].namePin;
+//    String availPin = "";
+//    if (listPinSize >= 0)
+//       availPin = availPin + " " + listPin[0].numPin +" "+ listPin[0].namePin;
+//    for (int i=1; i<listPinSize; i++)
+//       availPin = availPin + ", " + listPin[i].numPin +" "+ listPin[i].namePin;
     
-    String msg2py = msg2pyStart + "listPin" + ":" + availPin + msg2pyEnd;
-    SERIAL_MSG.print(msg2py);
+//    String msg2py = msg2pyStart + "listPin" + ":" + availPin + msg2pyEnd;
+//    SERIAL_MSG.print(msg2py);
     return 0;
 }
 

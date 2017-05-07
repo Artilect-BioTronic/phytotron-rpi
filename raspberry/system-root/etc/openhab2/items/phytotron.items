@@ -45,7 +45,9 @@ DateTime PiDateTest            "Heure temoin  [%1$tH:%1$tM:%1$tS]"   <clock>  (g
 /* Test items */
 Group gTest
 Switch Led13   "Led13"         (gTest) {mqtt=">[local_mqtt:/phytotron/oh/sl13:command:*:default],<[local_mqtt:/phytotron/+/sl13/state:state:default]"}
-Number MultipleLe2   "le 2e du pack 1,2,3: [%.1f]"      <temperature>   (gTest) {mqtt="<[local_mqtt:/phytotron/+/mulTest:state:REGEX(.*,(.*),.*)]"}
+Number MultipleLe1   "le 1er du pack 1,2,3: [%.1f]"     <temperature>   (gTest) {mqtt="<[local_mqtt:/phytotron/+/mulTest:state:REGEX((.*),.*,.*)]"}
+Number MultipleLe2   "le 2e du pack 1,2,3: [%.1f]"      <humidity>      (gTest) {mqtt="<[local_mqtt:/phytotron/+/mulTest:state:REGEX(.*,(.*),.*)]"}
+Number MultipleLe3   "le 3e du pack 1,2,3: [%.1f]"      <temperature>   (gTest) {mqtt="<[local_mqtt:/phytotron/+/mulTest:state:REGEX(.*,.*,(.*))]"}
 
 
 /* Windows */

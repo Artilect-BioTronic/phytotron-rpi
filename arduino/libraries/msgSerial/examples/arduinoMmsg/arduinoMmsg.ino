@@ -10,30 +10,29 @@
 #include "msg2SDCard.h"
 
 
-#define PIN_CAPTOR  10
 #define PIN_LED13 13
-stListPin listPin[] = {
-  stListPin(PIN_LED13, "LED"),
-  stListPin(PIN_CAPTOR, "CAPTOR unknownTest")
-};
-int listPinSize = sizeof(listPin) / sizeof(stListPin);
+
+float globVarConsignHumidity=0.;
 
 
 // list of available commands (user) that the arduino will accept
 int switchLed1(const String& dumb);
 int switchLed13(const String& dumb);
+int sendMultiValue(const String& dumb);
+int sendDate(const String& dumb);
+int updateHumCsgn(const String& dumb);
+
+int fakeValue(int deb=0, int fin=1023);
+String fakeDate(int iFormat=1);
 
 SerialListener serList(Serial);
 
 Command cmdUser[] = {
     Command("SendValue",     &sendMessageStatus),
     Command("S",             &sendMessageStatus),
-//    Command("srPreOpen",     &srPreOpen),    // :file
-//    Command("srClose",       &srClose),   // :
-//    Command("srReadln",      &srReadln),  // :
-//    Command("srRead",        &srRead),  // : ?
-//    Command("srWrite",       &srWrite),
-//    Command("srMove",        &srMove),
+    Command("MultiValue",    &sendMultiValue),
+    Command("sendDate",      &sendDate),
+    Command("csgn/humidityIn/cmd",    &updateHumCsgn),
     Command("sl13",          &switchLed13),
     Command("lit1/switch",   &switchLed1)
 };
@@ -64,7 +63,7 @@ CommandList cmdLSys("cmdSys", "AT+", SIZE_OF_TAB(cmdSys), cmdSys );
 
 void setup()
 {
-    pinMode(PIN_LED, OUTPUT);
+    pinMode(PIN_LED13, OUTPUT);
     Serial.begin(9600);
     serList.addCmdList(cmdLUser);
     serList.addCmdList(cmdLSys);
@@ -98,7 +97,7 @@ int switchLed1(const String& sOnOff)
 // switch the led On or Off
 int switchLed13(const String& sOnOff)
 {
-    // sCmdAndBlinkTime contains cmd and value with this format cmd:value
+    // switchLed13 contains cmd and value with this format cmd:value
     // value must exist
     int ind = sOnOff.indexOf(":");
     if (ind < 0)   {
@@ -136,3 +135,66 @@ int switchLed13(const String& sOnOff)
     return 0;
 }
 
+
+int sendMultiValue(const String& dumb)
+{
+    int sensorVal = fakeValue(100, 199);
+    msgSPrint(String("mulTest:") +sensorVal +","+fakeValue(200,299) +","+fakeValue(300,399));
+    return 0;
+}
+
+int fakeValue(int deb, int fin)
+{
+    if (deb >= fin)
+        return millis() % 1024;
+
+    // fake sensor value
+    return millis() % (fin - deb) + deb;
+}
+
+int sendDate(const String& dumb)
+{
+    msgSPrint(String("admin/piClock:") +fakeDate(1));
+    return 0;
+}
+
+String fakeDate(int iFormat)   {
+    if (iFormat<1 || iFormat > 1)
+        return String("2001-01-03T12:34:55");
+    return String("2017-05-08T") +"09:" + (millis() %60+10) +":"+ (millis() %60+10);
+}
+
+int updateHumCsgn(const String& aStr)
+{
+    // updateHumCsgn contains cmd and value with this format cmd:value
+    // value must exist
+    int ind = aStr.indexOf(":");
+    if (ind < 0)   {
+      msgSError(getCommand(aStr) + F(" cmd needs 1 value"));
+      msgSPrint(getCommand(aStr) + "/KO" +1);
+      return 1;
+    }
+
+    // we get value part
+    String sValue = aStr.substring(ind+1);
+
+    int fValue = sValue.toFloat();
+    // toInt will return 0, if it is not an int
+    if ( fabs(fValue) < 0.0001 && ( ! sValue.startsWith("0")) )   {
+      msgSError(getCommand(aStr) + F(" cmd: value must be float"));
+      return 2;
+    }
+    else if (fValue < 0 || fValue > 100)   {
+      msgSError(getCommand(aStr) + F(" cmd: value must be in [0-100]"));
+      return 3;
+    }
+
+    globVarConsignHumidity = fValue;
+
+    // I send back OK msg
+    msgSPrint(getCommand(aStr) + "/OK:" +fValue);
+    // I send back state msg
+    //msgSPrint(String(F("state:")) + sValue);
+
+    return 0;
+}

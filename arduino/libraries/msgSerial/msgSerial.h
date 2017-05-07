@@ -112,6 +112,7 @@ int cmdsSize = sizeof(cmds) / sizeof(Commande);
 size_t msgSPrint(const String& aMsg);
 size_t msgSPrintln(const String& aMsg);
 size_t msgSError(const String& aMsg);
+String getCommand(const String& aCmdVal);
 
 
 class CommandList
