@@ -235,6 +235,13 @@ void SerialListener::checkMessageReceived()
 /*                  list of user function                        */
 /*---------------------------------------------------------------*/
 
+int sendFakeVal(const String& dumb)
+{
+    int sensorVal = getSensorValue();
+    msgSPrint(String("temp:") +sensorVal);
+    return 0;
+}
+
 int sendMessageStatus(const String& dumb)
 {
     int sensorVal = getSensorValue(); 

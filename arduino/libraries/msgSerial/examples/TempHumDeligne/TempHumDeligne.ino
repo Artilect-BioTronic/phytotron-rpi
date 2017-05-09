@@ -25,11 +25,12 @@
 #include <RCSwitch.h>
 #include <OneWire.h>
 
+#include "msgSerial.h"
+#include "TempHumMsg.h"
+
 
 //reglages
-//const unsigned long intervalleEnregistrement = 60000 ; // en millisecondes
 const byte intervalleEnregistrement = 1 ; // en minutes
-//const unsigned long intervalleAffichage = 1000 ; // en millisecondes
 const byte intervalleAffichage = 1 ; // en secondes
 const byte nbCommandeSwitch = 5 ;
 const int humiditicateurMarche = 5393 ;
@@ -74,6 +75,11 @@ bool commandeRefroidissement = false ;
 bool commandeHum = false ;
 unsigned long positionFichierConsignes ;
 
+
+//Génération des trames
+String TrameMesures = "" ;
+const char pointVirgule = ';' ;
+
 //enregistrement SD sur Memoire
 //const int chipSelect = 10 ; // uno
 const int chipSelect = 53 ; // mega
@@ -84,20 +90,43 @@ const String  NomFichierCommandes  = "com.csv" ;
 const unsigned long  positionEnregistrementFichierConsignes  = 7 ; // position avant derniere consigne temperature
 const String separateurFichier  = ";" ;
 
+//Echanges de fichiers
+const String debutFichier = "Debut du fichier" ;
+const String finFichier = "Fin du fichier" ;
+const String  commandeLectureFichierConsignes  = "cons" ;
+const String  commandeLectureFichierMesure  = "mes" ;
+const String  commandeLectureFichierCommandes  = "com" ;
 
-//Capteurs
-#define DHTPIN  2 // pin capteur humidite
+
+
+//Capteurs temperature-humidite
+//Exterieur
+#define CapteurHumiditeTemperatureExterieurPIN  2 // pin capteur humidite
 // Uncomment the type of sensor in use:
-#define DHTTYPE           DHT11     // DHT 11
-//#define DHTTYPE           DHT22     // DHT 22 (AM2302)
-//#define DHTTYPE           DHT21     // DHT 21 (AM2301)
-DHT_Unified dht( DHTPIN , DHTTYPE ) ;
-Adafruit_HTU21DF htu = Adafruit_HTU21DF();
-boolean HTU21 = false ; // présence capteur HTU21
+#define CapteurHumiditeTemperatureExterieurTYPE           DHT11     // DHT 11
+//#define CapteurHumiditeTemperatureExterieurTYPE           DHT22     // DHT 22 (AM2302)
+//#define CapteurHumiditeTemperatureExterieurTYPE           DHT21     // DHT 21 (AM2301)
+DHT_Unified CapteurHumiditeTemperatureExterieur( CapteurHumiditeTemperatureExterieurPIN , CapteurHumiditeTemperatureExterieurTYPE ) ;
+
+
+//Interieur
+#define CapteurHumiditeTemperatureInterieurPIN  40 // pin capteur humidite
+// Uncomment the type of sensor in use:
+//#define CapteurHumiditeTemperatureInterieurTYPE           DHT11     // DHT 11
+#define CapteurHumiditeTemperatureInterieurTYPE           DHT22     // DHT 22 (AM2302)
+//#define CapteurHumiditeTemperatureInterieurTYPE           DHT21     // DHT 21 (AM2301)
+DHT_Unified CapteurHumiditeTemperatureInterieur( CapteurHumiditeTemperatureInterieurPIN , CapteurHumiditeTemperatureInterieurTYPE ) ;
+
+
+
+
+
+//Adafruit_HTU21DF htu = Adafruit_HTU21DF();
+//boolean HTU21 = false ; // présence capteur HTU21
 
 //capteur(s) temperature Dallas
+const byte nbCapteurs = 3 ;
 const int PinOneWire = 69 ; // pin capteur temperature Dallas
-const int PinAlimOneWire = 68 ; // pin capteur temperature Dallas
 byte octet ;
 byte present = 0;
 byte type_s;
@@ -117,7 +146,7 @@ unsigned long TempsMesure = 0 ;
 unsigned long TempsEnregistrement = 0 ;
 unsigned long TempsMesurePrecedent = 0 ;
 unsigned long TempsEnregistrementPrecedent = 0 ;
-
+float Dallas [ nbCapteurs ] ;
 
 
 
@@ -152,45 +181,40 @@ unsigned long tempsAffichage = 0 ;
 void setup(void)
 {
   Wire.begin ( ) ;
-  pinMode ( PinAlimOneWire , OUTPUT ) ;
-  digitalWrite ( PinAlimOneWire , HIGH ) ;
   telecommande.enableTransmit ( pinTelecommande ) ;
   commandeSwitch ( humiditicateurArret ) ;
   commandeSwitch ( refroidissementArret ) ;
   commandeSwitch ( chauffageArret ) ;
-  Serial1.begin ( 9600 ) ;
+  Serial1.begin ( 115200 ) ;
   Serial.begin ( 115200 ) ;
   while ( !Serial )
   {
     ; // wait for serial port to connect. Needed for Leonardo only
   }
-
+  Serial.println ( "Debut de l'init" ) ;
   lcd.init ( ) ;
   lcd.createChar ( 0 , degres ) ;
-  dht.begin ( ) ;
+  CapteurHumiditeTemperatureInterieur.begin ( ) ;
+  CapteurHumiditeTemperatureExterieur.begin ( ) ;
   releveRTC ( ) ; //on releve date et heure sur l'horloge RTC
   sensor_t sensor; //Initialise the sensor
-  dht.temperature().getSensor(&sensor);
-  dht.humidity().getSensor(&sensor);
+  CapteurHumiditeTemperatureInterieur.temperature().getSensor(&sensor);
+  CapteurHumiditeTemperatureInterieur.humidity().getSensor(&sensor);
+  CapteurHumiditeTemperatureExterieur.temperature().getSensor(&sensor);
+  CapteurHumiditeTemperatureExterieur.humidity().getSensor(&sensor);
 
+  /*  if (!htu.begin())
+    {
+      Serial.println("Capteur HTU21 absent");
+      HTU21 = false ;
+      //while (1);
+    }
+    else
+    {
+      HTU21 = true ;
+    }
 
-
-
-
-
-
-  if (!htu.begin())
-  {
-    Serial.println("Capteur HTU21 absent");
-    HTU21 = false ;
-    //while (1);
-  }
-  else
-  {
-    HTU21 = true ;
-  }
-
-
+  */
 
 
 
@@ -301,6 +325,7 @@ void setup(void)
   afficheLCDregulier ( ) ;
   tmElements_t tm ;
   secondesAffichagePrecedent = secondes ;
+  Serial.println ( "Pas de panique, faut attendre la fin de la minute entiere dans ;" ) ;
   do
   {
     releveRTC ( ) ; //on releve date et heure sur l'horloge RTC
@@ -311,6 +336,7 @@ void setup(void)
       //tempsAffichage = tempsAffichage + intervalleAffichage ;
       releveValeurs ( ) ;
       afficheLCDregulier ( ) ;
+      Serial.println ( 61 - secondes ) ;
     }
   }
   while ( secondes != 0 ) ; //Pour partir à une Minute entiére
@@ -327,33 +353,9 @@ void loop ( )
   mesureTemperature18B20 ( ) ;
 
   // enregistrement regulier
-  //if ( millis ( ) - tempsEnregistrement > intervalleEnregistrement )
   if ( minutes != minutesEnregistrementPrecedent )
   {
-    //preparation du prochain enregistrement
-    //tempsEnregistrement = tempsEnregistrement + intervalleEnregistrement ;
     minutesEnregistrementPrecedent = minutes ;
-    releveValeurs ( ) ;
-    File dataFile = SD.open ( NomFichierMesure , FILE_WRITE ) ;
-    if ( dataFile )
-    {
-      dataFile.print ( dateString ) ;
-      dataFile.print ( separateurFichier ) ;
-      dataFile.print ( heureString ) ;
-      dataFile.print ( separateurFichier ) ;
-      //     dataFile.print ( numeroDix ( temperatureInterieureEntiere ) ) ;
-      dataFile.print ( temperatureInterieureEntiere ) ;
-      dataFile.print ( separateurFichier ) ;
-      //      dataFile.print ( numeroDix ( humiditeInterieureEntiere ) ) ;
-      dataFile.print ( humiditeInterieureEntiere ) ;
-      dataFile.println ( "" ) ;
-      dataFile.close();
-    }
-    else
-    {
-      //erreur sur ecriture recurente carte SD
-      erreur ( 9 ) ;
-    }
   }
 
   // affichage regulier
@@ -363,8 +365,11 @@ void loop ( )
     //tempsAffichage = tempsAffichage + intervalleAffichage ;
     secondesAffichagePrecedent = secondes ;
     releveValeurs ( ) ;
+    EnregistrementFichierMesure ( ) ;
+    FonctionTexteTrameMesures ( ) ;
     afficheLCDregulier ( ) ;
-    Serial1.println ( String ( dateString + ";" + heureString ) ) ;
+    affichageUsbSecondes ( ) ;
+    affichageSerieRaspSecondes ( ) ;
   }
 
 
@@ -462,13 +467,13 @@ void loop ( )
     }
   }
 
-  if ( menu && ! selection && valeurStick > 1013 )
+  if ( menu && ! selection && (valeurStick > 1013) )
   {
     selection = true ;
     //Serial.println ( "selection" ) ;
   }
 
-  if ( menu && selection && validation && valeurStick > 1013 )
+  if ( menu && selection && validation && (valeurStick > 1013) )
   {
     menu = false ;
     selection = false ;
@@ -512,7 +517,7 @@ void loop ( )
 
   // Asservissements
   // Humidite prise " D"
-  if ( humiditeInterieureEntiere < ( consigneHum - plageHum ) & ! commandeHum )
+  if ( (humiditeInterieureEntiere < ( consigneHum - plageHum )) & ! commandeHum )
   {
     //telecommande.send ( 5393 , 24 ) ; // marche
     commandeSwitch ( humiditicateurMarche ) ;
@@ -538,7 +543,7 @@ void loop ( )
       erreur ( 12 ) ;
     }
   }
-  if ( humiditeInterieureEntiere > consigneHum & commandeHum )
+  if ( (humiditeInterieureEntiere > consigneHum) & commandeHum )
   {
     //telecommande.send ( 5396 , 24 ) ; // arret
     commandeSwitch ( humiditicateurArret ) ;
@@ -685,15 +690,15 @@ void loop ( )
     Serial.print ( "messageRecuUSB =>" ) ;   // send an initial string
     Serial.print ( messageRecuUSB ) ;   // send an initial string
     Serial.println ( "<=" ) ;   // send an initial string
-    if ( messageRecuUSB == "cons" )
+    if ( messageRecuUSB == commandeLectureFichierConsignes )
     {
       dump ( NomFichierConsignes ) ;
     }
-    if ( messageRecuUSB == "mes" )
+    if ( messageRecuUSB == commandeLectureFichierMesure )
     {
       dump ( NomFichierMesure ) ;
     }
-    if ( messageRecuUSB == "com" )
+    if ( messageRecuUSB == commandeLectureFichierCommandes )
     {
       dump ( NomFichierCommandes ) ;
     }
@@ -712,17 +717,17 @@ void loop ( )
     Serial.print ( "messageRecu =>" ) ;   // send an initial string
     Serial.print ( messageRecuRaspi ) ;   // send an initial string
     Serial.println ( "<=" ) ;   // send an initial string
-    if ( messageRecuRaspi == "cons" )
+    if ( messageRecuRaspi == commandeLectureFichierConsignes )
     {
-      dump ( NomFichierConsignes ) ;
+      dumpRasp ( NomFichierConsignes ) ;
     }
-    if ( messageRecuRaspi == "mes" )
+    if ( messageRecuRaspi == commandeLectureFichierMesure )
     {
-      dump ( NomFichierMesure ) ;
+      dumpRasp ( NomFichierMesure ) ;
     }
-    if ( messageRecuRaspi == "com" )
+    if ( messageRecuRaspi == commandeLectureFichierCommandes )
     {
-      dump ( NomFichierCommandes ) ;
+      dumpRasp ( NomFichierCommandes ) ;
     }
     messageRecuRaspi = "" ;
   }
@@ -763,11 +768,11 @@ void releveRTC ( void )
                            + ":"
                            + numeroDix ( secondes ) ) ;
 
-    dateString = String ( numeroDix ( tm.Day )
-                          + "/"
+    dateString = String ( tmYearToCalendar ( tm.Year )
+                          + "-"
                           + numeroDix ( tm.Month )
-                          + "/"
-                          + tmYearToCalendar ( tm.Year ) ) ;
+                          + "-"
+                          + numeroDix ( tm.Day ) ) ;
 
   }
 }
@@ -777,25 +782,34 @@ void afficheLCD ( String texte , unsigned int positionColonne , boolean ligne  )
 {
   lcd.setCursor ( positionColonne , ligne ) ;
   lcd.print ( texte ) ;
-
-
-
-
-
-
-  Serial.print ( texte ) ;
-
-
-
-
-
-
 }
 
 void releveValeurs ( void )
 {
   sensors_event_t event; // Lancer les mesures
-  dht.temperature().getEvent(&event); //temperature par DHT11
+  //Interieur
+  CapteurHumiditeTemperatureInterieur.temperature().getEvent(&event); //temperature par DHT11
+  if (isnan(event.temperature))
+  {
+    erreur ( 10 ) ;
+  }
+  else
+  {
+    temperatureInterieureEntiere = event.temperature ;
+  }
+  CapteurHumiditeTemperatureInterieur.humidity ( ) . getEvent ( &event ) ; //humidite par DHT11
+  if ( isnan( event . relative_humidity ) )
+  {
+    erreur ( 11 ) ; ;
+  }
+  else
+  {
+    humiditeInterieureEntiere = event.relative_humidity ;
+  }
+
+
+  //exterieur
+  CapteurHumiditeTemperatureExterieur.temperature().getEvent(&event); //temperature par DHT11
   if (isnan(event.temperature))
   {
     erreur ( 10 ) ;
@@ -804,7 +818,7 @@ void releveValeurs ( void )
   {
     temperatureExterieureEntiere = event.temperature ;
   }
-  dht.humidity ( ) . getEvent ( &event ) ; //humidite par DHT11
+  CapteurHumiditeTemperatureExterieur.humidity ( ) . getEvent ( &event ) ; //humidite par DHT11
   if ( isnan( event . relative_humidity ) )
   {
     erreur ( 11 ) ; ;
@@ -813,16 +827,22 @@ void releveValeurs ( void )
   {
     humiditeExterieureEntiere = event.relative_humidity ;
   }
-  if ( HTU21 )
-  {
-    temperatureInterieureEntiere = int ( htu.readTemperature ( ) ) ;
-    humiditeInterieureEntiere = int ( htu.readHumidity ( ) ) ;
-  }
-  else
-  {
-    temperatureInterieureEntiere = 00 ;
-    humiditeInterieureEntiere = 00 ;
-  }
+  /*  if ( HTU21 )
+    {
+    //    temperatureInterieureEntiere = int ( htu.readTemperature ( ) ) ;
+    float
+
+
+
+
+      //humiditeInterieureEntiere = int ( htu.readHumidity ( ) ) ;
+    }
+    else
+    {
+      temperatureInterieureEntiere = 00 ;
+      humiditeInterieureEntiere = 00 ;
+    }
+  */
 }
 
 void afficheLCDregulier ( void )
@@ -835,27 +855,13 @@ void afficheLCDregulier ( void )
   afficheLCD ( numeroDix ( humiditeInterieureEntiere ) , 0 , 1 ) ;
   afficheLCD ( "%" , 2 , 1 ) ;
   afficheLCD ( heureString , 8 , 1 ) ;
-
-  Serial.print("Temperature int = ");
-  Serial.println(temperatureInterieureEntiere);
-  Serial.print("Humidité int = ");
-  Serial.println(humiditeInterieureEntiere);
-  Serial.print("Temperature ext = ");
-  Serial.println(temperatureExterieureEntiere);
-  Serial.print("Humidité ext = ");
-  Serial.println(humiditeExterieureEntiere);
-
-  Serial.print("temperature Dallas = ");
-  //Serial.println(mesure);
-  Serial.print ( emission ) ;
-  Serial.println ( "" ) ;
 }
 
 
 
 
 
-void mesureTemperature18B20 (void)
+void mesureTemperature18B20 (void) //Dallas
 {
   if ( phase == 0 && ( Temps - TempsMesurePrecedent ) > 150  ) // a chaque nouveau capteur et apres un certain temps
   {
@@ -864,7 +870,7 @@ void mesureTemperature18B20 (void)
     {
       noCapteur = 0 ; // on recommence au debut
       Ds18b20.reset_search ( ) ; // on demande l'identification
-      delay ( 10 ) ;
+      //delay ( 10 ) ;
       emission = emissionEnCours ; // on met a jour le texte qui va etre emis
       emissionEnCours = "" ; // on efface la variable en cours puisque on est au debut
     }
@@ -933,6 +939,8 @@ void mesureTemperature18B20 (void)
       else if ( cfg == 0x40 ) mesure = mesure & ~1 ; // 11 bit res, 375 ms
       //// default is 12 bit resolution, 750 ms conversion time
     }
+    float MesureDallas = ( float ) mesure / 16.0 ;
+    Dallas [ noCapteur - 1 ] = MesureDallas ;
     emissionEnCours += String ( ( float ) mesure / 16.0 ) ; // on ecris la nouvelle valeur sur la chaine
   }
 }
@@ -948,8 +956,8 @@ void mesureTemperature18B20 (void)
 
 void dump ( String nomFichier )
 {
+  Serial.println ( debutFichier ) ;
   File dataFile = SD.open ( nomFichier ) ;
-
   // if the file is available, write to it:
   if ( dataFile )
   {
@@ -964,7 +972,45 @@ void dump ( String nomFichier )
   {
     Serial.println ( String ( "error opening" + nomFichier ) ) ;
   }
+  Serial.println ( finFichier ) ;
 }
+
+
+void dumpRasp ( String nomFichier )
+{
+  Serial.println ( debutFichier ) ;
+  File dataFile = SD.open ( nomFichier ) ;
+
+  // if the file is available, write to it:
+  if ( dataFile )
+  {
+    while ( dataFile.available ( ) )
+    {
+      Serial1.write ( dataFile.read ( ) ) ;
+    }
+    dataFile.close ( ) ;
+  }
+  // if the file isn't open, pop up an error:
+  else
+  {
+    Serial1.println ( String ( "error opening" + nomFichier ) ) ;
+  }
+  Serial.println ( finFichier ) ;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 void commandeSwitch ( int valeur )
 {
@@ -974,4 +1020,97 @@ void commandeSwitch ( int valeur )
   }
 }
 
+void affichageUsbSecondes ( void )
+{
 
+  Serial.println ( TrameMesures ) ;
+  /*
+    Serial.print ( "Date = " ) ;
+    Serial.println ( dateString ) ;
+    Serial.print("Heure = ");
+    Serial.println ( heureString ) ;
+    Serial.print("Temperature int = ");
+    Serial.println(temperatureInterieureEntiere);
+    Serial.print("Humidite int = ");
+    Serial.println(humiditeInterieureEntiere);
+    Serial.print("Temperature ext = ");
+    Serial.println(temperatureExterieureEntiere);
+    Serial.print("Humidite ext = ");
+    Serial.println(humiditeExterieureEntiere);
+    Serial.println ( emission ) ;
+    for ( byte boucle = nbCapteurs ; boucle > 0 ; boucle -- )
+    {
+    Serial.print( "Temperature Dallas N° " ) ;
+    Serial.print ( boucle ) ;
+    Serial.print ( " = " ) ;
+    Serial.println ( String ( Dallas [ boucle - 1 ] ) ) ;
+    }*/
+}
+
+void affichageSerieRaspSecondes ( void )
+{
+  Serial1.println ( TrameMesures ) ;
+  /*  Serial1.print ( "Date = " ) ;
+    Serial1.println ( dateString ) ;
+    Serial1.print("Heure = ");
+    Serial1.println ( heureString ) ;
+    Serial1.print("Temperature int = ");
+    Serial1.println(temperatureInterieureEntiere);
+    Serial1.print("Humidite int = ");
+    Serial1.println(humiditeInterieureEntiere);
+    Serial1.print("Temperature ext = ");
+    Serial1.println(temperatureExterieureEntiere);
+    Serial1.print("Humidite ext = ");
+    Serial1.println(humiditeExterieureEntiere);
+    Serial1.println ( emission ) ;
+    for ( byte boucle = nbCapteurs ; boucle > 0 ; boucle -- )
+    {
+      Serial1.print( "Temperature Dallas N° " ) ;
+      Serial1.print ( boucle ) ;
+      Serial1.print ( " = " ) ;
+      Serial1.println ( Dallas [ boucle - 1 ] ) ;
+    }*/
+}
+
+void FonctionTexteTrameMesures ( void )
+{
+  String textDallas = "" ;
+
+  for ( byte boucle = nbCapteurs ; boucle > 0 ; boucle -- )
+  {
+    textDallas = textDallas + String ( pointVirgule + String ( Dallas [ boucle - 1 ] ) ) ;
+  }
+  TrameMesures = String ( dateString + pointVirgule +
+                          heureString + pointVirgule +
+                          temperatureInterieureEntiere + pointVirgule +
+                          humiditeInterieureEntiere + pointVirgule +
+                          temperatureExterieureEntiere + pointVirgule +
+                          humiditeExterieureEntiere +
+                          textDallas ) ;
+}
+
+
+void EnregistrementFichierMesure ( void )
+{
+  File dataFile = SD.open ( NomFichierMesure , FILE_WRITE ) ;
+  if ( dataFile )
+  {
+    dataFile.println ( TrameMesures ) ;
+    /*dataFile.print ( dateString ) ;
+      dataFile.print ( separateurFichier ) ;
+      dataFile.print ( heureString ) ;
+      dataFile.print ( separateurFichier ) ;
+      //     dataFile.print ( numeroDix ( temperatureInterieureEntiere ) ) ;
+      dataFile.print ( temperatureInterieureEntiere ) ;
+      dataFile.print ( separateurFichier ) ;
+      //      dataFile.print ( numeroDix ( humiditeInterieureEntiere ) ) ;
+      dataFile.print ( humiditeInterieureEntiere ) ;
+      dataFile.println ( "" ) ;*/
+    dataFile.close();
+  }
+  else
+  {
+    //erreur sur ecriture recurente carte SD
+    erreur ( 9 ) ;
+  }
+}

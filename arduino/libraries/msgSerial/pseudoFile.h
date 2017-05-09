@@ -1,8 +1,8 @@
 #include "Arduino.h"
 
 //#include "SD.h"
-#include "SdFat.h"
-extern SdFat SD;
+//#include "SdFat.h"
+//extern SdFat SD;
 
 #include "msgSerial.h"
 

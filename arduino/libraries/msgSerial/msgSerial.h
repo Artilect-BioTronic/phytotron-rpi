@@ -2,8 +2,12 @@
 #define MSGFROMMQTT_H
 
 #include "Arduino.h"
+#include "msgExampleFunction.h"
 
-#define SERIAL_MSG Serial
+
+#ifndef SERIAL_MSG
+    #define SERIAL_MSG Serial
+#endif
 
 // You have to define STR__FILE__ in your main file sketch.ino, this way
 
@@ -55,10 +59,7 @@ extern String msg2pyStart, msg2mqttStart, msg2pyEnd, prefAT, prefDO ;
 //   that means if they are not included in your cmdos and cmds  arrays
 
 // list of available commands (user) that the arduino will accept
-int sendMessageStatus(const String& dumb);
-int ledBlinkTime(const String& dumb);
-// uses  int blinkTime=1000;    defined in .cpp
-int switchLed(const String& dumb);
+//   there is a list of functions in  msgExampleFunction.h
 
 // list of available commands (system ctrl) that the arduino will accept
 int sendSketchId(const String& dumb);
