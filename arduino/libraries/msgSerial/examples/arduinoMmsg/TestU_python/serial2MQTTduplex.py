@@ -10,6 +10,7 @@ import sys, getopt
 # IP address of MQTT broker
 hostMQTT='localhost'
 # example of free MQTT broker:  'iot.eclipse.org'
+authDict = {}
 
 clientId='myNameOfClient'
 
@@ -17,6 +18,7 @@ logfile=sys.stdout
 logStartTime=0.
 
 devSerial='/dev/ttyUSB0'   # serial port the arduino is connected to
+baudRate=115200
 
 mqTopic1='/domotique/garage/topictest/'
 mqTopic2='/domotique/garage/topictest2/'
@@ -29,7 +31,7 @@ endOfLine='\n'
 msg2py='2py'
 msg2mqtt='2mq'
 
-sleepBetweenLoop=5    # sleep time (eg: 1s) to slow down loop
+sleepBetweenLoop=1    # sleep time (eg: 1s) to slow down loop
 sleepResponse=0.09    # sleep to leave enough time for the arduino to respond immediately
 
 namePy='py0'
@@ -70,16 +72,18 @@ def read_args(argv):
     global logfile, hostMQTT, namePy, mqTopic1, mqTopic2, devSerial
     logfileName = ''
     try:
-        opts, args = getopt.getopt(argv,"hl:b:n:t:u:d:",["logfile=","broker=","namepy=","mqTopic1=","mqTopic2=","devserial="])
+        opts, args = getopt.getopt(argv,"hl:b:d:n:t:u:d:",["logfile=","broker=","baudrate=","namepy=","mqTopic1=","mqTopic2=","devserial="])
     except getopt.GetoptError:
-        print ('serial2MQTTduplex.py -l <logfile> -n <namepy> -b <broker> -t <mqTopic1> -u <mqTopic2> -d <devserial>')
+        print ('serial2MQTTduplex.py -l <logfile> -n <namepy> -b <broker> -d <baudrate> -t <mqTopic1> -u <mqTopic2> -d <devserial>')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print ('serial2MQTTduplex.py -l <logfile> -n <namepy> -b <broker> -t <mqTopic1> -u <mqTopic2> -d <devserial>')
+            print ('serial2MQTTduplex.py -l <logfile> -n <namepy> -b <broker> -d <baudrate> -t <mqTopic1> -u <mqTopic2> -d <devserial>')
             sys.exit()
         elif opt in ("-l", "--logfile"):
             logfileName = arg
+        elif opt in ("-d", "--baudrate"):
+            baudRate = arg
         elif opt in ("-b", "--broker"):
             hostMQTT = arg
         elif opt in ("-n", "--namepy"):
@@ -92,6 +96,7 @@ def read_args(argv):
             devSerial = arg
     logp('logfile is '+ logfileName, 'debug')
     logp('broker is '+ hostMQTT, 'debug')
+    logp('baudrate is '+ baudRate, 'debug')
     logp('namepy is '+ namePy, 'debug')
     logp('mqTopic1 is '+ mqTopic1, 'debug')
     logp('mqTopic2 is '+ mqTopic2, 'debug')
@@ -113,6 +118,32 @@ def checkLogfileSize(logfile):
 	global logStartTime
 	if (time.time() - logStartTime) > 600:
 		reOpenLogfile(logfile.name)
+
+
+def readListSketchFromFile(fileName):
+    "read filename and append valid dict lines in returned dict"
+    logp('reading list of arguments for sketch in file : ' + fileName)
+    try:
+        fileListSketch = open(fileName, 'r')
+    except:
+        logp('could not open list of sketch configuration file: ' + fileName, 'error')
+        return {}
+    #
+    strLines = fileListSketch.readlines()
+    fileListSketch.close()
+    dSketch = {}
+    for strl in strLines:
+        try:
+            if (strl[0] != '#'):
+                itemDict = ast.literal_eval(strl)
+                if (type(itemDict) == type({})):
+                    dSketch.update(itemDict)
+                else:
+                    logp ('line NOT dict:' + strl)
+        except:
+          logp('line fails as dict:' + strl)
+    fileListSketch.close()
+    return dSketch
 
 
 # The callback for when the client receives a CONNACK response from the server.
@@ -224,7 +255,7 @@ def readArduinoAvailableMsg(seri):
 
 # connection to arduino
 # I use 9600, because I had many pb with pyserial at 38400 !!!
-ser = serial.Serial(devSerial, baudrate=9600, timeout=0.2)
+ser = serial.Serial(devSerial, baudrate=baudRate, timeout=0.2)
 logp (str(ser), 'info')
 # when we open serial to an arduino, this reset the board; it needs ~3s
 time.sleep(0.2)
@@ -235,10 +266,20 @@ time.sleep(3)
 
 # loop to get connection to arduino
 
+
+#---------------------------------------------------
+#                   mosquitto
+#---------------------------------------------------
+
+# read password from file  passMqtt.txt
+authInFile = readListSketchFromFile("passMqtt.txt")
+
 # connection to mosquitto
 mqttc = mqtt.Client("", True, None, mqtt.MQTTv31)
 mqttc.on_message = on_message
 mqttc.on_connect = on_connect
+if (authInFile.has_key('username') and authInFile.has_key('password')) :
+    mqttc.username_pw_set(authInFile[“username”], authInFile[“password”])
 
 #mqttc.connect('iot.eclipse.org', port=1883, keepalive=60, bind_address="")
 cr = mqttc.connect(hostMQTT, port=1883, keepalive=60, bind_address="")

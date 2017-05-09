@@ -23,6 +23,7 @@ msgStartDO='DO+'
 msgEnd='\n'
 
 devSerial='/dev/ttyACM0'
+bd=9600
 fileSD = "fake"
 
 
@@ -66,7 +67,7 @@ def sendGetArd(aCmd):
    return ['', -1]
 
 
-ser = serial.Serial(dev, baudrate=9600, timeout=0.2, writeTimeout=0.2)
+ser = serial.Serial(devSerial, baudrate=bd, timeout=0.2, writeTimeout=0.2)
 # waiting 2s for arduino reinit
 time.sleep(1)
 emptyRx(ser)
