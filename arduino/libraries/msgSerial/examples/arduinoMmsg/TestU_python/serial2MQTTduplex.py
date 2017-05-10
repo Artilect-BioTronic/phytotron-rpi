@@ -5,12 +5,14 @@ import paho.mqtt.client as mqtt
 import paho.mqtt.publish as publish
 import serial
 import time
+import ast
 import sys, getopt
 
 # IP address of MQTT broker
-hostMQTT='localhost'
 # example of free MQTT broker:  'iot.eclipse.org'
-authDict = {}
+hostMQTT='localhost'
+portMQTT=1883
+filePassMqtt="./passMqtt.txt"
 
 clientId='myNameOfClient'
 
@@ -69,20 +71,20 @@ def reOpenLogfile(logfileName):
 
 def read_args(argv):
     # optional args have default values above
-    global logfile, hostMQTT, namePy, mqTopic1, mqTopic2, devSerial
+    global logfile, hostMQTT, baudRate, namePy, mqTopic1, mqTopic2, devSerial
     logfileName = ''
     try:
-        opts, args = getopt.getopt(argv,"hl:b:d:n:t:u:d:",["logfile=","broker=","baudrate=","namepy=","mqTopic1=","mqTopic2=","devserial="])
+        opts, args = getopt.getopt(argv,"hl:b:r:n:t:u:d:",["logfile=","broker=","baudrate=","namepy=","mqTopic1=","mqTopic2=","devSerial="])
     except getopt.GetoptError:
-        print ('serial2MQTTduplex.py -l <logfile> -n <namepy> -b <broker> -d <baudrate> -t <mqTopic1> -u <mqTopic2> -d <devserial>')
+        print ('serial2MQTTduplex.py -l <logfile> -n <namepy> -b <broker> -r <baudrate> -t <mqTopic1> -u <mqTopic2> -d <devSerial>')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print ('serial2MQTTduplex.py -l <logfile> -n <namepy> -b <broker> -d <baudrate> -t <mqTopic1> -u <mqTopic2> -d <devserial>')
+            print ('serial2MQTTduplex.py -l <logfile> -n <namepy> -b <broker> -r <baudrate> -t <mqTopic1> -u <mqTopic2> -d <devSerial>')
             sys.exit()
         elif opt in ("-l", "--logfile"):
             logfileName = arg
-        elif opt in ("-d", "--baudrate"):
+        elif opt in ("-r", "--baudrate"):
             baudRate = arg
         elif opt in ("-b", "--broker"):
             hostMQTT = arg
@@ -92,11 +94,11 @@ def read_args(argv):
             mqTopic1 = arg
         elif opt in ("-u", "--mqTopic2"):
             mqTopic2 = arg
-        elif opt in ("-d", "--devserial"):
+        elif opt in ("-d", "--devSerial"):
             devSerial = arg
     logp('logfile is '+ logfileName, 'debug')
     logp('broker is '+ hostMQTT, 'debug')
-    logp('baudrate is '+ baudRate, 'debug')
+    logp('baudrate is '+ str(baudRate), 'debug')
     logp('namepy is '+ namePy, 'debug')
     logp('mqTopic1 is '+ mqTopic1, 'debug')
     logp('mqTopic2 is '+ mqTopic2, 'debug')
@@ -131,7 +133,7 @@ def readListSketchFromFile(fileName):
     #
     strLines = fileListSketch.readlines()
     fileListSketch.close()
-    dSketch = {}
+    dSketch = {"username":"phytotron", "password":"biotronic"}
     for strl in strLines:
         try:
             if (strl[0] != '#'):
@@ -142,7 +144,6 @@ def readListSketchFromFile(fileName):
                     logp ('line NOT dict:' + strl)
         except:
           logp('line fails as dict:' + strl)
-    fileListSketch.close()
     return dSketch
 
 
@@ -272,17 +273,17 @@ time.sleep(3)
 #---------------------------------------------------
 
 # read password from file  passMqtt.txt
-authInFile = readListSketchFromFile("passMqtt.txt")
+authInFile = readListSketchFromFile(filePassMqtt)
 
 # connection to mosquitto
 mqttc = mqtt.Client("", True, None, mqtt.MQTTv31)
 mqttc.on_message = on_message
 mqttc.on_connect = on_connect
 if (authInFile.has_key('username') and authInFile.has_key('password')) :
-    mqttc.username_pw_set(authInFile[“username”], authInFile[“password”])
+    mqttc.username_pw_set(authInFile["username"], authInFile["password"])
 
 #mqttc.connect('iot.eclipse.org', port=1883, keepalive=60, bind_address="")
-cr = mqttc.connect(hostMQTT, port=1883, keepalive=60, bind_address="")
+cr = mqttc.connect(hostMQTT, port=portMQTT, keepalive=60, bind_address="")
 mqttc.loop_start()
 
 

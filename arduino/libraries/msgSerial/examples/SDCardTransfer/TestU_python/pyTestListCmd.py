@@ -90,3 +90,9 @@ ser.write("CM+srClose""\n")
 emptyRx(ser)
 
 ser.close()
+
+
+sys.exit()
+
+serial2MQTTduplex.py -d "/dev/ttyAMA0" -t "/phytotron/" -u "/phytotron/"
+/home/pi/python/serial2MQTTduplex.py -d "/dev/ttyAMA0" -t "/phytotron/" -u "/phytotron/" &

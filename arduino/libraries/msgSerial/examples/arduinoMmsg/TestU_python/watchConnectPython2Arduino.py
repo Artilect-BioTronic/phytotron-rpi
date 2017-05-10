@@ -14,6 +14,7 @@ fileNameListSketch = repSketch + '/listSketch.txt'
 repTmp='/media/ramdisk/openhab/logPython'
 
 hostMQTT='localhost'
+portMQTT=1883
 devSearchString='/dev/tty[UA]*'
 sleepBetweenLoop=2
 
@@ -263,7 +264,7 @@ mqttc = mqtt.Client("", True, None, mqtt.MQTTv31)
 mqttc.on_message = on_message
 mqttc.on_connect = on_connect
 
-cr = mqttc.connect(hostMQTT, port=1883, keepalive=60, bind_address="")
+cr = mqttc.connect(hostMQTT, port=portMQTT, keepalive=60, bind_address="")
 mqttc.loop_start()
 
 

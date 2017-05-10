@@ -1,0 +1,9 @@
+# voici le genre de ligne de commande pour lancer serial2MQTTduplex.py
+# par ex vous pouvez l ecrire dans le rc.local pour le lancer au demarrage
+
+# ici on se deplace dans le repertoire (/home/pi/python) qui contient :
+#  - le script   serial2MQTTduplex.py
+#  - le fichier des mots de pass d acces a MQTT  passMqtt.txt
+#  - le futur fichier de log   log_serial2MQTTduplex
+
+cd /home/pi/python ; ./serial2MQTTduplex.py  -r 115200 -d "/dev/ttyAMA0" -t "/phytotron/" -u "/phytotron/"
