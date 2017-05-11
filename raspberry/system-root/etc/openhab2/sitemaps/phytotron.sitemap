@@ -7,30 +7,32 @@ sitemap phytotron label="Menu Principal"
 			Text item=Inside_Humidity
 //			Text item=TempInConsigne
 //			Text item=HumidityInConsigne
-			Setpoint item=TempInConsigne  label="modify TempIn 0:40:0.5  [%.1f °C]"  minValue=0 maxValue=40 step=0.5
-			Setpoint item=HumidityInConsigne  label="modify HumidityIn 0:100:1  [%.1f %%]"  minValue=0 maxValue=100 step=1.
-			Setpoint item=TempInConsigne  label="modify TempIn 0:40:2  [%.1f °C]"  minValue=0 maxValue=40 step=2
-			Setpoint item=HumidityInConsigne  label="modify HumidityIn  0:100:5  [%.1f %%]"  minValue=0 maxValue=100 step=5.
 			Text item=TemperatureDS1
 			Text item=TemperatureDS2
 			Text item=TemperatureDS3
 		}
-		Group item=gWater label="Eau"         icon="water"
+//		Group item=gWater label="Eau"         icon="water"
 		Group item=gLight label="Lumière"     icon="sun"
-		Group item=gSoil  label="Sol/Substrat" icon="bath"
+//		Group item=gSoil  label="Sol/Substrat" icon="bath"
 		Group item=gEnv   label="Environnement"   icon="garden"
-		Group item=gDev   label="Phytotron"   icon="greenhouse"
+		Text   label="Phytotron"   icon="greenhouse"   {
+			Setpoint item=TempInConsigne  label="modify TempIn 0:40:0.5  [%.1f °C]"  minValue=0 maxValue=40 step=0.5
+			Setpoint item=HumidityInConsigne  label="modify HumidityIn 0:100:1  [%.1f %%]"  minValue=0 maxValue=100 step=1.
+			Setpoint item=TempInConsigne  label="modify TempIn 0:40:2  [%.1f °C]"  minValue=0 maxValue=40 step=2
+			Setpoint item=HumidityInConsigne  label="modify HumidityIn  0:100:5  [%.1f %%]"  minValue=0 maxValue=100 step=5.
+		   Text item=Inside_Light
+		   Text item=Heater
+		   Text item=Climate
+		   Text item=Frontdoor
+		}
+//		Group item=gDev   label="Phytotron"   icon="greenhouse"
 	}
-	Frame label="Groupes" {
-		Switch item=Lumieres mappings=[OFF="All Off"]
-		Group item=Lumieres
-		Switch item=Radiateurs mappings=[OFF="All Off"]
-		Group item=Radiateurs
-		Text item=Temperature
+	Frame label="Conditions intérieures" {
+			Text item=Inside_Temperature
+			Text item=Inside_Humidity
 	}
 	Frame label="Conditions extérieures" {
 		Text item=Outside_Temperature 
-// valuecolor=[Weather_LastUpdate=="NULL"="lightgray",>25="orange",>15="green",<=5="blue"] 
 		Text item=Outside_Humidity
 	}
 	Frame label="Courbes de mesures" {
@@ -45,10 +47,22 @@ sitemap phytotron label="Menu Principal"
 				Chart item=gTempChart period=D refresh=3600 visibility=[Mesures_Chart_Period==1]
 				Chart item=gTempChart period=W refresh=3600 visibility=[Mesures_Chart_Period==2]
 			}
+			Frame  {
+				Chart item=gHumChart period=h refresh=60 visibility=[Mesures_Chart_Period==0, Mesures_Chart_Period=="NULL"]
+				Chart item=gHumChart period=D refresh=3600 visibility=[Mesures_Chart_Period==1]
+				Chart item=gHumChart period=W refresh=3600 visibility=[Mesures_Chart_Period==2]
+			}
 		}
 	}
 	Frame label="Admin Matériel" {
 		Group item=gAdmin label="Admin"
+	}
+	Frame label="Groupes" {
+		Switch item=Lumieres mappings=[OFF="All Off"]
+		Group item=Lumieres
+		Switch item=Radiateurs mappings=[OFF="All Off"]
+		Group item=Radiateurs
+		Text item=Temperature
 	}
 	Frame label="Tests" {
 		Group item=gTest label="Tests"
