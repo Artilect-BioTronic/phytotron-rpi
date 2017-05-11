@@ -48,6 +48,8 @@ uint8_t thisPosition = 0;
 // example for more information on possible values.
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
 
+#include "func_leds_neopixel.hpp"
+
 // Globale variable
 uint8_t ledIntensity = 150;        // from 0 to 255 (min to max)
 uint16_t scrollingTextDelay = 500; // from 100 to 1300 (min to max)
