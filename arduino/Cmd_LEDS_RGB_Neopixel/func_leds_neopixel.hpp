@@ -1,3 +1,6 @@
+#include <Arduino.h>
+#include <Adafruit_NeoPixel.h>
+
 void ledRedColorIntensity(uint8_t colorIntensity) {
   // For a set of NeoPixels the first NeoPixel is 0, second is 1, all the way up to the count of pixels minus one.
   for (int i = 0; i < NUMPIXELS; i++) {
