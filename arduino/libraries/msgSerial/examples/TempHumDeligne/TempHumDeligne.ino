@@ -25,9 +25,37 @@
 #include <RCSwitch.h>
 #include <OneWire.h>
 
-#include "msgSerial.h"
-#include "TempHumMsg.h"
+//#include "msgSerial.h"
+//#include "TempHumMsg.h"
 
+// liste des fonctions definies dans le fichier TempHumDeligne.ino
+String numeroDix ( int valeur );
+void erreur ( byte numeroErreur );
+void releveRTC ( void );
+void afficheLCD ( String texte , unsigned int positionColonne , boolean ligne  );
+void releveValeurs ( void );
+void afficheLCDregulier ( void );
+void mesureTemperature18B20 (void); //Dallas
+void dump ( String nomFichier );
+void dumpRasp ( String nomFichier );
+void commandeSwitch ( int valeur );
+void affichageUsbSecondes ( void );
+void affichageSerieRaspSecondes ( void );
+void FonctionTexteTrameMesures ( void );
+void EnregistrementFichierMesure ( void );
+
+
+// example of frame:
+// -t "/phytotron/cli/mesure/D;H;ti;hi;te;he;t3;t2;t1"
+// -m "2017-05-08;12:34:56;11;12.1;21.1;22.1;33.1;32.1;31.1"
+const String topicMesure = "mesure/D;H;ti;hi;te;he;t3;t2;t1";
+const String head1="CM+";
+const String endOL="\n";
+
+String fmt1CmdMqtt(const String & aTopic, const String& aLoad)
+{
+    return head1 + aTopic + ":" + aLoad + endOL;
+}
 
 //reglages
 const byte intervalleEnregistrement = 1 ; // en minutes
@@ -356,6 +384,21 @@ void loop ( )
   if ( minutes != minutesEnregistrementPrecedent )
   {
     minutesEnregistrementPrecedent = minutes ;
+
+    if (commandeRefroidissement)
+        commandeSwitch ( refroidissementMarche ) ;
+    else
+        commandeSwitch ( refroidissementArret ) ;
+
+    if (commandeChauffage)
+        commandeSwitch ( chauffageMarche) ;
+    else
+        commandeSwitch ( chauffageArret) ;
+
+    if (commandeHum)
+        commandeSwitch ( humiditicateurMarche) ;
+    else
+        commandeSwitch ( humiditicateurArret) ;
   }
 
   // affichage regulier
@@ -762,17 +805,17 @@ void releveRTC ( void )
   {
     minutes = tm.Minute ;
     secondes = tm.Second ;
-    heureString = String ( numeroDix ( tm.Hour )
+    heureString = String ( numeroDix ( tm.Hour ) )
                            + ":"
                            + numeroDix ( minutes )
                            + ":"
-                           + numeroDix ( secondes ) ) ;
+                           + numeroDix ( secondes ) ;
 
-    dateString = String ( tmYearToCalendar ( tm.Year )
+    dateString = String ( tmYearToCalendar ( tm.Year ))
                           + "-"
                           + numeroDix ( tm.Month )
                           + "-"
-                          + numeroDix ( tm.Day ) ) ;
+                          + numeroDix ( tm.Day ) ;
 
   }
 }
@@ -1023,7 +1066,7 @@ void commandeSwitch ( int valeur )
 void affichageUsbSecondes ( void )
 {
 
-  Serial.println ( TrameMesures ) ;
+  Serial.print ( fmt1CmdMqtt (topicMesure, TrameMesures) ) ;
   /*
     Serial.print ( "Date = " ) ;
     Serial.println ( dateString ) ;
@@ -1049,7 +1092,7 @@ void affichageUsbSecondes ( void )
 
 void affichageSerieRaspSecondes ( void )
 {
-  Serial1.println ( TrameMesures ) ;
+  Serial1.print ( fmt1CmdMqtt (topicMesure, TrameMesures) ) ;
   /*  Serial1.print ( "Date = " ) ;
     Serial1.println ( dateString ) ;
     Serial1.print("Heure = ");
@@ -1075,10 +1118,18 @@ void affichageSerieRaspSecondes ( void )
 void FonctionTexteTrameMesures ( void )
 {
   String textDallas = "" ;
+  static float oldDallas[nbCapteurs]={15., 15., 15.};
 
   for ( byte boucle = nbCapteurs ; boucle > 0 ; boucle -- )
   {
-    textDallas = textDallas + String ( pointVirgule + String ( Dallas [ boucle - 1 ] ) ) ;
+      String sDallas = String(Dallas [ boucle - 1 ]);
+      //  si la valeur mesurée est bidon avec 85.00, on remet la valeur precedente
+      if (sDallas.equals("85.00"))
+          textDallas = textDallas + String ( pointVirgule + String ( oldDallas [ boucle - 1 ] ) ) ;
+      else   {
+          textDallas = textDallas + String ( pointVirgule + String ( Dallas [ boucle - 1 ] ) ) ;
+          oldDallas [ boucle - 1 ] = Dallas [ boucle - 1 ];
+      }
   }
   TrameMesures = String ( dateString + pointVirgule +
                           heureString + pointVirgule +

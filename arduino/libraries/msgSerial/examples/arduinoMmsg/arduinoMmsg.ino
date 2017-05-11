@@ -5,14 +5,14 @@
 
 #include "msgSerial.h"
 
-#include "SPI.h"
-#include "SdFat.h"
-#include "msg2SDCard.h"
+//#include "SPI.h"
+//#include "SdFat.h"
+//#include "msg2SDCard.h"
 
 
 #define PIN_LED13 13
 
-float globVarConsignHumidity=0.;
+//float globVarConsignHumidity=0.;
 
 
 // list of available commands (user) that the arduino will accept
