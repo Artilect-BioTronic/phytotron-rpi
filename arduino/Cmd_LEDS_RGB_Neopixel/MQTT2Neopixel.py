@@ -174,19 +174,22 @@ def on_message(client, userdata, msg):
 # usually  we go to a specific callback that we have defined for each topic
 def on_message_mqTopicOH(client, userdata, msg):
     logp("mqTopicOH:"+msg.topic+" : "+str(msg.payload), 'info')
-    if ( len(msg.payload) == 0) :
-        logp("topic with empty payload:"+msg.topic, 'info')
-        return
-    if msg.topic.startswith(mqTopic1+topFromOH+ 'mode') :
-        ser.write(str(msg.payload)[0])
-    elif msg.topic.startswith(mqTopic1+topFromOH+ 'intensity') :
-        if (not msg.payload.isdigit()) :
+    try :
+        if ( len(msg.payload) == 0) :
+            logp("topic with empty payload:"+msg.topic, 'info')
             return
-        numIntensity = int(msg.payload)
-        # if it cannot be converted to char
-        if (numIntensity < 0 or 255 < numIntensity):
-            return
-        ser.write(chr(numIntensity))
+        if msg.topic.startswith(mqTopic1+topFromOH+ 'mode') :
+            ser.write(str(msg.payload)[0])
+        elif msg.topic.startswith(mqTopic1+topFromOH+ 'intensity') :
+            if (not msg.payload.isdigit()) :
+                return
+            numIntensity = int(msg.payload)
+            # if it cannot be converted to char
+            if (numIntensity < 0 or 255 < numIntensity):
+                return
+            ser.write(chr(numIntensity))
+    except:
+      logp('exception parsing MQTT msg:'+msg.topic+" : "+str(msg.payload), 'com error')
     time.sleep(sleepResponse)
     readArduinoAvailableMsg(ser)
 
