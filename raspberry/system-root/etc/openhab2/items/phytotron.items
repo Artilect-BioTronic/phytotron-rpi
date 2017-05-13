@@ -50,6 +50,12 @@ Number Mesures_Chart_Period     "Chart Period"                <clock>
 Group gTempChart
 Group gHumChart
 
+/* photos */
+Group gPhotos
+//Switch Heater2   "Radiateur"      <heating>   (gDev, Radiateurs, gPhotos) 
+Text  tempText    icon="photo"   label="Webcam du phytotron ci dessous"  (gPhotos)
+Image imgWebcam2   icon="photo" url="http://localhost:8080/static/lastPi.jpg" label="Webcam du phytotron" refresh=900 width=200   (gPhotos)
+
 /* Administration items */
 Group gAdmin
 DateTime PiDateTest            "Heure temoin  [%1$tH:%1$tM:%1$tS]"   <clock>  (gAdmin)  {mqtt="<[local_mqtt:/phytotron/+/admin/piClock:state:default]"}

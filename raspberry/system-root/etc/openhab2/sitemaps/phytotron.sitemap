@@ -64,6 +64,17 @@ sitemap phytotron label="Menu Principal"
 		Group item=Radiateurs
 		Text item=Temperature
 	}
+//	Image  url="http://localhost:8080/static/lastPi.jpg" label="Webcam du phytotron" refresh=9000  
+//	Image  url="http://localhost/pub/photos/lastPi.jpg" label="Webcam du phytotron" refresh=90000
+//			Webview   url="http://192.168.2.1/pub/photos/lastPi.jpg" label="Webcam du phytotron" refresh=900  height=200  
+	Frame label="Photo" {
+		Text  label="Webcam du phytotron"  icon="camera"  {
+			Frame label="Photo" {
+//			Image   icon="photo" url="http://localhost:8080/static/lastPi.jpg" label="Webcam du phytotron" refresh=900 width=200 
+			Image   url="http://192.168.2.1/pub/photos/lastPi.jpg" label="Webcam du phytotron" refresh=900 
+			}
+		}
+	}
 	Frame label="Tests" {
 		Group item=gTest label="Tests"
 	}
@@ -95,6 +106,5 @@ sitemap phytotron label="Menu Principal"
 				Mapview item=DemoLocation height=10
 			}
 		}
-		Image icon="photo" url="http://localhost:8080/static/000006.png" label="Webcam du phytotron" refresh=60000
 	}
 }
