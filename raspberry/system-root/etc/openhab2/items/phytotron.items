@@ -16,7 +16,13 @@ Group:Number:AVG                Humidity    "Humidité relative moyenne [%.1f %%
 Group:Contact:OR(OPEN, CLOSED)  Porte       "Ouverture porte [(%d)]"                <contact>
 
 /* Lights */
-Dimmer Inside_Light    "Eclairage intérieur [%s]"       (gLight, Lumieres, gDev)   {mqtt=">[local_mqtt:/phytotron/oh/light/switch:command:*:default],<[local_mqtt:/phytotron/+/light/state:state:default]"}
+Dimmer Neopixel_Intensity    "Eclairage intensité [%s]"       (gLight, Lumieres)   {mqtt=">[local_mqtt:/phytotron/neopixel/oh/intensity:command:*:default],<[local_mqtt:/phytotron/neopixel/+/intensity/OK:state:default]"}
+Switch Neopixel_OFF    "Eclairage éteint"       (gLight, Lumieres)   {mqtt=">[local_mqtt:/phytotron/neopixel/oh/mode:command:*:0]"}
+Switch Neopixel_BlueRed    "Eclairage bleu et rouge"       (gLight, Lumieres)   {mqtt=">[local_mqtt:/phytotron/neopixel/oh/mode:command:*:1]"}
+Switch Neopixel_Blue    "Eclairage bleu"       (gLight, Lumieres)   {mqtt=">[local_mqtt:/phytotron/neopixel/oh/mode:command:*:b]"}
+Switch Neopixel_Red    "Eclairage rouge"       (gLight, Lumieres)   {mqtt=">[local_mqtt:/phytotron/neopixel/oh/mode:command:*:r]"}
+Switch Neopixel_Green    "Eclairage vert"       (gLight, Lumieres)   {mqtt=">[local_mqtt:/phytotron/neopixel/oh/mode:command:*:g]"}
+Switch Neopixel_White    "Eclairage blanc"       (gLight, Lumieres)   {mqtt=">[local_mqtt:/phytotron/neopixel/oh/mode:command:*:w]"}
 
 /* Temperature control */
 Switch Heater   "Radiateur"      <heating>   (gDev, Radiateurs) {mqtt=">[local_mqtt:/phytotron/oh/ctrl/radiateur/switch:command:*:default],<[local_mqtt:/phytotron/+/ctrl/radiateur/state:state:default]"}

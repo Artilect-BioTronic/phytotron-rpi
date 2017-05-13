@@ -26,14 +26,17 @@
   You should have received a copy of the GNU General Public License
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+#include "Arduino.h"
 
 #include <TM1638.h>
 #include <Adafruit_NeoPixel.h>
 #include <avr/power.h>
 
+//#include "msgSerial.h"
+
 // define a module on data pin 8, clock pin 9 and strobe pin 7 +
 TM1638 module(8, 9, 7);
-char *message = "        ArtiLEct-biotronic        ";
+char message[] = "        ArtiLEct-biotronic        ";
 uint8_t thisPosition = 0;
 
 // Which pin on the Arduino is connected to the NeoPixels?
@@ -52,21 +55,52 @@ Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUMPIXELS, NEOPIXEL_PIN, NEO_GRB + 
 
 // Globale variable
 uint8_t ledIntensity = 150;        // from 0 to 255 (min to max)
+byte receivedMode='1'; // to store the data received from UART
 uint16_t scrollingTextDelay = 500; // from 100 to 1300 (min to max)
+
+int chgIntensity(const String& aStr);
+int chgLightMode(const String& aStr);
+const String sListLightMode = "01rgbwRGBW";  // list of possible light modes
+
+size_t msgSErrorCmd(const String& aMsg)   {
+    return Serial.print(String("CM+")+ aMsg+ '\n');
+}
+
 
 void setup() {
   Serial.begin(9600); // initialize the serial communication
   pixels.begin();     // initialize the NeoPixel library
+
+  // I fill info on sketch
+//  sketchInfo.setFileDateTime(F(__FILE__), F(__DATE__), F(__TIME__));
+//  // I send identification of sketch
+//  sendSketchId("");
+//  sendSketchBuild("");
+  msgSErrorCmd(String("idSketch:Cmd_Short_LEDS_RGB_Neopixel") );
 }
 
 void loop() {
-  byte receivedMode; // to store the data received from UART
+
+    char charReceived = '\0';
 
   // Check if data has been sent from the computer:
   if (Serial.available()) {
     // read the most recent byte (which will be from 0 to 255):
-    receivedMode = Serial.read();
+    charReceived = Serial.read();
+    Serial.print("received:"); Serial.println(charReceived);
+
+    // if incoming char is  appropriate for mode
+    if ( sListLightMode.indexOf(charReceived) != -1 )   {
+        receivedMode = charReceived;
+        msgSErrorCmd(String("mode/OK:")+ charReceived);
+    }
+    else {
+        // it is used for intensity
+        ledIntensity = charReceived;
+        msgSErrorCmd(String("intensity/OK:")+ String(int(ledIntensity)));
+    }
   }
+
 
   switch (receivedMode) {
     case '0':
@@ -106,15 +140,26 @@ void loop() {
       ledWhiteColorIntensity(ledIntensity);
       break;
 
+  case '\0':
+    //do something when var equals 2
+    ledWhiteColorIntensity(ledIntensity);
+    break;
+
     default:
       // if nothing else matches, do the default
       // default is optional
       // ledGreenColorIntensity(10); // make green by default --> optional
+      charReceived = '\0';
       break;
   }
 
+
   // Text scroller on 7 segment 8 digits display
-  thisPosition++;
+  static long lastTime=0;
+  if (millis()-lastTime > scrollingTextDelay)   {
+      thisPosition++;
+      lastTime = millis();
+  }
   if (thisPosition > 22) {
     thisPosition = 0;
   }
@@ -122,6 +167,6 @@ void loop() {
 
   // For scrolling quickly or slowly
   //  delay(map(analogRead(A0), 0, 1023, 100, 1300)); // for scrolling quickly or slowly
-  delay(scrollingTextDelay);
+//  delay(scrollingTextDelay);
 }
 

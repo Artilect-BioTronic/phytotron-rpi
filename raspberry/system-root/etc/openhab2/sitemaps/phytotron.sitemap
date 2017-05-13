@@ -95,6 +95,6 @@ sitemap phytotron label="Menu Principal"
 				Mapview item=DemoLocation height=10
 			}
 		}
-		Image icon="photo" url="http://:8080/static/last_photo.jpg" label="Webcam du phytotron" refresh=60000
+		Image icon="photo" url="http://localhost:8080/static/000006.png" label="Webcam du phytotron" refresh=60000
 	}
 }
