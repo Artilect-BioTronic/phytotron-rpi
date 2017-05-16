@@ -70,8 +70,9 @@ sitemap phytotron label="Menu Principal"
 	Frame label="Photo" {
 		Text  label="Webcam du phytotron"  icon="camera"  {
 			Frame label="Photo" {
+				Switch  item=TakePicture  label="Prends une photo dans 5s"
 //			Image   icon="photo" url="http://localhost:8080/static/lastPi.jpg" label="Webcam du phytotron" refresh=900 width=200 
-			Image   url="http://192.168.2.1/pub/photos/lastPi.jpg" label="Webcam du phytotron" refresh=900 
+				Image   url="http://192.168.2.1/pub/photos/lastPi.jpg" label="Webcam du phytotron" refresh=900 
 			}
 		}
 	}

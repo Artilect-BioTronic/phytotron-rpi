@@ -66,6 +66,15 @@ def sendGetArd(aCmd):
          logp (responseRaw.replace('\n',''), 'unknown from '+devSerial)
    return ['', -1]
 
+def saveRx(ser, fileSaveName):
+    fileSave = open(fileSaveName, "w", 1)
+    response = ser.read(100)
+    while (len(response) >0 ):
+        print ("receiving " + str(len(response)) + "char")
+        fileSave.write(response)
+        response = ser.read(100)
+    fileSave.close()
+
 
 ser = serial.Serial(devSerial, baudrate=bd, timeout=0.2, writeTimeout=0.2)
 # waiting 2s for arduino reinit

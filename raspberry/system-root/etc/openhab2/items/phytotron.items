@@ -52,6 +52,7 @@ Group gHumChart
 
 /* photos */
 Group gPhotos
+Switch TakePicture   "Prends une photo"   {mqtt=">[local_mqtt:/phytotron/camera/oh/newPicture:command:*:default]"}
 //Switch Heater2   "Radiateur"      <heating>   (gDev, Radiateurs, gPhotos) 
 Text  tempText    icon="photo"   label="Webcam du phytotron ci dessous"  (gPhotos)
 Image imgWebcam2   icon="photo" url="http://localhost:8080/static/lastPi.jpg" label="Webcam du phytotron" refresh=900 width=200   (gPhotos)
@@ -64,7 +65,6 @@ DateTime PiDateTest            "Heure temoin  [%1$tH:%1$tM:%1$tS]"   <clock>  (g
 
 /* Test items */
 Group gTest
-Switch Led13   "Led13"         (gTest) {mqtt=">[local_mqtt:/phytotron/oh/sl13:command:*:default],<[local_mqtt:/phytotron/+/sl13/state:state:default]"}
 Number MultipleLe1   "le 1er du pack 1,2,3: [%.1f]"     <temperature>   (gTest) {mqtt="<[local_mqtt:/phytotron/+/mulTest:state:REGEX((.*),.*,.*)]"}
 Number MultipleLe2   "le 2e du pack 1,2,3: [%.1f]"      <humidity>      (gTest) {mqtt="<[local_mqtt:/phytotron/+/mulTest:state:REGEX(.*,(.*),.*)]"}
 Number MultipleLe3   "le 3e du pack 1,2,3: [%.1f]"      <temperature>   (gTest) {mqtt="<[local_mqtt:/phytotron/+/mulTest:state:REGEX(.*,.*,(.*))]"}
