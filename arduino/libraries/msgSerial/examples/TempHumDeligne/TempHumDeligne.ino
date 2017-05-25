@@ -21,7 +21,9 @@
 #include <TimeLib.h>
 #include <DS1307RTC.h>
 #include <SPI.h>
-#include <SD.h>
+//#include <SD.h>
+#include "SdFat.h"
+SdFat SD;
 #include <RCSwitch.h>
 #include <OneWire.h>
 
