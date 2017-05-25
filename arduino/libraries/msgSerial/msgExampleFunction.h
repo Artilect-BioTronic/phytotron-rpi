@@ -1,3 +1,6 @@
+#ifndef MSGEXAMPLEFUNCTION_H
+#define MSGEXAMPLEFUNCTION_H
+
 #include "Arduino.h"
 
 //#include "SD.h"
@@ -17,9 +20,10 @@ int switchLed(const String& dumb);
 
 int switchLed13(const String& dumb);
 int sendMultiValue(const String& dumb);
-int sendDate(const String& dumb);
-int updateHumCsgn(const String& dumb);
+int sendFakeDate(const String& dumb);
+int updateGlobalVar(const String& dumb);
 
 int fakeValue(int deb=0, int fin=1023);
 String fakeDate(int iFormat=1);
 
+#endif   // MSGEXAMPLEFUNCTION_H

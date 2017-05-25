@@ -1,5 +1,5 @@
-#ifndef MSGFROMMQTT_H
-#define MSGFROMMQTT_H
+#ifndef MSGSERIAL_H
+#define MSGSERIAL_H
 
 #include "Arduino.h"
 #include "msgExampleFunction.h"
@@ -194,4 +194,4 @@ void checkMessageReceived();
 int getSensorValue(); 
 
 
-#endif // MSGFROMMQTT_H
+#endif // MSGSERIAL_H

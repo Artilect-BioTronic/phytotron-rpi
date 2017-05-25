@@ -4,13 +4,15 @@
 
 #include "msgSerial.h"
 
+#include <DS1307RTC.h>
 
-SerialListener serList(Serial);
+SerialListener serListenerTH(Serial);
 
 Command cmdUserPhy[] = {
-    Command("SV",              &sendFakeVal),
-    Command("change/NameVal",  &changeNameVal),
-    Command("sl13",            &switchLed13)
+    Command("SV",                   &sendFakeVal),
+    Command("csgn/humidity/cmd",    &updateHumCsgn),
+    Command("csgn/temp/cmd",        &updateTempCsgn),
+    Command("sendDate",             &sendDate)
 };
 CommandList cmdLUserPhy("cmdUser", "CM+", SIZE_OF_TAB(cmdUserPhy), cmdUserPhy );
 
@@ -25,8 +27,7 @@ Command cmdSysPhy[] = {
     Command("idBuild",          &sendSketchBuild),
     Command("SV",               &sendMessageStatus),
     Command("MultiValue",       &sendMultiValue),
-    Command("sendDate",         &sendDate),
-    Command("csgn/humidityIn/cmd",    &updateHumCsgn)
+    Command("sendDate",         &sendDate)
 };
 CommandList cmdLSysPhy("cmdSys", "AT+", SIZE_OF_TAB(cmdSysPhy), cmdSysPhy );
 
@@ -34,43 +35,113 @@ CommandList cmdLSysPhy("cmdSys", "AT+", SIZE_OF_TAB(cmdSysPhy), cmdSysPhy );
 /*                                          */
 /*---------------------------------------------------------------*/
 
-// switch the led On or Off
-int changeNameVal(const String& astr)
+// This function has to be added in setup()
+int setupTempHumMsg()
 {
-    // switchLed13 contains cmd and value with this format cmd:value
+    serListenerTH.addCmdList(cmdLUserPhy);
+    serListenerTH.addCmdList(cmdLSysPhy);
+
+    // I fill info on sketch
+    sketchInfo.setFileDateTime(F(__FILE__), F(__DATE__), F(__TIME__));
+    // I send identification of sketch
+    sendSketchId("");
+    sendSketchBuild("");
+
+    return 0;
+}
+
+
+int sendDate(const String& aStr)
+{
+    tmElements_t tm;
+    if ( RTC.read ( tm ) )
+    {
+      int minutes = tm.Minute ;
+      int secondes = tm.Second ;
+      String heureString = String ( numeroDix ( tm.Hour ) )
+                             + ":"
+                             + numeroDix ( minutes )
+                             + ":"
+                             + numeroDix ( secondes ) ;
+
+      String dateString = String ( tmYearToCalendar ( tm.Year ))
+                            + "-"
+                            + numeroDix ( tm.Month )
+                            + "-"
+                            + numeroDix ( tm.Day ) ;
+
+    msgSPrint(getCommand(aStr) + "/OK:"+ dateString +"T"+ heureString);
+    }
+    return 0;
+}
+
+int updateHumCsgn(const String& aStr)
+{
+    // updateHumCsgn contains cmd and value with this format cmd:value
     // value must exist
-    int ind = astr.indexOf(":");
+    int ind = aStr.indexOf(":");
     if (ind < 0)   {
-      msgSError(F("switchLed cmd needs 1 value"));
-      msgSPrint(F("switchLed/KO"));
+      msgSError(getCommand(aStr) + F(" cmd needs 1 value"));
+      msgSPrint(getCommand(aStr) + "/KO:" +1);
       return 1;
     }
 
     // we get value part
-    String sValue = astr.substring(ind+1);
-    // value must be  ON  or  OFF
-    if ( ( ! sValue.equals("ON")) && ( ! sValue.equals("OFF")) )   {
-      msgSError(F("switchLed: value must be ON or OFF"));
-      msgSPrint(F("switchLed/KO"));
+    String sValue = aStr.substring(ind+1);
+
+    float fValue = sValue.toFloat();
+    // toInt will return 0, if it is not an int
+    if ( fabs(fValue) < 0.0001 && ( ! sValue.startsWith("0")) )   {
+      msgSError(getCommand(aStr) + F(" cmd: value must be float"));
       return 2;
     }
+    else if (fValue < 0 || fValue > 100)   {
+      msgSError(getCommand(aStr) + F(" cmd: value must be in [0-100]"));
+      return 3;
+    }
 
-    int iValue=0;
-    // converts ON / OFF  to  1 / 0
-    if (sValue.equals("ON"))
-      iValue = 1;
-    else if (sValue.equals("OFF"))
-      iValue = 0;
-    else
-        msgSPrint(F("switchLed/KO"));
-
-
-    digitalWrite(PIN_LED13, iValue);
+    consigneHum = fValue;
 
     // I send back OK msg
-    msgSPrint(String(F("switchLed/OK:")) + sValue);
+    msgSPrint(getCommand(aStr) + "/OK:" +fValue);
     // I send back state msg
-    msgSPrint(String(F("state:")) + sValue);
+    //msgSPrint(String(F("state:")) + sValue);
+
+    return 0;
+}
+
+
+int updateTempCsgn(const String& aStr)
+{
+    // updateHumCsgn contains cmd and value with this format cmd:value
+    // value must exist
+    int ind = aStr.indexOf(":");
+    if (ind < 0)   {
+      msgSError(getCommand(aStr) + F(" cmd needs 1 value"));
+      msgSPrint(getCommand(aStr) + "/KO:" +1);
+      return 1;
+    }
+
+    // we get value part
+    String sValue = aStr.substring(ind+1);
+
+    float fValue = sValue.toFloat();
+    // toInt will return 0, if it is not an int
+    if ( fabs(fValue) < 0.0001 && ( ! sValue.startsWith("0")) )   {
+      msgSError(getCommand(aStr) + F(" cmd: value must be float"));
+      return 2;
+    }
+    else if (fValue < -10 || fValue > 50)   {
+      msgSError(getCommand(aStr) + F(" cmd: value must be in [-10-50]"));
+      return 3;
+    }
+
+    consigneTemp = fValue;
+
+    // I send back OK msg
+    msgSPrint(getCommand(aStr) + "/OK:" +fValue);
+    // I send back state msg
+    //msgSPrint(String(F("state:")) + sValue);
 
     return 0;
 }

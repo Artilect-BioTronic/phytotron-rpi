@@ -14,6 +14,9 @@ def emptyRx(ser):
         print (response)
         response = ser.read(100)
 
+def erx(ser):
+    emptyRx(ser)
+
 # use to sort log messages
 def logp (msg, gravity='trace'):
    print('['+gravity+']' + msg)

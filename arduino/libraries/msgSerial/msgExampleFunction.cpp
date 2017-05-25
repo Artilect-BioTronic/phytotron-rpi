@@ -68,7 +68,7 @@ int fakeValue(int deb, int fin)
     return millis() % (fin - deb) + deb;
 }
 
-int sendDate(const String& dumb)
+int sendFakeDate(const String& dumb)
 {
     msgSPrint(String("admin/piClock:") +fakeDate(1));
     return 0;
@@ -80,21 +80,21 @@ String fakeDate(int iFormat)   {
     return String("2017-05-08T") +"09:" + (millis() %60+10) +":"+ (millis() %60+10);
 }
 
-int updateHumCsgn(const String& aStr)
+int updateGlobalVar(const String& aStr)
 {
     // updateHumCsgn contains cmd and value with this format cmd:value
     // value must exist
     int ind = aStr.indexOf(":");
     if (ind < 0)   {
       msgSError(getCommand(aStr) + F(" cmd needs 1 value"));
-      msgSPrint(getCommand(aStr) + "/KO" +1);
+      msgSPrint(getCommand(aStr) + "/KO:" +1);
       return 1;
     }
 
     // we get value part
     String sValue = aStr.substring(ind+1);
 
-    int fValue = sValue.toFloat();
+    float fValue = sValue.toFloat();
     // toInt will return 0, if it is not an int
     if ( fabs(fValue) < 0.0001 && ( ! sValue.startsWith("0")) )   {
       msgSError(getCommand(aStr) + F(" cmd: value must be float"));

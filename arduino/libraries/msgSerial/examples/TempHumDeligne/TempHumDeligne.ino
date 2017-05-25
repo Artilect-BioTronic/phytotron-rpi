@@ -25,30 +25,24 @@
 #include <RCSwitch.h>
 #include <OneWire.h>
 
-//#include "msgSerial.h"
-//#include "TempHumMsg.h"
+#define INSTAL_CPLT     1
+#define INSTAL_RTC      2
 
-// liste des fonctions definies dans le fichier TempHumDeligne.ino
-String numeroDix ( int valeur );
-void erreur ( byte numeroErreur );
-void releveRTC ( void );
-void afficheLCD ( String texte , unsigned int positionColonne , boolean ligne  );
-void releveValeurs ( void );
-void afficheLCDregulier ( void );
-void mesureTemperature18B20 (void); //Dallas
-void dump ( String nomFichier );
-void dumpRasp ( String nomFichier );
-void commandeSwitch ( int valeur );
-void affichageUsbSecondes ( void );
-void affichageSerieRaspSecondes ( void );
-void FonctionTexteTrameMesures ( void );
-void EnregistrementFichierMesure ( void );
+#define INSTALLATION  INSTAL_CPLT
 
+#include "msgSerial.h"
+#include "TempHumMsg.h"
+
+
+// Si vous n avez pas de shield deuligne, il faut connecter pinStick a 5V,
+//   sinon le sketch voit des actions permanentes pour naviguer dans le menu
+// Si vous n utilisez pas le serial1, il faut bouchonner rx
 
 // example of frame:
 // -t "/phytotron/cli/mesure/D;H;ti;hi;te;he;t3;t2;t1"
 // -m "2017-05-08;12:34:56;11;12.1;21.1;22.1;33.1;32.1;31.1"
-const String topicMesure = "mesure/D;H;ti;hi;te;he;t3;t2;t1";
+const String topicMesure        = "mesure/D;H;ti;hi;te;he;t3;t2;t1";
+const String topicConsigneState = "csgn/state/D;H;t;h";
 const String head1="CM+";
 const String endOL="\n";
 
@@ -57,12 +51,22 @@ String fmt1CmdMqtt(const String & aTopic, const String& aLoad)
     return head1 + aTopic + ":" + aLoad + endOL;
 }
 
+#if (INSTALLATION == INSTAL_CPLT)
+const long serial1Rate=   115200;
+const long serialRate=    38400;
+bool bDemarreMnEntiere = true;
+#else
+const long serial1Rate=   9600;
+const long serialRate=    38400;
+bool bDemarreMnEntiere = false;
+#endif
+
 //reglages
-const byte intervalleEnregistrement = 1 ; // en minutes
+const byte intervalleEnregistrement = 60 ; // en secondes
 const byte intervalleAffichage = 1 ; // en secondes
 const byte nbCommandeSwitch = 5 ;
-const int humiditicateurMarche = 5393 ;
-const int humiditicateurArret = 5396 ;
+const int humidificateurMarche = 5393 ;
+const int humidificateurArret = 5396 ;
 const int refroidissementMarche = 4433 ;
 const int refroidissementArret = 4436 ;
 const int chauffageMarche = 1361 ;
@@ -193,7 +197,7 @@ String minutesDix ;
 String secondesDix ;
 String heureString ;
 String dateString ;
-//unsigned long tempsEnregistrement = 0 ;
+unsigned long tempsEnregistrement = 0 ;
 byte minutesEnregistrementPrecedent = 0 ;
 byte minutes = 0 ;
 byte secondesAffichagePrecedent = 0 ;
@@ -210,16 +214,20 @@ void setup(void)
 {
   Wire.begin ( ) ;
   telecommande.enableTransmit ( pinTelecommande ) ;
-  commandeSwitch ( humiditicateurArret ) ;
+  commandeSwitch ( humidificateurArret ) ;
   commandeSwitch ( refroidissementArret ) ;
   commandeSwitch ( chauffageArret ) ;
-  Serial1.begin ( 115200 ) ;
-  Serial.begin ( 115200 ) ;
+  Serial1.begin ( serial1Rate ) ;
+  Serial.begin ( serialRate ) ;
   while ( !Serial )
   {
     ; // wait for serial port to connect. Needed for Leonardo only
   }
   Serial.println ( "Debut de l'init" ) ;
+
+  // on  setup  la librairie de communication
+  setupTempHumMsg();
+
   lcd.init ( ) ;
   lcd.createChar ( 0 , degres ) ;
   CapteurHumiditeTemperatureInterieur.begin ( ) ;
@@ -353,7 +361,7 @@ void setup(void)
   afficheLCDregulier ( ) ;
   tmElements_t tm ;
   secondesAffichagePrecedent = secondes ;
-  Serial.println ( "Pas de panique, faut attendre la fin de la minute entiere dans ;" ) ;
+  Serial.println ( "Pas de panique, PAS BESOIN d attendre la fin de la minute entiere dans setup" ) ;
   do
   {
     releveRTC ( ) ; //on releve date et heure sur l'horloge RTC
@@ -367,8 +375,8 @@ void setup(void)
       Serial.println ( 61 - secondes ) ;
     }
   }
-  while ( secondes != 0 ) ; //Pour partir à une Minute entiére
-  //tempsEnregistrement = tempsAffichage = millis ( ) ;
+  while ( secondes != 0 && bDemarreMnEntiere ) ; //Pour partir à une Minute entiére
+  tempsEnregistrement = tempsAffichage = millis ( ) ;
   minutesEnregistrementPrecedent = minutes ;
   secondesAffichagePrecedent = secondes ;
 }
@@ -381,24 +389,28 @@ void loop ( )
   mesureTemperature18B20 ( ) ;
 
   // enregistrement regulier
-  if ( minutes != minutesEnregistrementPrecedent )
+//  if ( minutes != minutesEnregistrementPrecedent )
+  if ( (millis() - tempsEnregistrement)/1000 > intervalleEnregistrement)
   {
-    minutesEnregistrementPrecedent = minutes ;
+      tempsEnregistrement = millis();
+      minutesEnregistrementPrecedent = minutes ;
+      EnregistrementFichierMesure ( ) ;
 
-    if (commandeRefroidissement)
-        commandeSwitch ( refroidissementMarche ) ;
-    else
-        commandeSwitch ( refroidissementArret ) ;
+      // we regularly re apply consignes to switches
+      if (commandeRefroidissement)
+          commandeSwitch ( refroidissementMarche ) ;
+      else
+          commandeSwitch ( refroidissementArret ) ;
 
-    if (commandeChauffage)
-        commandeSwitch ( chauffageMarche) ;
-    else
-        commandeSwitch ( chauffageArret) ;
+      if (commandeChauffage)
+          commandeSwitch ( chauffageMarche) ;
+      else
+          commandeSwitch ( chauffageArret) ;
 
-    if (commandeHum)
-        commandeSwitch ( humiditicateurMarche) ;
-    else
-        commandeSwitch ( humiditicateurArret) ;
+      if (commandeHum)
+          commandeSwitch ( humidificateurMarche) ;
+      else
+          commandeSwitch ( humidificateurArret) ;
   }
 
   // affichage regulier
@@ -408,7 +420,7 @@ void loop ( )
     //tempsAffichage = tempsAffichage + intervalleAffichage ;
     secondesAffichagePrecedent = secondes ;
     releveValeurs ( ) ;
-    EnregistrementFichierMesure ( ) ;
+//    EnregistrementFichierMesure ( ) ;
     FonctionTexteTrameMesures ( ) ;
     afficheLCDregulier ( ) ;
     affichageUsbSecondes ( ) ;
@@ -531,24 +543,9 @@ void loop ( )
     lcd.print ( "Enregistrement" ) ;
     delay ( 2000 ) ;
 
-    File regFile = SD.open ( NomFichierConsignes , FILE_WRITE ) ;
-    if ( regFile )
-    {
-      regFile.print ( dateString ) ;
-      regFile.print ( separateurFichier ) ;
-      regFile.print ( heureString ) ;
-      regFile.print ( separateurFichier ) ;
-      regFile.print ( numeroDix ( consigneTemp ) ) ;
-      regFile.print ( separateurFichier ) ;
-      regFile.print ( numeroDix ( consigneHum ) ) ;
-      regFile.println ( "" ) ;
-      regFile.close();
-    }
-    else
-    {
-      //non ecriture fichier consigne sur carte SD
-      erreur ( 10 ) ;
-    }
+    ecritConsigneDansFichier();
+    sendConsigne();
+
     lcd.setCursor ( 0 , 0 ) ;
     lcd.print ( effacement ) ;
     lcd.setCursor ( 3 , 0 ) ;
@@ -563,7 +560,7 @@ void loop ( )
   if ( (humiditeInterieureEntiere < ( consigneHum - plageHum )) & ! commandeHum )
   {
     //telecommande.send ( 5393 , 24 ) ; // marche
-    commandeSwitch ( humiditicateurMarche ) ;
+    commandeSwitch ( humidificateurMarche ) ;
     commandeHum = true ;
     File comFile = SD.open ( NomFichierCommandes , FILE_WRITE ) ;
     if ( comFile )
@@ -589,7 +586,7 @@ void loop ( )
   if ( (humiditeInterieureEntiere > consigneHum) & commandeHum )
   {
     //telecommande.send ( 5396 , 24 ) ; // arret
-    commandeSwitch ( humiditicateurArret ) ;
+    commandeSwitch ( humidificateurArret ) ;
     commandeHum = false ;
     File comFile = SD.open ( NomFichierCommandes , FILE_WRITE ) ;
     if ( comFile )
@@ -721,59 +718,93 @@ void loop ( )
     }
   }
 
-  // Lecture port serie USB
-  if ( Serial.available ( ) > 0 )
-  {
+  serListenerTH.checkMessageReceived();
+
+  lectureSerialUSB_PM();
+
+  // Lecture port serie RasbPi
+  lectureSerialRaspi_PM() ;
+
+}
+
+/*=====================================*/
+/*           liste de fonctions        */
+/*=====================================*/
+
+// Lecture port serie USB
+int lectureSerialUSB_PM()
+{
+    // pas de communication en cours, on s en va de suite
+    if ( Serial.available ( ) <= 0 )
+        return 0;
+
+    delay(10); // give some time to receive msg
     String messageRecuUSB = "" ;
     while ( Serial.available ( ) > 0)
     {
-      char lecturePortSerieUSB = Serial.read ( ) ;
-      messageRecuUSB = String ( messageRecuUSB + lecturePortSerieUSB ) ;
+        char lecturePortSerieUSB = Serial.read ( ) ;
+        messageRecuUSB = String ( messageRecuUSB + lecturePortSerieUSB ) ;
     }
     Serial.print ( "messageRecuUSB =>" ) ;   // send an initial string
     Serial.print ( messageRecuUSB ) ;   // send an initial string
     Serial.println ( "<=" ) ;   // send an initial string
     if ( messageRecuUSB == commandeLectureFichierConsignes )
     {
-      dump ( NomFichierConsignes ) ;
+        dump ( NomFichierConsignes ) ;
     }
     if ( messageRecuUSB == commandeLectureFichierMesure )
     {
-      dump ( NomFichierMesure ) ;
+        dump ( NomFichierMesure ) ;
     }
     if ( messageRecuUSB == commandeLectureFichierCommandes )
     {
-      dump ( NomFichierCommandes ) ;
+        dump ( NomFichierCommandes ) ;
+    }
+    if ( messageRecuUSB == "st" )
+    {
+        affichageUsbSecondes() ;
     }
     messageRecuUSB = "" ;
-  }
 
-  // Lecture port serie RasbPi
-  if ( Serial1.available ( ) > 0 )
-  {
+    return 0;
+}
+
+// Lecture port serie RasbPi
+int lectureSerialRaspi_PM()
+{
+    // pas de communication en cours, on s en va de suite
+    if ( Serial1.available ( ) <= 0 )
+        return 0;
+
+    delay(10); // give some time to receive msg
     String messageRecuRaspi = "" ;
     while ( Serial1.available ( ) > 0)
     {
-      char lecturePortSerieRaspi = Serial1.read ( ) ;
-      messageRecuRaspi = String ( messageRecuRaspi + lecturePortSerieRaspi ) ;
+        char lecturePortSerieRaspi = Serial1.read ( ) ;
+        messageRecuRaspi = String ( messageRecuRaspi + lecturePortSerieRaspi ) ;
     }
     Serial.print ( "messageRecu =>" ) ;   // send an initial string
     Serial.print ( messageRecuRaspi ) ;   // send an initial string
     Serial.println ( "<=" ) ;   // send an initial string
     if ( messageRecuRaspi == commandeLectureFichierConsignes )
     {
-      dumpRasp ( NomFichierConsignes ) ;
+        dumpRasp ( NomFichierConsignes ) ;
     }
     if ( messageRecuRaspi == commandeLectureFichierMesure )
     {
-      dumpRasp ( NomFichierMesure ) ;
+        dumpRasp ( NomFichierMesure ) ;
     }
     if ( messageRecuRaspi == commandeLectureFichierCommandes )
     {
-      dumpRasp ( NomFichierCommandes ) ;
+        dumpRasp ( NomFichierCommandes ) ;
+    }
+    if ( messageRecuRaspi == "st" )
+    {
+        affichageSerieRaspSecondes() ;
     }
     messageRecuRaspi = "" ;
-  }
+
+    return 0;
 }
 
 //fonction permettant de transformer un integer en chaine de 2 caracteres ( zero en premier par defaut )
@@ -816,7 +847,6 @@ void releveRTC ( void )
                           + numeroDix ( tm.Month )
                           + "-"
                           + numeroDix ( tm.Day ) ;
-
   }
 }
 
@@ -825,6 +855,38 @@ void afficheLCD ( String texte , unsigned int positionColonne , boolean ligne  )
 {
   lcd.setCursor ( positionColonne , ligne ) ;
   lcd.print ( texte ) ;
+}
+
+int sendConsigne()   {
+    String sTrame = getTrameConsigne();
+    Serial.print( fmt1CmdMqtt (topicConsigneState, sTrame) );
+    Serial1.print( fmt1CmdMqtt (topicConsigneState, sTrame) );
+    return 0;
+}
+
+String getTrameConsigne() {
+    String sTrame = "";
+    sTrame = dateString   +separateurFichier+
+             heureString  +separateurFichier+
+             numeroDix ( consigneTemp )  +separateurFichier+
+             numeroDix ( consigneHum );
+    return sTrame;
+}
+
+int ecritConsigneDansFichier()   {
+    File regFile = SD.open ( NomFichierConsignes , FILE_WRITE ) ;
+    if ( regFile )
+    {
+        regFile.println ( getTrameConsigne() ) ;
+        regFile.close();
+        return 0;
+    }
+    else
+    {
+        //non ecriture fichier consigne sur carte SD
+        erreur ( 10 ) ;
+        return 10;
+    }
 }
 
 void releveValeurs ( void )

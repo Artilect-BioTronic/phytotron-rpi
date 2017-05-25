@@ -25,14 +25,31 @@ void affichageUsbSecondes ( void );
 void affichageSerieRaspSecondes ( void );
 void FonctionTexteTrameMesures ( void );
 void EnregistrementFichierMesure ( void );
+int lectureSerialUSB_PM();
+int lectureSerialRaspi_PM();
+int ecritConsigneDansFichier();
+int sendConsigne();
+String getTrameConsigne();
+
+// liste des fonctions definies dans le fichier TempHumMsg.cpp
+int sendDate(const String& aStr);
+int updateHumCsgn(const String& aStr);
+int updateTempCsgn(const String& aStr);
 
 
+// liste des variables globales definies dans le fichier TempHumDeligne.ino
+extern byte consigneTemp;
+extern byte consigneHum ;
 
-extern SerialListener serList;
+
+// liste des variables dans le fichier TempHumMsg.cpp
+extern SerialListener serListenerTH;
 
 // list of available commands (user) that the arduino will accept
 extern CommandList cmdLUserPhy;  // ("cmdUser", "CM+", SIZE_OF_TAB(cmdUserPhy), cmdUserPhy );
 // list of available commands (system ctrl) that the arduino will accept
 extern CommandList cmdLSysPhy;   //("cmdSys", "AT+", SIZE_OF_TAB(cmdSysPhy), cmdSysPhy );
+
+int setupTempHumMsg();
 
 int changeNameVal(const String& astr);
