@@ -5,6 +5,7 @@ import paho.mqtt.client as mqtt
 import paho.mqtt.publish as publish
 import serial
 import time
+from datetime import datetime
 import ast
 import sys, getopt
 import subprocess
@@ -24,9 +25,10 @@ devSerial='/dev/ttyUSB0'   # serial port the arduino is connected to
 baudRate=9600
 
 mqTopic1='/phytotron/camera/oh/newPicture'
-mqTopic2='/phytotron/neopixelUnused/'
-cmdTopic1="/home/arnaud/Workspaces/Arduino//picam+mqttFake.py"
-#cmdTopic1="/home/pi/python/picam+mqtt.py"
+mqTopic2='/phytotron/oh/admin/askTime'
+#cmdTopic1="/home/arnaud/Workspaces/Arduino/PythonScripts/picam+mqttFake.py"
+cmdTopic1="/home/pi/python/picam+mqtt.py"
+mqRepTopic2='/phytotron/py/admin/piClock'
 
 # serial msg to arduino begin  with  prefTopic2 / prefTopic1 and end with endOfLine
 prefTopic1='CM+'
@@ -154,8 +156,9 @@ def on_connect(client, userdata, rc):
     print("Connected to mosquitto with result code "+str(rc))
     # Subscribing in on_connect() means that if we lose the connection and
     # reconnect then subscriptions will be renewed.
-    mqttc.subscribe(mqTopic1)
+    mqttc.subscribe([(mqTopic1, 0) , (mqTopic2, 0)])
     mqttc.message_callback_add(mqTopic1, on_message_mqTopicOH1)
+    mqttc.message_callback_add(mqTopic2, on_message_mqTopicOH2)
 
 
 # The callback for when a PUBLISH message is received from the server.
@@ -165,14 +168,19 @@ def on_message(client, userdata, msg):
     logp('msg:' +msg.topic+" : "+str(msg.payload), 'unknown msg')
 
 
-# The callback for when a PUBLISH message is received from the server.
-# usually  we go to a specific callback that we have defined for each topic
+# The callback for when the server receives a message of  mqTopic1.
 def on_message_mqTopicOH1(client, userdata, msg):
     logp("mqTopicOH:"+msg.topic+" : "+str(msg.payload), 'info')
     try :
         subprocess.call([cmdTopic1, str(msg.payload)])
     except:
       logp('exception managing msg:'+msg.topic+" : "+str(msg.payload), 'com error')
+
+# The callback for when the server receives a message of  mqTopic2.
+def on_message_mqTopicOH2(client, userdata, msg):
+    logp("mqTopicOH:"+msg.topic+" : "+str(msg.payload), 'info')
+    # we publish system time  (module datetime) au format 2015-05-21T12:34:56 (16 char)
+    mqttc.publish(mqRepTopic2, datetime.now().isoformat()[:19])
 
 
 # read all available messages from arduino

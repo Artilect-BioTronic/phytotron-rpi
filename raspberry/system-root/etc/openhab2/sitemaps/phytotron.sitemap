@@ -1,40 +1,63 @@
 sitemap phytotron label="Menu Principal"
 {
-	Frame label="Groupes" {
-//		Group item=gAtmo  label="Atmosphère"  icon="smoke"
-		Text  label="Atmosphère"  icon="smoke"  {
-			Text item=Inside_Temperature
-			Text item=Inside_Humidity
-//			Text item=TempInConsigne
-//			Text item=HumidityInConsigne
-			Text item=TemperatureDS1
-			Text item=TemperatureDS2
-			Text item=TemperatureDS3
-		}
-//		Group item=gWater label="Eau"         icon="water"
-		Group item=gLight label="Lumière"     icon="sun"
-//		Group item=gSoil  label="Sol/Substrat" icon="bath"
-		Group item=gEnv   label="Environnement"   icon="garden"
-		Text   label="Phytotron"   icon="greenhouse"   {
-			Setpoint item=TempInConsigne  label="modify TempIn 0:40:0.5  [%.1f °C]"  minValue=0 maxValue=40 step=0.5
-			Setpoint item=HumidityInConsigne  label="modify HumidityIn 0:100:1  [%.1f %%]"  minValue=0 maxValue=100 step=1.
-			Setpoint item=TempInConsigne  label="modify TempIn 0:40:2  [%.1f °C]"  minValue=0 maxValue=40 step=2
-			Setpoint item=HumidityInConsigne  label="modify HumidityIn  0:100:5  [%.1f %%]"  minValue=0 maxValue=100 step=5.
-		   Text item=Inside_Light
-		   Text item=Heater
-		   Text item=Climate
-		   Text item=Frontdoor
-		}
-//		Group item=gDev   label="Phytotron"   icon="greenhouse"
-	}
-	Frame label="Conditions intérieures" {
-			Text item=Inside_Temperature
-			Text item=Inside_Humidity
-	}
-	Frame label="Conditions extérieures" {
+	Frame label="Vue Générale" {
+		Text item=Inside_Temperature
+		Text item=Inside_Humidity
+		Text item=TempInConsigne
+		Text item=HumidityInConsigne
 		Text item=Outside_Temperature 
 		Text item=Outside_Humidity
 	}
+	
+	Frame label="Vue spécifique" {
+//		Group item=gAtmo  label="Atmosphère"  icon="smoke"
+		Text  label="Atmosphère"  icon="smoke"  {
+			Frame {
+				Text item=TempInConsigne
+				Text item=HumidityInConsigne
+			}
+			Frame {
+				Text item=Inside_Temperature
+				Text item=Inside_Humidity
+				Text item=TemperatureDS1
+				Text item=TemperatureDS2
+				Text item=TemperatureDS3
+			}
+		}
+		
+		Text  label="Lumière"     icon="sun"   {
+			Slider item=Neopixel_Intensity
+			Switch item=Neopixel_num label="Eclairage"         mappings=[0=OFF]
+			Switch item=Neopixel_num label="Eclairage bleu et rouge"   mappings=[1=BR]
+			Switch item=Neopixel_num label="Eclairage bleu"    mappings=[2=Blue]
+			Switch item=Neopixel_num label="Eclairage rouge"   mappings=[3=Red]
+			Switch item=Neopixel_num label="Eclairage vert"    mappings=[4=Green]
+			Switch item=Neopixel_num label="Eclairage blanc"   mappings=[5=White]
+		}
+		
+		Group item=gEnv   label="Environnement extérieur"   icon="garden"
+		
+		Text   label="Phytotron"   icon="greenhouse"   {
+			Frame  {
+				Setpoint item=TempInConsigne	 label="Température consigne (+2.0°) [%.1f °C]"		minValue=0 maxValue=40 step=2
+				Slider item=HumidityInConsigne
+				Setpoint item=TempInConsigne	 label="Température consigne (+0.5°) [%.1f °C]"  	minValue=0 maxValue=40 step=0.5
+				Setpoint item=HumidityInConsigne 	minValue=0 maxValue=100 step="1."
+				Text item=Heater
+				Text item=Climate
+				Text item=Frontdoor
+			}
+			Frame 	label="consigne journaliere"   {
+				Image   item=urlImageCamera url="http://192.168.2.1/pub/photos/lastPi.jpg" label="Webcam du phytotron" refresh=90000
+				Image   item=urlImageCamera url="http://localhost/pub/images/VueBalconSalon4.jpg" label="Webcam du phytotron" refresh=90000
+			}
+		}
+		
+//		Group item=gSoil  label="Sol/Substrat" icon="bath"
+//		Group item=gWater label="Eau"         icon="water"
+//		Group item=gDev   label="Phytotron"   icon="greenhouse"
+	}
+	
 	Frame label="Courbes de mesures" {
 		Text label="Mesures"  icon="chart" {
 			Frame label="Temperatures" {
@@ -54,8 +77,31 @@ sitemap phytotron label="Menu Principal"
 			}
 		}
 	}
+	
+	Frame label="Photo" {
+		Text  label="Webcam du phytotron"  icon="camera"  {
+			Frame label="Photo" {
+				Switch  item=TakePicture  label="Prends une photo dans 5s"
+				// With my firefox linux, the update with urlImageCamera does not work
+				Image   item=urlImageCamera url="http://192.168.2.1/pub/photos/lastPi.jpg" label="Webcam du phytotron" refresh=90000
+				// the file VueBalconSalon4.jog is in ../conf/html/, we can not use link
+				Image   item=urlImageCamera url="http://localhost:8080/static/VueBalconSalon4.jpg" label="Webcam du phytotron" refresh=90000
+//				 Webview  item=urlImageCamera url="http://192.168.2.1/pub/photos/lastPi.jpg" label="Webcam du phytotron 3" refresh=90000 height=10 
+			}
+		}
+	}
+	
+	Text item=PbAvantFinFichierPhytotronItem
+	
 	Frame label="Admin Matériel" {
-		Group item=gAdmin label="Admin"
+
+		Text label="Admin"  icon="shield" {
+			Switch item=DateTimeAsk        mappings=[1=Ask]
+			Frame   {
+				Text item=DateTimePi
+				Text item=DateTimeArduino
+			}
+		}
 	}
 	Frame label="Groupes" {
 		Switch item=Lumieres mappings=[OFF="All Off"]
@@ -64,18 +110,7 @@ sitemap phytotron label="Menu Principal"
 		Group item=Radiateurs
 		Text item=Temperature
 	}
-//	Image  url="http://localhost:8080/static/lastPi.jpg" label="Webcam du phytotron" refresh=9000  
-//	Image  url="http://localhost/pub/photos/lastPi.jpg" label="Webcam du phytotron" refresh=90000
-//			Webview   url="http://192.168.2.1/pub/photos/lastPi.jpg" label="Webcam du phytotron" refresh=900  height=200  
-	Frame label="Photo" {
-		Text  label="Webcam du phytotron"  icon="camera"  {
-			Frame label="Photo" {
-				Switch  item=TakePicture  label="Prends une photo dans 5s"
-//			Image   icon="photo" url="http://localhost:8080/static/lastPi.jpg" label="Webcam du phytotron" refresh=900 width=200 
-				Image   url="http://192.168.2.1/pub/photos/lastPi.jpg" label="Webcam du phytotron" refresh=900 
-			}
-		}
-	}
+	
 	Frame label="Tests" {
 		Group item=gTest label="Tests"
 	}

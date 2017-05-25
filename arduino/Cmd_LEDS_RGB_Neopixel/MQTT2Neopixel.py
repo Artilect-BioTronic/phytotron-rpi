@@ -179,7 +179,12 @@ def on_message_mqTopicOH(client, userdata, msg):
             logp("topic with empty payload:"+msg.topic, 'info')
             return
         if msg.topic.startswith(mqTopic1+topFromOH+ 'mode') :
-            ser.write(str(msg.payload)[0])
+            listNumCmd = ['0', '1', 'b', 'r', 'g', 'w']
+            if ( msg.payload.isdigit() and (0<= int(msg.payload)) and (int(msg.payload) <=5)) :
+                theCmd = listNumCmd[int(msg.payload)]
+            else :
+                theCmd = str(int(msg.payload))
+            ser.write(theCmd)
         elif msg.topic.startswith(mqTopic1+topFromOH+ 'intensity') :
             if (not msg.payload.isdigit()) :
                 return

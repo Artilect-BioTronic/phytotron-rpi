@@ -5,9 +5,6 @@ Group gSoil     "Sol/Substrat"  <garden>
 Group gEnv      "Environnement" <sun>
 Group gDev      "Phytotron"     <greenhouse>
 
-Group Status
-Group Shutters
-
 /* active groups */
 Group:Switch:OR(ON, OFF)        Lumieres    "Toutes les lumières [(%d)]"
 Group:Switch:OR(ON, OFF)        Radiateurs  "Tous les radiateurs [(%d)]"            <heating>
@@ -16,27 +13,23 @@ Group:Number:AVG                Humidity    "Humidité relative moyenne [%.1f %%
 Group:Contact:OR(OPEN, CLOSED)  Porte       "Ouverture porte [(%d)]"                <contact>
 
 /* Lights */
-Dimmer Neopixel_Intensity    "Eclairage intensité [%s]"       (gLight, Lumieres)   {mqtt=">[local_mqtt:/phytotron/neopixel/oh/intensity:command:*:default],<[local_mqtt:/phytotron/neopixel/+/intensity/OK:state:default]"}
-Switch Neopixel_OFF    "Eclairage éteint"       (gLight, Lumieres)   {mqtt=">[local_mqtt:/phytotron/neopixel/oh/mode:command:*:0]"}
-Switch Neopixel_BlueRed    "Eclairage bleu et rouge"       (gLight, Lumieres)   {mqtt=">[local_mqtt:/phytotron/neopixel/oh/mode:command:*:1]"}
-Switch Neopixel_Blue    "Eclairage bleu"       (gLight, Lumieres)   {mqtt=">[local_mqtt:/phytotron/neopixel/oh/mode:command:*:b]"}
-Switch Neopixel_Red    "Eclairage rouge"       (gLight, Lumieres)   {mqtt=">[local_mqtt:/phytotron/neopixel/oh/mode:command:*:r]"}
-Switch Neopixel_Green    "Eclairage vert"       (gLight, Lumieres)   {mqtt=">[local_mqtt:/phytotron/neopixel/oh/mode:command:*:g]"}
-Switch Neopixel_White    "Eclairage blanc"       (gLight, Lumieres)   {mqtt=">[local_mqtt:/phytotron/neopixel/oh/mode:command:*:w]"}
+Dimmer Neopixel_Intensity    "Eclairage intensité [%s]"       (gLight, Lumieres, gAdmin)   {mqtt=">[local_mqtt:/phytotron/neopixel/oh/intensity:command:*:default],<[local_mqtt:/phytotron/neopixel/+/intensity/OK:state:default]"}
+Number Neopixel_num    "éclairage"    <light>   (gLight, Lumieres)   {mqtt=">[local_mqtt:/phytotron/neopixel/oh/mode:command:*:default]"}
+
 
 /* Temperature control */
 Switch Heater   "Radiateur"      <heating>   (gDev, Radiateurs) {mqtt=">[local_mqtt:/phytotron/oh/ctrl/radiateur/switch:command:*:default],<[local_mqtt:/phytotron/+/ctrl/radiateur/state:state:default]"}
 Switch Climate  "Compresseur"    <climate>   (gDev, Radiateurs) {mqtt=">[local_mqtt:/phytotron/oh/ctrl/clim/switch:command:*:default],<[local_mqtt:/phytotron/+/ctrl/clim/state:state:default]"}
 
-// example of frame:
+// example of frame for temperature and humidity:
 // -t "/phytotron/cli/mesure/D;H;ti;hi;te;he;t3;t2;t1" 
 // -m "2017-05-08;12:34:56;11;12.1;21.1;22.1;33.1;32.1;31.1"
 
-/* Temperatures */
+/* Temperatures and humidity */
 Number Inside_Temperature       "Temperature_Interne [%.1f °C]"         <temperature>   (Temperature, gAtmo, gTempChart) {mqtt="<[local_mqtt:/phytotron/+/mesure/tempIn:state:default], <[local_mqtt:/phytotron/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;(.*);.*;.*;.*;.*;.*;.*)]"}
 Number Inside_Humidity          "Humidité_Interne [%.1f %%]"   <humidity>      (Humidity, gAtmo, gHumChart) {mqtt="<[local_mqtt:/phytotron/+/mesure/humidIn:state:default], <[local_mqtt:/phytotron/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;.*;(.*);.*;.*;.*;.*;.*)]"}
-Number TempInConsigne      "TempIn [%.1f °C]"   <temperature>   {mqtt="<[local_mqtt:/phytotron/+/csgn/tempIn/used:state:default], >[local_mqtt:/phytotron/oh/csgn/tempIn/cmd:command:*:default]"}
-Number HumidityInConsigne  "HumidityIn [%.1f %%]"  <humidity>   {mqtt="<[local_mqtt:/phytotron/+/csgn/humidityIn/used:state:default], >[local_mqtt:/phytotron/oh/csgn/humidityIn/cmd:command:*:default]"}
+Number TempInConsigne      "Température consigne [%.1f °C]"   <temperature>   {mqtt="<[local_mqtt:/phytotron/+/csgn/tempIn/used:state:default], >[local_mqtt:/phytotron/oh/csgn/tempIn/cmd:command:*:default]"}
+Number HumidityInConsigne  "Humidité consigne [%.1f %%]"  <humidity>   {mqtt="<[local_mqtt:/phytotron/+/csgn/humidityIn/used:state:default], >[local_mqtt:/phytotron/oh/csgn/humidityIn/cmd:command:*:default]"}
 Number TemperatureDS1      "TemperatureDS1 ambiant [%.1f °C]"         <temperature>   (Temperature, gTempChart) {mqtt="<[local_mqtt:/phytotron/+/mesure/DS1:state:default], <[local_mqtt:/phytotron/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;.*;.*;.*;.*;.*;.*;(.*))]"}
 Number TemperatureDS2      "TemperatureDS2 extérieur [%.1f °C]"         <temperature>   (gEnv, Temperature, gTempChart) {mqtt="<[local_mqtt:/phytotron/+/mesure/DS2:state:default], <[local_mqtt:/phytotron/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;.*;.*;.*;.*;.*;(.*);.*)]"}
 Number TemperatureDS3      "TemperatureDS3 froid [%.1f °C]"         <temperature>   (Temperature, gTempChart) {mqtt="<[local_mqtt:/phytotron/+/mesure/DS3:state:default], <[local_mqtt:/phytotron/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;.*;.*;.*;.*;(.*);.*;.*)]"}
@@ -53,26 +46,26 @@ Group gHumChart
 /* photos */
 Group gPhotos
 Switch TakePicture   "Prends une photo"   {mqtt=">[local_mqtt:/phytotron/camera/oh/newPicture:command:*:default]"}
-//Switch Heater2   "Radiateur"      <heating>   (gDev, Radiateurs, gPhotos) 
-Text  tempText    icon="photo"   label="Webcam du phytotron ci dessous"  (gPhotos)
-Image imgWebcam2   icon="photo" url="http://localhost:8080/static/lastPi.jpg" label="Webcam du phytotron" refresh=900 width=200   (gPhotos)
+// unfortunately the update with  urlImageCamera  is not taken into account
+String	urlImageCamera   {mqtt="<[local_mqtt:/phytotron/camera/+/urlImageCamera:state:default]"}
 
 /* Administration items */
 Group gAdmin
-DateTime PiDateTest            "Heure temoin  [%1$tH:%1$tM:%1$tS]"   <clock>  (gAdmin)  {mqtt="<[local_mqtt:/phytotron/+/admin/piClock:state:default]"}
+Number DateTimeAsk         "raffraichir heures"    <clock>   (gAdmin)   {mqtt=">[local_mqtt:/phytotron/oh/admin/askTime:command:*:default], >[local_mqtt:/phytotron/oh/admin/sendTime:command:*:send]"}
+DateTime DateTimePi        "Heure systeme pi [%1$tH:%1$tM:%1$tS]"   <clock>  (gAdmin)  {mqtt="<[local_mqtt:/phytotron/+/admin/piClock:state:default]"}
+DateTime DateTimeArduino   "Heure arduino [%1$tH:%1$tM:%1$tS]"   <clock>  (gAdmin)  {mqtt="<[local_mqtt:/phytotron/+/admin/arduClock/state:state:default]"}
+// String PiDateTestText2     "Heure temoin text [%s]"   <clock>   (gAdmin)  {mqtt="<[local_mqtt:/phytotron/+/admin/piClock:state:default]"}
+// [%1$tH:%1$tM:%1$tS] 
 // "Heure [%1$tA, %1$tH:%1$tM:%1$tS]"  YYYY-MM-DDTHH:MM:SS  [%1$tA, %1$td.%1$tm.%1$tY]
 //Number test_ds_gp     "apparition test"                <clock>  (gAdmin)
 
 /* Test items */
 Group gTest
-Number MultipleLe1   "le 1er du pack 1,2,3: [%.1f]"     <temperature>   (gTest) {mqtt="<[local_mqtt:/phytotron/+/mulTest:state:REGEX((.*),.*,.*)]"}
-Number MultipleLe2   "le 2e du pack 1,2,3: [%.1f]"      <humidity>      (gTest) {mqtt="<[local_mqtt:/phytotron/+/mulTest:state:REGEX(.*,(.*),.*)]"}
-Number MultipleLe3   "le 3e du pack 1,2,3: [%.1f]"      <temperature>   (gTest) {mqtt="<[local_mqtt:/phytotron/+/mulTest:state:REGEX(.*,.*,(.*))]"}
 
 
 /* Windows */
 
-Contact Frontdoor     "Porte [MAP(en.map):%s]"  (Porte, gDev)
+Contact Frontdoor     "Porte [MAP(en.map):%s]"  (Porte, gDev)	{mqtt="<[local_mqtt:/phytotron/+/porte/state:state:default]"}
 
 /* Demo items */
 
@@ -88,3 +81,5 @@ Number Radio_Station            "Radio"                 <network>
 Dimmer Volume                   "Volume [%.1f %%]"
 Location DemoLocation           "Artilect Fablab Toulouse"
 Number Wifi_Level "Wifi Level [%d/4]" <signal> (FF_Office)
+
+String PbAvantFinFichierPhytotronItem  "configuration fichier items OK"   <smiley>
