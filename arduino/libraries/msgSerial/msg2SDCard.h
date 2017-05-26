@@ -75,7 +75,7 @@ int srStayOpen(const String& argFile);
  */
 int srPreOpen(const String& argFile);
 
-int srClose(const String& dumb);
+int srClose(const String& argFile);
 
 int srReadln(const String& dumb);
 
@@ -93,4 +93,4 @@ int srLs(const String& arg);
 
 int srMkdir(const String& aString);
 
-int srDump(const String& dumb);
+int srDump(const String& aString);

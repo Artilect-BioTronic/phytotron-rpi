@@ -374,9 +374,9 @@ int srStayOpen(const String& argFile)
     // arg must exist after :
     int ind = argFile.indexOf(":");
     if (ind < 0)   {
-      msgSError(F("srOpen cmd needs 2 values"));
-      msgSPrintln(F("srOpen/KO"));
-      return 1;
+        msgSError(getCommand(argFile) + F(":cmd needs 2 values"));
+        msgSPrintln(getCommand(argFile) + F("/KO:") + 1);
+        return 1;
     }
 
     // we get all args
@@ -385,9 +385,9 @@ int srStayOpen(const String& argFile)
     // 2 arg separated by ,
     ind = sValueAll.indexOf(",");
     if (ind < 1)   {
-      msgSError(F("srOpen cmd needs 2 values"));
-      msgSPrintln(F("srOpen/KO"));
-      return 10;
+        msgSError(getCommand(argFile) + F(":cmd needs 2 values"));
+        msgSPrintln(getCommand(argFile) + F("/KO:") + 10);
+        return 10;
     }
 
     // we get 1st value part
@@ -399,19 +399,19 @@ int srStayOpen(const String& argFile)
     // mode values are in [1..127]
     // open modes are (0X40 to 0X01): O_TRUNC | O_EXCL | O_CREAT | O_SYNC | O_APPEND | O_WRITE | O_READ
     if ( iMode <= 0  || iMode > 127 )   {
-      msgSError(F("srOpen: mode must be in [1..127]"));
-      msgSPrintln(F("srOpen/KO"));
-      return 2;
+        msgSError(getCommand(argFile) + F(":mode must be in [1..127]"));
+        msgSPrintln(getCommand(argFile) + F("/KO:2"));
+        return 2;
     }
 
     int cr = cmd2File.stayOpen(sFile,iMode);
 
     if (cr == 0)   {
         // I send back state msg
-        msgSPrintln(String(F("srOpen/OK:")) + cr);
+        msgSPrintln(getCommand(argFile) + F("/OK:") + cr);
     }
     else   {
-        msgSPrintln( String(F("srOpen/KO:")) + cr );
+        msgSPrintln(getCommand(argFile) + F("/KO:") + cr);
     }
     return 0;
 }
@@ -421,9 +421,9 @@ int srPreOpen(const String& argFile)
     // arg must exist after :
     int ind = argFile.indexOf(":");
     if (ind < 0)   {
-      msgSError(F("srOpen cmd needs 2 values"));
-      msgSPrintln(F("srOpen/KO"));
-      return 1;
+        msgSError(getCommand(argFile) + F(":cmd needs 2 values"));
+        msgSPrintln(getCommand(argFile) + F("/KO:1"));
+        return 1;
     }
 
     // we get all args
@@ -432,9 +432,9 @@ int srPreOpen(const String& argFile)
     // 2 arg separated by ,
     ind = sValueAll.indexOf(",");
     if (ind < 1)   {
-      msgSError(F("srOpen cmd needs 2 values"));
-      msgSPrintln(F("srOpen/KO"));
-      return 10;
+        msgSError(getCommand(argFile) + F(":cmd needs 2 values"));
+        msgSPrintln(getCommand(argFile) + F("/KO:10"));
+        return 10;
     }
 
     // we get 1st value part
@@ -446,8 +446,8 @@ int srPreOpen(const String& argFile)
     // mode values are in [1..127]
     // open modes are (0X40 to 0X01): O_TRUNC | O_EXCL | O_CREAT | O_SYNC | O_APPEND | O_WRITE | O_READ
     if ( iMode <= 0  || iMode > 127 )   {
-      msgSError(F("srOpen: mode must be in [1..127]"));
-      msgSPrintln(F("srOpen/KO"));
+        msgSError(getCommand(argFile) + F(":mode must be in [1..127]"));
+        msgSPrintln(getCommand(argFile) + F("/KO:2"));
       return 2;
     }
 
@@ -455,21 +455,21 @@ int srPreOpen(const String& argFile)
 
     if (cr == 0)   {
         // I send back state msg
-        msgSPrintln(String(F("srOpen/OK:")) + cr);
+        msgSPrintln(getCommand(argFile) + F("/OK:") + cr);
     }
     else   {
-        msgSPrintln( String(F("srOpen/KO:")) + cr );
+        msgSPrintln(getCommand(argFile) + F("/KO:") + cr);
     }
     return 0;
 }
 
-int srClose(const String& dumb)
+int srClose(const String& argFile)
 {
     // close file
     int cr = cmd2File.close();
 
     // I send back state msg
-    msgSPrintln(String(F("srClose/OK:")) + cr);
+    msgSPrintln(getCommand(argFile) + F("/OK:") + cr);
 
     return 0;
 }
@@ -482,11 +482,11 @@ int srReadln(const String& dumb)
     // returns the number of read char,  0 if none, -1 if error
     int cr = cmd2File.readln(readString);
 
-    if (cr < 0)
-        msgSPrintln(String("srReadln/KO:") +cr);
+    if (cr <= 0)
+        msgSPrintln(getCommand(dumb) + F("/KO:") + cr);
     else
         // I send back the  String  that was read
-        msgSPrintln(String(F("srReadln/OK:")) + readString);
+        msgSPrintln(getCommand(dumb) + F("/OK:") + readString);
 
     return 0;
 }
@@ -496,9 +496,9 @@ int srWriteln(const String& aToWrite)
     // arg must exist after :
     int ind = aToWrite.indexOf(":");
     if (ind < 0)   {
-      msgSError(F("srWriteln cmd needs 1 value"));
-      msgSPrintln(F("srWriteln/KO"));
-      return 1;
+        msgSError(getCommand(aToWrite) + F(":cmd needs 1 value"));
+        msgSPrintln(getCommand(aToWrite) + F("/KO:1"));
+        return 1;
     }
 
     // we get all args
@@ -508,10 +508,10 @@ int srWriteln(const String& aToWrite)
     int cr = cmd2File.writeln(sValue);
 
     if (cr < 0)
-        msgSPrintln(F("srWriteln/KO"));
+        msgSPrintln(getCommand(aToWrite) + F("/KO:") +cr);
     else
         // I send back OK
-        msgSPrintln(F("srWriteln/OK"));
+        msgSPrintln(getCommand(aToWrite) + F("/OK:") +cr);
 
     return 0;
 }
@@ -521,9 +521,9 @@ int srMove(const String& a2Search)
     // arg must exist after :
     int ind = a2Search.indexOf(":");
     if (ind < 0)   {
-      msgSError(F("srMove cmd needs 1 value"));
-      msgSPrintln(F("srMove/KO"));
-      return 1;
+        msgSError(getCommand(a2Search) + F(":cmd needs 1 value"));
+        msgSPrintln(getCommand(a2Search) + F("/KO:1"));
+        return 1;
     }
 
     // we get args
@@ -532,9 +532,9 @@ int srMove(const String& a2Search)
     int cr = cmd2File.moveTo(sValue);
 
     if (cr == 0)
-        msgSPrintln(String(F("srMove/OK")));
+        msgSPrintln(getCommand(a2Search) + F("/OK"));
     else
-        msgSPrintln(String(F("srMove/KO:")) + cr);
+        msgSPrintln(getCommand(a2Search) + F("/KO:") +cr);
 
     return 0;
 }
@@ -544,29 +544,29 @@ int srReadNchar(const String& aString)
     // arg must exist after :
     int ind = aString.indexOf(":");
     if (ind < 0)   {
-      msgSError(F("srReadNchar cmd needs 1 value"));
-      msgSPrintln(F("srReadNchar/KO"));
-      return -1;
+        msgSError(getCommand(aString) + F(":cmd needs 1 value"));
+        msgSPrintln(getCommand(aString) + F("/KO:-1"));
+        return -1;
     }
 
     // we get args
     int nbChar = aString.substring(ind+1).toInt();
     if ((nbChar <=0) || (200 < nbChar))   {
-        msgSPrintln(String(F("srReadNchar/KO:")) + nbChar);
+        msgSPrintln(getCommand(aString) + F("/KO:nbChar must be in [0-200]"));
         return -2;
     }
 
     String strRead="";
     if (! strRead.reserve(nbChar))   {
-        msgSPrintln(String(F("srReadNchar/KO:")) + -3);
+        msgSPrintln(getCommand(aString) + F("/KO:-3"));
         return -3;
     }
     int cr = cmd2File.readNchar(strRead, nbChar);
 
     if (cr > 0)
-        msgSPrintln(String("+")+cr+"," +F("srReadNchar/OK:") + strRead);
+        msgSPrintln(String("+") +cr +","+ getCommand(aString) + F("/OK:") + strRead);
     else
-        msgSPrintln(String(F("srReadNchar/KO:")) + cr);
+        msgSPrintln(getCommand(aString) + F("/KO:") + cr);
 
     return 0;
 }
@@ -576,9 +576,9 @@ int srRename(const String& aString)
     // arg must exist after :
     int ind = aString.indexOf(":");
     if (ind < 0)   {
-      msgSError(F("srRename cmd needs 2 values"));
-      msgSPrintln(F("srRename/KO"));
-      return 1;
+        msgSError(getCommand(aString) + F(":cmd needs 2 values"));
+        msgSPrintln(getCommand(aString) + F("/KO:-1"));
+        return -1;
     }
 
     // we get all args
@@ -587,9 +587,9 @@ int srRename(const String& aString)
     // 2 arg separated by ,
     ind = sValueAll.indexOf(",");
     if (ind < 1)   {
-      msgSError(F("srRename cmd needs 2 values"));
-      msgSPrintln(F("srRename/KO"));
-      return 10;
+        msgSError(getCommand(aString) + F(":cmd needs 2 values"));
+        msgSPrintln(getCommand(aString) + F("/KO:-10"));
+        return -10;
     }
 
     // we get 1st value part
@@ -602,63 +602,63 @@ int srRename(const String& aString)
     int cr = cmd2File.rename(sOld, sNew);
 
     if (cr == 0)
-        msgSPrintln(String(F("srRename/OK")));
+        msgSPrintln(getCommand(aString) + F("/OK"));
     else
-        msgSPrintln(String(F("srRename/KO:")) + cr);
+        msgSPrintln(getCommand(aString) + F("/KO:") + cr);
 
     return 0;
 }
 
-int srRemove(const String& aFilename)
+int srRemove(const String& aString)
 {
     // arg must exist after :
-    int ind = aFilename.indexOf(":");
+    int ind = aString.indexOf(":");
     if (ind < 0)   {
-      msgSError(F("srRemove cmd needs 1 value"));
-      msgSPrintln(F("srRemove/KO"));
-      return 1;
+        msgSError(getCommand(aString) + F(":cmd needs 1 value"));
+        msgSPrintln(getCommand(aString) + F("/KO:-1"));
+        return -1;
     }
 
     // we get args
-    String sValue = aFilename.substring(ind+1);
+    String sValue = aString.substring(ind+1);
 
     int cr = cmd2File.remove(sValue);
 
     if (cr == 0)
-        msgSPrintln(String(F("srRemove/OK")));
+        msgSPrintln(getCommand(aString) + F("/OK"));
     else
-        msgSPrintln(String(F("srRemove/KO:")) + cr);
+        msgSPrintln(getCommand(aString) + F("/KO:") + cr);
 
     return 0;
 }
 
-int srLs(const String& arg)
+int srLs(const String& aString)
 {
     // arg must exist after :
-    int ind = arg.indexOf(":");
+    int ind = aString.indexOf(":");
     if (ind < 0)   {
-      msgSError(F("cmd needs 1 value"));
-      msgSPrintln(F("/KO"));
-      return 1;
+        msgSError(getCommand(aString) + F(":cmd needs 1 value"));
+        msgSPrintln(getCommand(aString) + F("/KO:-1"));
+        return -1;
     }
 
     // we get args
-    int iMode = arg.substring(ind+1).toInt();
+    int iMode = aString.substring(ind+1).toInt();
 
     // mode values are in [1..15]
     // modes are (0X08 to 0X01): LS_R | LS_SIZE | LS_DATE | LS_A
     if ( iMode <= 0  || iMode > 15 )   {
-      msgSError(F("srLs: mode must be in [1..15]"));
-      msgSPrintln(F("srLs/KO"));
-      return 2;
+        msgSError(getCommand(aString) + F(":mode must be in [1..15]"));
+        msgSPrintln(getCommand(aString) + F("/KO:-2"));
+      return -2;
     }
 
     int cr = cmd2File.ls(SERIAL_MSG, iMode);
 
     if (cr == 0)
-        msgSPrintln(String(F("srLs/OK")));
+        msgSPrintln(getCommand(aString) + F("/OK"));
     else
-        msgSPrintln(String(F("srLs/KO:")) + cr);
+        msgSPrintln(getCommand(aString) + F("/KO:") + cr);
 
     return 0;
 }
@@ -668,9 +668,9 @@ int srMkdir(const String& aString)
     // arg must exist after :
     int ind = aString.indexOf(":");
     if (ind < 0)   {
-      msgSError(F("srMkdir cmd needs 1 value"));
-      msgSPrintln(F("srMkdir/KO"));
-      return 1;
+        msgSError(getCommand(aString) + F(":cmd needs 1 value"));
+        msgSPrintln(getCommand(aString) + F("/KO:-1"));
+        return -1;
     }
 
     // we get args
@@ -679,20 +679,18 @@ int srMkdir(const String& aString)
     int cr = cmd2File.mkdir(sValue);
 
     if (cr == 0)
-        msgSPrintln(String(F("srMkdir/OK")));
+        msgSPrintln(getCommand(aString) + F("/OK"));
     else
-        msgSPrintln(String(F("srMkdir/KO:")) + cr);
+        msgSPrintln(getCommand(aString) + F("/KO:") + cr);
 
     return 0;
 }
 
-int srDump(const String& dumb)
+int srDump(const String& aString)
 {
-    String readString="";
-
     dump("COM.CSV");
 
-    msgSPrintln(String(F("srDump/OK:")) + readString);
+    msgSPrintln(getCommand(aString) + F("/OK"));
 
     return 0;
 }

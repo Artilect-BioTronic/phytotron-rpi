@@ -1,43 +1,32 @@
-õcard initialized.
-2000-01-01 01:00:00        308 com.csv
-2000-01-01 01:00:00        134 cons.csv
-2000-01-01 01:00:00        251 mes.csv
-2000-01-01 01:00:00         36 testw.txt
-2000-01-01 01:00:00         19 goulbd
-2000-01-01 01:00:00        132 testc.txt
-2000-01-01 01:00:00        134 bobi
-2000-01-01 01:00:00         51 test.txt
-2000-01-01 01:00:00          0 cdir/
+2000-01-01 01:00:00       2345 MES.CSV
+2000-01-01 01:00:00        234 CONS.CSV
+2000-01-01 01:00:00        414 COM.CSV
+2000-01-01 01:00:00         74 test.txt
 AT+idSketch:SDCardTransfer.ino
-AT+idBuild:Apr 29 2017,00:21:28
+AT+idBuild:May 26 2017,18:00:20
 
 Message is a cmdUser cmd, I am parsing...
-2000-01-01 01:00:00        308 com.csv
-2000-01-01 01:00:00        134 cons.csv
-2000-01-01 01:00:00        251 mes.csv
-2000-01-01 01:00:00         36 testw.txt
-2000-01-01 01:00:00         19 goulbd
-2000-01-01 01:00:00        132 testc.txt
-2000-01-01 01:00:00        134 bobi
-2000-01-01 01:00:00         51 test.txt
-2000-01-01 01:00:00          0 cdir/
+2000-01-01 01:00:00       2345 MES.CSV
+2000-01-01 01:00:00        234 CONS.CSV
+2000-01-01 01:00:00        414 COM.CSV
+2000-01-01 01:00:00         74 test.txt
 CM+srLs/OK
 
 
 Message is a cmdUser cmd, I am parsing...
-CM+srOpen/OK:0
+CM+srPreOpen/OK:0
 
 
 Message is a cmdUser cmd, I am parsing...
-CM+srWriteln/OK
+CM+srWriteln/OK:1
 
 
 Message is a cmdUser cmd, I am parsing...
-CM+srWriteln/OK
+CM+srWriteln/OK:1
 
 
 Message is a cmdUser cmd, I am parsing...
-CM+srWriteln/OK
+CM+srWriteln/OK:1
 
 
 Message is a cmdUser cmd, I am parsing...
@@ -45,27 +34,22 @@ CM+srClose/OK:0
 
 
 Message is a cmdUser cmd, I am parsing...
-       308 com.csv
-       134 cons.csv
-       251 mes.csv
-        36 testw.txt
-        19 goulbd
-       132 testc.txt
-       134 bobi
-        51 test.txt
-         0 cdir/
+      2345 MES.CSV
+       234 CONS.CSV
+       414 COM.CSV
+        74 test.txt
 CM+srLs/OK
 
 
 Message is a cmdUser cmd, I am parsing...
-CM+srOpen/OK:0
+CM+srStayOpen/OK:0
 
 Message is a cmdUser cmd, I am parsing...
 CM+srReadln/OK:testing 1, 2, 3.
 
 
 Message is a cmdUser cmd, I am parsing...
-CM+srWriteln/KO
+CM+srWriteln/KO:-1
 
 
 Message is a cmdUser cmd, I am parsing...
@@ -78,7 +62,7 @@ CM+srClose/OK:0
 
 
 Message is a cmdUser cmd, I am parsing...
-CM+srOpen/OK:0
+CM+srPreOpen/OK:0
 
 
 Message is a cmdUser cmd, I am parsing...
@@ -90,12 +74,15 @@ CM+srMove/OK
 
 
 Message is a cmdUser cmd, I am parsing...
-CM++20,srReadNchar/OK:The line 3 is plain
+CM++30,srReadNchar/OK:The line 3 is plain
 
+
+line 6 a
 
 
 Message is a cmdUser cmd, I am parsing...
-CM+srReadln/OK:
+CM+srReadln/OK:fter 2 empty
+
 
 
 Message is a cmdUser cmd, I am parsing...
@@ -107,15 +94,10 @@ CM+srClose/OK:0
 
 
 Message is a cmdUser cmd, I am parsing...
-       308 com.csv
-       134 cons.csv
-       251 mes.csv
-        36 testw.txt
-        19 goulbd
-       132 testc.txt
-       134 bobi
-        51 test.txt
-         0 cdir/
+      2345 MES.CSV
+       234 CONS.CSV
+       414 COM.CSV
+        74 test.txt
 CM+srLs/OK
 
 
@@ -124,7 +106,7 @@ CM+srMkdir/OK
 
 
 Message is a cmdUser cmd, I am parsing...
-CM+srOpen/KO:-1
+CM+srPreOpen/KO:-1
 
 
 Open cannot  create file at open  in subdirectory !!
@@ -133,11 +115,11 @@ CM+srClose/OK:0
 
 
 Message is a cmdUser cmd, I am parsing...
-CM+srOpen/OK:0
+CM+srPreOpen/OK:0
 
 
 Message is a cmdUser cmd, I am parsing...
-CM+srOpen/OK:0
+CM+srPreOpen/OK:0
 
 
 Message is a cmdUser cmd, I am parsing...
@@ -145,17 +127,12 @@ CM+srClose/OK:0
 
 
 Message is a cmdUser cmd, I am parsing...
-       308 com.csv
-       134 cons.csv
-       251 mes.csv
-        36 testw.txt
-        19 goulbd
+      2345 MES.CSV
+       234 CONS.CSV
+       414 COM.CSV
+        74 test.txt
          0 FOLDER1/
-       132 testc.txt
-       134 bobi
-        51 test.txt
          0 file1.txt
-         0 cdir/
          0 file2.txt
 CM+srLs/OK
 
@@ -165,18 +142,13 @@ CM+srRename/OK
 
 
 Message is a cmdUser cmd, I am parsing...
-       308 com.csv
-       134 cons.csv
-       251 mes.csv
-        36 testw.txt
-        19 goulbd
+      2345 MES.CSV
+       234 CONS.CSV
+       414 COM.CSV
+        74 test.txt
          0 FOLDER1/
            0 file3.txt
-       132 testc.txt
-       134 bobi
-        51 test.txt
          0 file1.txt
-         0 cdir/
 CM+srLs/OK
 
 
@@ -193,15 +165,10 @@ CM+srRemove/OK
 
 
 Message is a cmdUser cmd, I am parsing...
-       308 com.csv
-       134 cons.csv
-       251 mes.csv
-        36 testw.txt
-        19 goulbd
-       132 testc.txt
-       134 bobi
-        51 test.txt
-         0 cdir/
+      2345 MES.CSV
+       234 CONS.CSV
+       414 COM.CSV
+        74 test.txt
 CM+srLs/OK
 
 

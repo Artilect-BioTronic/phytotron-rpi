@@ -16,11 +16,11 @@ def emptyRx(ser):
 def logp (msg, gravity='trace'):
    print('['+gravity+']' + msg)
 
-msgStartCmd='CM+'
+msgStartCmd='SD+'
 msgStartCmd2='AT+'
 msgEnd='\n'
 
-devSerial='/dev/ttyACM0'
+devSerial='/dev/ttyACM1'
 
 
 def sendCmdArd(aCmd):
@@ -45,7 +45,7 @@ ser = serial.Serial(devSerial, baudrate=38400, timeout=0.2, writeTimeout=0.2)
 time.sleep(1)
 emptyRx(ser)
 
-ser.write("CM+srLs:" + "15\n")
+ser.write("SD+srLs:" + "15\n")
 emptyRx(ser)
 
 # mode=71 , read / write / append / create
@@ -53,21 +53,21 @@ sendCmdArd("srPreOpen:" + "test.txt,71");emptyRx(ser)
 sendCmdArd("srWriteln:testing 1, 2, 3.");emptyRx(ser)
 scar("srWriteln:line2 is here")
 scar("srWriteln:The line 3 is plain")
-ser.write("CM+srClose\n");emptyRx(ser)
+ser.write("SD+srClose\n");emptyRx(ser)
 scar("srLs:13")
 
 # mode=1, open readonly. the file stays open
 sendCmdArd("srStayOpen:" + "test.txt,1")
-ser.write("CM+srReadln\n")
+ser.write("SD+srReadln\n")
 scar("srWriteln:cannot write on readonly")
 sendCmdArd("srReadln");emptyRx(ser)
 scar("srClose")
 
 # mode=1, open readonly
 scar("srPreOpen:test.txt,1")
-ser.write("CM+srReadln\n")
-ser.write("CM+srMove:The line 3");emptyRx(ser)
-ser.write("CM+srReadNchar:30\n");emptyRx(ser)
+ser.write("SD+srReadln\n")
+ser.write("SD+srMove:The line 3");emptyRx(ser)
+ser.write("SD+srReadNchar:30\n");emptyRx(ser)
 scar("srReadln")
 scar("srReadNchar:30")
 scar("srClose")

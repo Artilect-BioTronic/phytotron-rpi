@@ -46,6 +46,14 @@ size_t msgSError(const String& aMsg)   {
     return SERIAL_MSG.println(aMsg);
 }
 
+size_t msgSend(const String& aTopic, const String& aLoad)   {
+    return msgSPrint(aTopic + ":" + aLoad);
+}
+
+size_t msgSendln(const String& aTopic, const String& aLoad)   {
+    return msgSend(aTopic, aLoad + "\n");
+}
+
 size_t msgSPrint2(const String& aMsg)   {
     String msg2py = msg2pyStart + aMsg + msg2pyEnd;
     return SERIAL_MSG.print(msg2py);
