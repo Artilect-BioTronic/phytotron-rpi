@@ -1,45 +1,38 @@
-2000-01-01 01:00:00       2345 MES.CSV
-2000-01-01 01:00:00        234 CONS.CSV
-2000-01-01 01:00:00        414 COM.CSV
+card initialized.
+2000-01-01 01:00:00       3863 MES.CSV
+2000-01-01 01:00:00        702 CONS.CSV
+2000-01-01 01:00:00       1242 COM.CSV
 2000-01-01 01:00:00         74 test.txt
 AT+idSketch:SDCardTransfer.ino
-AT+idBuild:May 26 2017,18:00:20
-
+AT+idBuild:May 27 2017,01:32:57
 Message is a cmdUser cmd, I am parsing...
-2000-01-01 01:00:00       2345 MES.CSV
-2000-01-01 01:00:00        234 CONS.CSV
-2000-01-01 01:00:00        414 COM.CSV
+2000-01-01 01:00:00       3863 MES.CSV
+2000-01-01 01:00:00        702 CONS.CSV
+2000-01-01 01:00:00       1242 COM.CSV
 2000-01-01 01:00:00         74 test.txt
 CM+srLs/OK
-
 
 Message is a cmdUser cmd, I am parsing...
 CM+srPreOpen/OK:0
 
+Message is a cmdUser cmd, I am parsing...
+CM+srWriteln/OK:1
 
 Message is a cmdUser cmd, I am parsing...
 CM+srWriteln/OK:1
 
-
 Message is a cmdUser cmd, I am parsing...
 CM+srWriteln/OK:1
-
-
-Message is a cmdUser cmd, I am parsing...
-CM+srWriteln/OK:1
-
 
 Message is a cmdUser cmd, I am parsing...
 CM+srClose/OK:0
 
-
 Message is a cmdUser cmd, I am parsing...
-      2345 MES.CSV
-       234 CONS.CSV
-       414 COM.CSV
+      3863 MES.CSV
+       702 CONS.CSV
+      1242 COM.CSV
         74 test.txt
 CM+srLs/OK
-
 
 Message is a cmdUser cmd, I am parsing...
 CM+srStayOpen/OK:0
@@ -51,19 +44,15 @@ CM+srReadln/OK:testing 1, 2, 3.
 Message is a cmdUser cmd, I am parsing...
 CM+srWriteln/KO:-1
 
-
 Message is a cmdUser cmd, I am parsing...
 CM+srReadln/OK:line2 is here
-
 
 
 Message is a cmdUser cmd, I am parsing...
 CM+srClose/OK:0
 
-
 Message is a cmdUser cmd, I am parsing...
 CM+srPreOpen/OK:0
-
 
 Message is a cmdUser cmd, I am parsing...
 CM+srReadln/OK:testing 1, 2, 3.
@@ -72,103 +61,84 @@ CM+srReadln/OK:testing 1, 2, 3.
 Message is a cmdUser cmd, I am parsing...
 CM+srMove/OK
 
-
 Message is a cmdUser cmd, I am parsing...
 CM++30,srReadNchar/OK:The line 3 is plain
 
 
 line 6 a
 
-
 Message is a cmdUser cmd, I am parsing...
 CM+srReadln/OK:fter 2 empty
-
 
 
 Message is a cmdUser cmd, I am parsing...
 CM+srReadNchar/KO:0
 
-
 Message is a cmdUser cmd, I am parsing...
 CM+srClose/OK:0
 
-
 Message is a cmdUser cmd, I am parsing...
-      2345 MES.CSV
-       234 CONS.CSV
-       414 COM.CSV
+      3863 MES.CSV
+       702 CONS.CSV
+      1242 COM.CSV
         74 test.txt
 CM+srLs/OK
-
 
 Message is a cmdUser cmd, I am parsing...
 CM+srMkdir/OK
 
-
 Message is a cmdUser cmd, I am parsing...
 CM+srPreOpen/KO:-1
-
 
 Open cannot  create file at open  in subdirectory !!
 Message is a cmdUser cmd, I am parsing...
 CM+srClose/OK:0
 
-
 Message is a cmdUser cmd, I am parsing...
 CM+srPreOpen/OK:0
 
-
 Message is a cmdUser cmd, I am parsing...
 CM+srPreOpen/OK:0
-
 
 Message is a cmdUser cmd, I am parsing...
 CM+srClose/OK:0
 
-
 Message is a cmdUser cmd, I am parsing...
-      2345 MES.CSV
-       234 CONS.CSV
-       414 COM.CSV
+      3863 MES.CSV
+       702 CONS.CSV
+      1242 COM.CSV
         74 test.txt
          0 FOLDER1/
          0 file1.txt
          0 file2.txt
 CM+srLs/OK
 
-
 Message is a cmdUser cmd, I am parsing...
 CM+srRename/OK
 
-
 Message is a cmdUser cmd, I am parsing...
-      2345 MES.CSV
-       234 CONS.CSV
-       414 COM.CSV
+      3863 MES.CSV
+       702 CONS.CSV
+      1242 COM.CSV
         74 test.txt
          0 FOLDER1/
            0 file3.txt
          0 file1.txt
 CM+srLs/OK
 
+Message is a cmdUser cmd, I am parsing...
+CM+srRemove/OK
 
 Message is a cmdUser cmd, I am parsing...
 CM+srRemove/OK
 
-
 Message is a cmdUser cmd, I am parsing...
 CM+srRemove/OK
 
-
 Message is a cmdUser cmd, I am parsing...
-CM+srRemove/OK
-
-
-Message is a cmdUser cmd, I am parsing...
-      2345 MES.CSV
-       234 CONS.CSV
-       414 COM.CSV
+      3863 MES.CSV
+       702 CONS.CSV
+      1242 COM.CSV
         74 test.txt
 CM+srLs/OK
-
 

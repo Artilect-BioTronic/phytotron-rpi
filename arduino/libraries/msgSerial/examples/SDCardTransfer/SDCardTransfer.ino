@@ -26,7 +26,7 @@ Command cmdUser[] = {
     Command("srWriteln",     &srWriteln), // :nouvelle ligne
     Command("srReadNchar",   &srReadNchar),   // :nbchar
     Command("srMove",        &srMove),    // :str2search
-    Command("srDump",        &srDump),    // pas de param
+    Command("srDump2",       &srDump2),    // pas de param
     Command("srLs",          &srLs),      // :15  donner les options du ls
     Command("srRename",      &srRename),  // :/adir/old,new
     Command("srMkdir",       &srMkdir),   // :/adir

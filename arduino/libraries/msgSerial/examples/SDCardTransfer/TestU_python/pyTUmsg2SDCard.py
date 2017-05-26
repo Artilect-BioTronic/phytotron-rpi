@@ -10,7 +10,8 @@ def emptyRx(ser):
    while (len(response) >0 ):
       print (response, end='')
       response = ser.read(100)
-   print('')
+   if (not response.endswith('\n')) and (len(response) >0):
+      print('')
 
 # use to sort log messages
 def logp (msg, gravity='trace'):
@@ -20,7 +21,7 @@ msgStartCmd='SD+'
 msgStartCmd2='AT+'
 msgEnd='\n'
 
-devSerial='/dev/ttyACM1'
+devSerial='/dev/ttyACM0'
 
 
 def sendCmdArd(aCmd):

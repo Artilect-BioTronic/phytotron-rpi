@@ -93,4 +93,4 @@ int srLs(const String& arg);
 
 int srMkdir(const String& aString);
 
-int srDump(const String& aString);
+int srDump2(const String& aString);

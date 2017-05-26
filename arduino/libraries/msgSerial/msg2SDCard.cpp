@@ -104,7 +104,7 @@ int Cmd2File::tmpClose()
     return 0;
 }
 
-void dump(String aFileName){
+void dump2(String aFileName){
     File dataFile = SD.open(aFileName);
 
     // if the file is available, write to it:
@@ -686,9 +686,9 @@ int srMkdir(const String& aString)
     return 0;
 }
 
-int srDump(const String& aString)
+int srDump2(const String& aString)
 {
-    dump("COM.CSV");
+    dump2("COM.CSV");
 
     msgSPrintln(getCommand(aString) + F("/OK"));
 

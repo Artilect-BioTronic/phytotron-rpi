@@ -3,6 +3,7 @@
 #include "TempHumMsg.h"
 
 #include "msgSerial.h"
+#include "msg2SDCard.h"
 
 #include <DS1307RTC.h>
 
@@ -25,9 +26,18 @@ CommandList cmdLUserPhy("cmdUser", "CM+", SIZE_OF_TAB(cmdUserPhy), cmdUserPhy );
 Command cmdSysPhy[] = {
     Command("idSketch",         &sendSketchId),
     Command("idBuild",          &sendSketchBuild),
-    Command("SV",               &sendMessageStatus),
-    Command("MultiValue",       &sendMultiValue),
-    Command("sendDate",         &sendDate)
+    Command("srStayOpen",       &srStayOpen),    // :bob.txt,67  filenameDOS8.3 (short names), openMode (O_READ... specific to SdFat lib)
+    Command("srPreOpen",        &srPreOpen),     // :prepare to open at each read/write (it is closed immediately after)
+    Command("srClose",          &srClose),   // pas de param
+    Command("srReadln",         &srReadln),  // pas de param
+    Command("srWriteln",        &srWriteln), // :nouvelle ligne
+    Command("srReadNchar",      &srReadNchar),   // :nbchar
+    Command("srMove",           &srMove),    // :str2search
+    Command("srDump2",           &srDump2),  // pas de param
+    Command("srLs",             &srLs),      // :15  donner les options du ls
+    Command("srRename",         &srRename),  // :/adir/old,new
+    Command("srMkdir",          &srMkdir),   // :/adir
+    Command("srRemove",         &srRemove)   // :file.txt
 };
 CommandList cmdLSysPhy("cmdSys", "AT+", SIZE_OF_TAB(cmdSysPhy), cmdSysPhy );
 

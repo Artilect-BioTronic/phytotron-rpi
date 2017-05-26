@@ -23,7 +23,7 @@
 #include <SPI.h>
 //#include <SD.h>
 #include "SdFat.h"
-SdFat SD;
+extern SdFat SD;
 #include <RCSwitch.h>
 #include <OneWire.h>
 
