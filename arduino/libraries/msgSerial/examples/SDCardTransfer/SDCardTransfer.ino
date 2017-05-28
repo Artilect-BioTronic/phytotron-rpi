@@ -19,18 +19,18 @@
 SerialListener serList(Serial);
 
 Command cmdUser[] = {
-    Command("srStayOpen",    &srStayOpen),    // :bob.txt,67  filenameDOS8.3 (short names), openMode (O_READ... specific to SdFat lib)
-    Command("srPreOpen",     &srPreOpen),     // :prepare to open at each read/write (it is closed immediately after)
-    Command("srClose",       &srClose),   // pas de param
-    Command("srReadln",      &srReadln),  // pas de param
-    Command("srWriteln",     &srWriteln), // :nouvelle ligne
-    Command("srReadNchar",   &srReadNchar),   // :nbchar
-    Command("srMove",        &srMove),    // :str2search
-    Command("srDump2",       &srDump2),    // pas de param
-    Command("srLs",          &srLs),      // :15  donner les options du ls
-    Command("srRename",      &srRename),  // :/adir/old,new
-    Command("srMkdir",       &srMkdir),   // :/adir
-    Command("srRemove",      &srRemove)   // :file.txt
+    Command("openStay",     &srStayOpen),    // :bob.txt,67  filenameDOS8.3 (short names), openMode (O_READ... specific to SdFat lib)
+    Command("open",         &srPreOpen),     // :prepare to open at each read/write (it is closed immediately after)
+    Command("close",        &srClose),   // pas de param
+    Command("readln",       &srReadln),  // pas de param
+    Command("writeln",      &srWriteln), // :nouvelle ligne
+    Command("readNchar",    &srReadNchar),   // :nbchar
+    Command("move",         &srMove),    // :str2search
+    Command("dump2",        &srDump2),   // pas de param
+    Command("ls",           &srLs),      // :15  donner les options du ls
+    Command("rename",       &srRename),  // :/adir/old,new
+    Command("mkdir",        &srMkdir),   // :/adir
+    Command("rm",           &srRemove)   // :file.txt
 };
 CommandList cmdListUser("cmdUser", "SD+", SIZE_OF_TAB(cmdUser), cmdUser );
 
