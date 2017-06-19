@@ -35,6 +35,11 @@ int Cmd2File::stayOpen(const String& aFileName, uint8_t aMode)
     if ( (aFileName.length() <= 0) || (aFileName.length() > 12) )
         return -1;
 
+    // if a file was open  we close it
+    //   if it was preOpened it was already closed
+    if (isOpened_)
+        close();
+
     // if the name is fake, we attach to a fake file
     if (aFileName.equals("fake"))   {
         fileName_ = aFileName;
@@ -63,6 +68,11 @@ int Cmd2File::preOpen(const String& aFileName, uint8_t aMode)
 {
     if ( (aFileName.length() <= 0) || (aFileName.length() > 12) )
         return -1;
+
+    // if a file was open  we close it
+    //   if it was preOpened it was already closed
+    if (isOpened_)
+        close();
 
     file_ = new FILELIKE();
     *file_ = SD.open(aFileName, aMode);
@@ -236,17 +246,17 @@ int Cmd2File::readNcharNoOpen(String& strBuf, int nbChar)   {
 
 // it reads file until it finds aString
 // it manages open / close  and call to moveToNoOpen
-int Cmd2File::moveTo(const String& aString)   {
+long Cmd2File::moveTo(const String& aString)   {
     if ( (! isOpened_) && (! isPreOpened_) )
         return -1;
 
     if (isPreOpened_)  { // we open  before each access
-        int cr = tmpOpen();
+        long cr = tmpOpen();
         if (cr != 0)
             return cr-10;
     }
 
-    int cr = moveToNoOpen(aString);
+    long cr = moveToNoOpen(aString);
 
     if (isPreOpened_)   // we close  after each access
         tmpClose();
@@ -258,7 +268,7 @@ int Cmd2File::moveTo(const String& aString)   {
 // it can go to BEGIN or END of file
 // it returns 0 on success, -1 or negative if it fails
 // the file must be open; it will not open/close contrary to moveTo
-int Cmd2File::moveToNoOpen(const String& aString)
+long Cmd2File::moveToNoOpen(const String& aString)
 {
     if ( (! isOpened_) && (! isPreOpened_) )
         return -1;
@@ -300,17 +310,20 @@ int Cmd2File::moveToNoOpen(const String& aString)
                 return -1;
             }
 
-            // if aString is found
+            /*****     if aString is found   *****/
             if (aString.equals(strBuf))   {
-                file_->seek(lastPos-1);   // we get back to begin of string
-                return 0;
+                file_->seek(lastPos-1);     // we get back to begin of found string
+                return lastPos-1;           // return position in file
             }
             else
                 file_->seek(lastPos);   // rewind
         }
     }
 
-    return 0;
+    // if aString could not be found, we get back to init position
+    file_->seek(posInitial);
+
+    return posInitial;
 }
 
 // print ls result through aStream, with option aString
@@ -531,7 +544,7 @@ int srMove(const String& a2Search)
 
     int cr = cmd2File.moveTo(sValue);
 
-    if (cr == 0)
+    if (cr >= 0)
         msgSPrintln(getCommand(a2Search) + F("/OK"));
     else
         msgSPrintln(getCommand(a2Search) + F("/KO:") +cr);

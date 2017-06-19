@@ -66,6 +66,7 @@ scar("close")
 
 # mode=1, open readonly
 scar("open:test.txt,1")
+scar("move:This line wont be found")
 ser.write("SD+readln\n")
 ser.write("SD+move:The line 3");emptyRx(ser)
 ser.write("SD+readNchar:30\n");emptyRx(ser)
@@ -86,6 +87,7 @@ scar("rename:file2.txt,Folder1/file3.txt")
 scar("ls:13")
 scar("rm:file1.txt")
 scar("rm:Folder1/file3.txt")
+print("to remove a directory, I must end the name with /")
 scar("rm:Folder1/")
 scar("ls:13")
 

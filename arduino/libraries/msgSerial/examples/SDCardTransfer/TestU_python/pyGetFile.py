@@ -18,7 +18,7 @@ moveTo2 = ''
 cmdSendValue='SendValue'
 
 
-# serial msg to arduino begin  with  msgStartAT / msgStartDO and end with endOfMsg
+# serial msg to arduino begin  with  msgStartAT / msgStartDO and end with msgEnd
 msgStartAT='CM+'
 msgStartDO='DO+'
 msgEnd='\n'
@@ -77,7 +77,6 @@ def on_message_myTopicSys(client, userdata, msg):
 # open file on Hard Disk
 # TO DO put fileHD as return
 def openHDFile(afileHDName):
-	"re open logfile, I do it because it must not grow big"
 	global fileHD
 	#
 	if (afileHDName != '') and (afileHDName != '<stdout>') :
@@ -150,11 +149,12 @@ def parseCmdAnswer(aCmdAnswer):
           cr = 0
        return [respLoad, cr]
 
-# we check if response is complete
-# CM+srCmd:arg\n                     complete
-# CM++20,srCmd2:load\n               not complete
-# CM++20,srCmd2:load\nabcdefgh\n     complete
 def isRespCplt(aResp) :
+    """we check if response is complete
+    CM+srCmd:arg\n                     complete
+    CM++20,srCmd2:load\n               not complete
+    CM++20,srCmd2:load\nabcdefgh\n     complete
+    """
     if (not aResp.startswith(msgStartAT)) :
         return False
     resp2 = aResp.replace(msgStartAT, '')

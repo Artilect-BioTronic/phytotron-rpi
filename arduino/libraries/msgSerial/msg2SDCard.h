@@ -26,7 +26,7 @@ private:
 
     int readlnNoOpen(String& aString);
     int readNcharNoOpen(String& strBuf, int nbChar);
-    int moveToNoOpen(const String& aString);
+    long moveToNoOpen(const String& aString);
 
 public:
     static const char MOVE_BEGIN[];
@@ -42,7 +42,7 @@ public:
     int readNchar(String& strBuf, int nbChar);
     int readln(String& aString);
     int writeln(const String& aString);
-    int moveTo(const String& aString);
+    long moveTo(const String& aString);
     int rename(const String& aOld, const String& aNew);
     int remove(const String& aString);
     int mkdir(const String& aString);
