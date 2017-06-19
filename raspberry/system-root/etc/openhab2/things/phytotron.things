@@ -1,0 +1,2 @@
+Thing exec:command:wificon [command="iwgetid -r"]
+
