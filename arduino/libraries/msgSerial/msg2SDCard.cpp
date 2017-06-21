@@ -64,10 +64,42 @@ int Cmd2File::stayOpen(const String& aFileName, uint8_t aMode)
     return 0;
 }
 
-int Cmd2File::preOpen(const String& aFileName, uint8_t aMode)
+int Cmd2File::preOpen(const String& aFileName, const String& aMode)
 {
     if ( (aFileName.length() <= 0) || (aFileName.length() > 12) )
         return -1;
+
+    // converts string aMode, from letters tecsawr to constants
+    // O_TRUNC | O_EXCL | O_CREAT | O_SYNC | O_APPEND | O_WRITE | O_READ
+    int iMode=0;
+    for (int i=0; i<aMode.length(); i++)   {
+        switch(aMode.charAt(i))
+        {
+        case('r') :
+            iMode += O_READ;
+            break;
+        case('w') :
+            iMode += O_WRITE;
+            break;
+        case('a') :
+            iMode += O_APPEND;
+            break;
+        case('s') :
+            iMode += O_SYNC;
+            break;
+        case('c') :
+            iMode += O_CREAT;
+            break;
+        case('e') :
+            iMode += O_EXCL;
+            break;
+        case('t') :
+            iMode += O_TRUNC;
+            break;
+        default :
+            return -2 ;     // unknown letter not permitted
+        }
+    }
 
     // if a file was open  we close it
     //   if it was preOpened it was already closed
@@ -75,11 +107,11 @@ int Cmd2File::preOpen(const String& aFileName, uint8_t aMode)
         close();
 
     file_ = new FILELIKE();
-    *file_ = SD.open(aFileName, aMode);
+    *file_ = SD.open(aFileName, iMode);
     if (! (*file_) )   {
         free (file_);
         file_ = NULL;
-        return -1;
+        return -3;
     }
     else   {
         filePos_ = file_->curPosition();  // end of file if open with O_APPEND
@@ -454,17 +486,20 @@ int srPreOpen(const String& argFile)
     String sFile = sValueAll.substring(0,ind);
 
     // we get 1st value part
-    int iMode = sValueAll.substring(ind+1).toInt();
+    String sMode = sValueAll.substring(ind+1);
 
-    // mode values are in [1..127]
     // open modes are (0X40 to 0X01): O_TRUNC | O_EXCL | O_CREAT | O_SYNC | O_APPEND | O_WRITE | O_READ
-    if ( iMode <= 0  || iMode > 127 )   {
-        msgSError(getCommand(argFile) + F(":mode must be in [1..127]"));
-        msgSPrintln(getCommand(argFile) + F("/KO:2"));
-      return 2;
+    const String modePossibleValues = "rwascet";
+    for (int i=0; i<sMode.length(); i++)   {
+        if ( modePossibleValues.indexOf(sMode.charAt(i)) < 0 )   {
+            msgSError(getCommand(argFile) + F(":mode must be in [rwascet]"));
+            msgSPrintln(getCommand(argFile) + F("/KO:2"));
+            return 2;
+        }
     }
 
-    int cr = cmd2File.preOpen(sFile,iMode);
+
+    int cr = cmd2File.preOpen(sFile,sMode);
 
     if (cr == 0)   {
         // I send back state msg

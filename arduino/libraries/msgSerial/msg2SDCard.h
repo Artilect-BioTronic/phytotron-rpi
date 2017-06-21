@@ -35,7 +35,7 @@ public:
 
 public:
     int stayOpen(const String& aFileName, uint8_t aMode);
-    int preOpen(const String& aFileName, uint8_t aMode);
+    int preOpen(const String& aFileName, const String &aMode);
     int close();
     int tmpOpen();
     int tmpClose();

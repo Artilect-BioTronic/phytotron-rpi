@@ -212,12 +212,14 @@ if (authInFile.has_key('username') and authInFile.has_key('password')) :
 
 cr = mqttch.connect(hostMQTT, port=portMQTT, keepalive=60, bind_address="")
 mqttch.loop_start()
+# I sleep to empty retained messages of mqtt
+time.sleep(mqttch.timeSleepResponse *5)
 
 
 fileHD = openHDFile(fileHDN)
 print ('file: '+ fileHDN + ' opened')
 
-[response, cr] = mqttch.pubGetMqtt("open", fileSDN + ",1")
+[response, cr] = mqttch.pubGetMqtt("open", fileSDN + ",r")
 if cr < 0 :
    print ('open : ', fileSDN, ' failed', '\nbye')
    sys.exit()

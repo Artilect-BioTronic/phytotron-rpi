@@ -212,6 +212,8 @@ if (authInFile.has_key('username') and authInFile.has_key('password')) :
 
 cr = mqttch.connect(hostMQTT, port=portMQTT, keepalive=60, bind_address="")
 mqttch.loop_start()
+# I sleep to empty retained messages of mqtt
+time.sleep(mqttch.timeSleepResponse *5)
 
 
 # open modes are different from basic SD.h library
@@ -221,10 +223,10 @@ mqttch.loop_start()
 # if there is no move, we erase former file
 if (moveTo == '') and (moveTo2 == '') :
     # open r/w create and trunc
-    modeOpenSD = 1+2+16+64
+    modeOpenSD = "rwct" # 1+2+16+64
 else :
     # open r/w create
-    modeOpenSD = 1+2+64
+    modeOpenSD = "rwc" # 1+2+64
 
 # if you want to append, use option --move END
 
