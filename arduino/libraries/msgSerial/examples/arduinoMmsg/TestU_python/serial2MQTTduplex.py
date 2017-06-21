@@ -62,31 +62,34 @@ def reOpenLogfile(logfileName):
 
 def read_args(argv):
     # optional args have default values above
-    global logfile, hostMQTT, baudRate, prefFromTopic, topicFromPref, devSerial
+    global logfile, hostMQTT, portMQTT, baudRate, prefFromTopic, topicFromPref, devSerial
     logfileName = ''
     try:
-        opts, args = getopt.getopt(argv,"hl:b:r:n:p:t:d:",["logfile=","broker=","baudrate=","namepy=","prefFromTopic=","topicFromPref=","devSerial="])
+        opts, args = getopt.getopt(argv,"hl:b:p:d:r:t:u:",["logfile=","broker=","portBroker=","devSerial=","baudrate=","topicFromPref=","prefFromTopic="])
     except getopt.GetoptError:
-        print ('serial2MQTTduplex.py -l <logfile> -n <namepy> -b <broker> -r <baudrate> -p <prefFromTopic> -t <topicFromPref> -d <devSerial>')
+        print ('serial2MQTTduplex.py -l <logfile> -b <broker> -p <portBroker> -d <devSerial> -r <baudrate> -t <topicFromPref> -u <prefFromTopic>')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print ('serial2MQTTduplex.py -l <logfile> -n <namepy> -b <broker> -r <baudrate> -p <prefFromTopic> -t <topicFromPref> -d <devSerial>')
+            print ('serial2MQTTduplex.py -l <logfile> -b <broker> -p <portBroker> -d <devSerial> -r <baudrate> -t <topicFromPref> -u <prefFromTopic>')
             sys.exit()
         elif opt in ("-l", "--logfile"):
             logfileName = arg
+        elif opt in ("-d", "--devSerial"):
+            devSerial = arg
         elif opt in ("-r", "--baudrate"):
             baudRate = arg
         elif opt in ("-b", "--broker"):
             hostMQTT = arg
-        elif opt in ("-p", "--prefFromTopic"):
+        elif opt in ("-p", "--portBroker"):
+            portMQTT = arg
+        elif opt in ("-u", "--prefFromTopic"):
             prefFromTopic = ast.literal_eval(arg)
         elif opt in ("-t", "--topicFromPref"):
             topicFromPref = ast.literal_eval(arg)
-        elif opt in ("-d", "--devSerial"):
-            devSerial = arg
     logp('logfile is '+ logfileName, 'debug')
-    logp('broker is '+ hostMQTT, 'debug')
+    logp('broker is '+ str(hostMQTT), 'debug')
+    logp('port of broker is '+ str(portMQTT), 'debug')
     logp('baudrate is '+ str(baudRate), 'debug')
     logp('prefFromTopic is '+ str(prefFromTopic), 'debug')
     logp('topicFromPref is '+ str(topicFromPref), 'debug')

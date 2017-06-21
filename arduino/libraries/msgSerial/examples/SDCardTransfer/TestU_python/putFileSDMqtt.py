@@ -42,11 +42,11 @@ def read_args(argv):
     try:
         opts, args = getopt.getopt(argv,"hf:g:m:n:b:p:",["fileInSDCard=","fileOnHD=","moveTo=","moveTo2=","broker=","portBroker="])
     except getopt.GetoptError:
-        print ('getFileSDMqtt.py  -f <fileInSDCard> -g <fileOnHD> -m <moveTo> -n <moveTo2> -b <broker> -p <portBroker>')
+        print ('putFileSDMqtt.py  -f <fileInSDCard> -g <fileOnHD> -m <moveTo> -n <moveTo2> -b <broker> -p <portBroker>')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print ('getFileSDMqtt.py  -f <fileInSDCard> -g <fileOnHD> -m <moveTo> -n <moveTo2> -b <broker> -p <portBroker>')
+            print ('putFileSDMqtt.py  -f <fileInSDCard> -g <fileOnHD> -m <moveTo> -n <moveTo2> -b <broker> -p <portBroker>')
             sys.exit()
         elif opt in ("-b", "--broker"):
             hostMQTT = arg
@@ -81,7 +81,7 @@ def openHDFile(afileHDName, access_mode='r+'):
 			#    fileHD.close()
 			# file will be overwritten
 			if (afileHDName != '<stdout>') :
-				fileOpened = open(afileHDName, "w", 1)
+				fileOpened = open(afileHDName, access_mode, 1)
 			logp('open fileHD ' + time.asctime(time.localtime(time.time())), 'info')
 			return fileOpened
 		except IOError:
@@ -214,15 +214,31 @@ cr = mqttch.connect(hostMQTT, port=portMQTT, keepalive=60, bind_address="")
 mqttch.loop_start()
 
 
-fileHD = openHDFile(fileHDN)
-print ('file: '+ fileHDN + ' opened')
+# open modes are different from basic SD.h library
+# open modes are (0X08 to 0X01): O_SYNC | O_APPEND | O_WRITE | O_READ
+# open modes are (0X80 to 0X10): O_EXCL | O_CREAT | O_AT_END | O_TRUNC
 
-[response, cr] = mqttch.pubGetMqtt("open", fileSDN + ",1")
+# if there is no move, we erase former file
+if (moveTo == '') and (moveTo2 == '') :
+    # open r/w create and trunc
+    modeOpenSD = 1+2+16+64
+else :
+    # open r/w create
+    modeOpenSD = 1+2+64
+
+# if you want to append, use option --move END
+
+[response, cr] = mqttch.pubGetMqtt("open", fileSDN + "," + str(modeOpenSD))
 if cr < 0 :
    print ('open : ', fileSDN, ' failed', '\nbye')
-   sys.exit()
+   sys.exit(-1)
 
 print ('open : ', fileSDN , ':', cr)
+
+# We move to a special position in file
+# we start by moving to begin of file (open as write provoke append at end)
+if (moveTo != '') or (moveTo2 != '') :
+   [response, cr] = mqttch.pubGetMqtt("move", "BEGIN")
 
 if moveTo != '':
    [response, cr] = mqttch.pubGetMqtt("move", moveTo)
@@ -231,16 +247,20 @@ if moveTo2 != '':
    [response, cr] = mqttch.pubGetMqtt("move", moveTo2)
 
 
-[response, cr] = mqttch.pubGetMqtt("readln", "")
-while cr == 0 :
-   print(response, file=fileHD)
-   [response, cr] = mqttch.pubGetMqtt("readln", "")
+fileHD = openHDFile(fileHDN, 'r')
+print ('file: '+ fileHDN + ' opened')
+strLines = fileHD.readlines()
+fileHD.close()
+for strl in strLines:
+    [response, cr] = mqttch.pubGetMqtt("writeln", strl.replace('\n',''))
+    #logp('writing:' + strl, 'info')
+    if cr != 0:
+        print('response and cr !=0:%s, %d' % (response,cr))
+        break
+
 
 [response, cr] = mqttch.pubGetMqtt("close", "")
 print ('close, cr: ', cr)
-
-if fileHDN != '<stdout>' :
-   fileHD.close()
 
 
 #sys.exit(0)

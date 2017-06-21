@@ -38,11 +38,11 @@ def read_args(argv):
     try:
         opts, args = getopt.getopt(argv,"hd:f:g:m:n:",["devserial=","fileInSDCard=","fileOnHD=","moveTo=","moveTo2="])
     except getopt.GetoptError:
-        print ('pyGetFile.py  -d <devserial> -f <fileInSDCard> -g <fileOnHD> -m <moveTo> -n <moveTo2>')
+        print ('pyPutFile.py  -d <devserial> -f <fileInSDCard> -g <fileOnHD> -m <moveTo> -n <moveTo2>')
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print ('pyGetFile.py  -d <devserial> -f <fileInSDCard> -g <fileOnHD> -m <moveTo> -n <moveTo2>')
+            print ('pyPutFile.py  -d <devserial> -f <fileInSDCard> -g <fileOnHD> -m <moveTo> -n <moveTo2>')
             sys.exit()
         elif opt in ("-d", "--devserial"):
             devSerial = arg
@@ -67,25 +67,23 @@ if __name__ == "__main__":
 
 
 # open file on Hard Disk
-# TO DO put fileHD as return
-def openHDFile(afileHDName):
-   "re open logfile, I do it because it must not grow big"
-   global fileHD
-   #
-   if (afileHDName != '') and (afileHDName != '<stdout>') :
-      try:
-         # I close file if needed
-         if ( not fileHD.closed ) and (fileHD.name != '<stdout>') :
-            fileHD.close()
-         # file will be overwritten
-         if (afileHDName != '<stdout>') :
-            fileHD = open(afileHDName, "w", 1)
-         logp('open fileHD' + time.asctime(time.localtime(time.time())), 'info')
-      except IOError:
-         print('[error] could not open fileHD:' + afileHDName)
-         sys.exit(3)
-   else :
-      print('I cant open destination file. name is empty')
+def openHDFile(afileHDName, access_mode='r+'):
+	if (afileHDName != '') and (afileHDName != '<stdout>') :
+		try:
+			# I close file if needed
+			#if ( not fileHD.closed ) and (fileHD.name != '<stdout>') :
+			#    fileHD.close()
+			# file will be overwritten
+			if (afileHDName != '<stdout>') :
+				fileOpened = open(afileHDName, access_mode, 1)
+			logp('open fileHD ' + time.asctime(time.localtime(time.time())), 'info')
+			return fileOpened
+		except IOError:
+			print('[error] could not open fileHD:' + afileHDName)
+			sys.exit(3)
+	else :
+		print('I cant open destination file. name is empty')
+	return sys.stdout
 
 
 def emptyRx(ser):
@@ -151,7 +149,7 @@ time.sleep(1)
 # open modes are (0X08 to 0X01): O_SYNC | O_APPEND | O_WRITE | O_READ
 # open modes are (0X80 to 0X10): O_EXCL | O_CREAT | O_AT_END | O_TRUNC
 # open with R/W, create if necessary
-[response, cr] = sendGetArd("srStayOpen:" + fileSDN + ",71")
+[response, cr] = sendGetArd("open:" + fileSDN + ",71")
 if cr == -1 :
    print ('open : ', fileSDN, ' failed', '\nbye')
    sys.exit(-1)
@@ -161,39 +159,31 @@ print ('open : ', fileSDN , ':', cr)
 # We move to a special position in file
 # we start by moving to begin of file (open as write provoke append at end)
 if (moveTo != '') or (moveTo2 != '') :
-   [response, cr] = sendGetArd("srMove:" + "BEGIN")
+   [response, cr] = sendGetArd("move:" + "BEGIN")
 
 if moveTo != '':
-   [response, cr] = sendGetArd("srMove:" + moveTo)
+   [response, cr] = sendGetArd("move:" + moveTo)
 
 if moveTo2 != '':
-   [response, cr] = sendGetArd("srMove:" + moveTo2)
+   [response, cr] = sendGetArd("move:" + moveTo2)
 
 
-try:
-    fileHD = open(fileHDN, 'r')
-except:
-    logp('could not open file on HD: ' + fileHDN, 'error')
-    sys.exit(-2)
-#
+fileHD = openHDFile(fileHDN, 'r')
+print ('file: '+ fileHDN + ' opened')
 strLines = fileHD.readlines()
 fileHD.close()
 for strl in strLines:
-    [response, cr] = sendGetArd("srWriteln:" + strl.replace('\n',''))
+    [response, cr] = sendGetArd("writeln:" + strl.replace('\n',''))
     #logp('writing:' + strl, 'info')
     if cr != 0:
         print('response and cr !=0:%s, %d' % (response,cr))
         break
 
 
-[response, cr] = sendGetArd("srClose")
+[response, cr] = sendGetArd("close")
 print ('close, cr: ', cr)
 
-if fileHDN != '<stdout>' :
-   fileHD.close()
 
 ser.close()
-
-sys.exit(0)
 
 #===============================

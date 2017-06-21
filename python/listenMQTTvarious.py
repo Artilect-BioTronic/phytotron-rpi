@@ -7,7 +7,7 @@ import serial
 import time
 from datetime import datetime
 import ast
-import sys, getopt
+import sys, os, getopt
 import subprocess
 
 # IP address of MQTT broker
