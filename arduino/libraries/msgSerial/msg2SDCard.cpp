@@ -359,12 +359,32 @@ long Cmd2File::moveToNoOpen(const String& aString)
 }
 
 // print ls result through aStream, with option aString
-int Cmd2File::ls(Stream &aStream, const uint8_t aOption)
+int Cmd2File::ls(Stream &aStream, const String& aMode)
 {
-    if (aOption < 0  ||  15 < aOption)
-        return -1;
+    // converts string aMode, from letters rsda to constants
+    // (0X08 to 0X01): LS_R | LS_SIZE | LS_DATE | LS_A
+    int iMode=0;
+    for (int i=0; i<aMode.length(); i++)   {
+        switch(aMode.charAt(i))
+        {
+        case('r') :
+            iMode += LS_R;
+            break;
+        case('s') :
+            iMode += LS_SIZE;
+            break;
+        case('d') :
+            iMode += LS_DATE;
+            break;
+        case('a') :
+            iMode += LS_A;
+            break;
+        default :
+            return -10 ;     // unknown letter not permitted
+        }
+    }
 
-    SD.ls(&aStream, "/", aOption);
+    SD.ls(&aStream, "/", iMode);
     return 0;
 }
 
@@ -467,8 +487,8 @@ int srPreOpen(const String& argFile)
     int ind = argFile.indexOf(":");
     if (ind < 0)   {
         msgSError(getCommand(argFile) + F(":cmd needs 2 values"));
-        msgSPrintln(getCommand(argFile) + F("/KO:1"));
-        return 1;
+        msgSPrintln(getCommand(argFile) + F("/KO:-1"));
+        return -1;
     }
 
     // we get all args
@@ -478,8 +498,8 @@ int srPreOpen(const String& argFile)
     ind = sValueAll.indexOf(",");
     if (ind < 1)   {
         msgSError(getCommand(argFile) + F(":cmd needs 2 values"));
-        msgSPrintln(getCommand(argFile) + F("/KO:10"));
-        return 10;
+        msgSPrintln(getCommand(argFile) + F("/KO:-10"));
+        return -10;
     }
 
     // we get 1st value part
@@ -493,8 +513,8 @@ int srPreOpen(const String& argFile)
     for (int i=0; i<sMode.length(); i++)   {
         if ( modePossibleValues.indexOf(sMode.charAt(i)) < 0 )   {
             msgSError(getCommand(argFile) + F(":mode must be in [rwascet]"));
-            msgSPrintln(getCommand(argFile) + F("/KO:2"));
-            return 2;
+            msgSPrintln(getCommand(argFile) + F("/KO:-2"));
+            return -2;
         }
     }
 
@@ -690,18 +710,20 @@ int srLs(const String& aString)
         return -1;
     }
 
-    // we get args
-    int iMode = aString.substring(ind+1).toInt();
+    // we get 1st value part
+    String sMode = aString.substring(ind+1);
 
-    // mode values are in [1..15]
     // modes are (0X08 to 0X01): LS_R | LS_SIZE | LS_DATE | LS_A
-    if ( iMode <= 0  || iMode > 15 )   {
-        msgSError(getCommand(aString) + F(":mode must be in [1..15]"));
-        msgSPrintln(getCommand(aString) + F("/KO:-2"));
-      return -2;
+    const String modePossibleValues = "rsda";
+    for (int i=0; i<sMode.length(); i++)   {
+        if ( modePossibleValues.indexOf(sMode.charAt(i)) < 0 )   {
+            msgSError(getCommand(aString) + F(":mode must be in [rsda]"));
+            msgSPrintln(getCommand(aString) + F("/KO:-2"));
+            return -2;
+        }
     }
 
-    int cr = cmd2File.ls(SERIAL_MSG, iMode);
+    int cr = cmd2File.ls(SERIAL_MSG, sMode);
 
     if (cr == 0)
         msgSPrintln(getCommand(aString) + F("/OK"));

@@ -35,6 +35,13 @@ public:
 
 public:
     int stayOpen(const String& aFileName, uint8_t aMode);
+    /**
+     * @brief preOpen open file then close it, it will stay closed between read / write access
+     * @param[in] aFileName : file name
+     * @param[in] aMode : string contening "rwascet" meaning  read,
+     *                    write,append,sync,create,exclude,trunc
+     * @return 0 Ok, <0 error
+     */
     int preOpen(const String& aFileName, const String &aMode);
     int close();
     int tmpOpen();
@@ -46,7 +53,13 @@ public:
     int rename(const String& aOld, const String& aNew);
     int remove(const String& aString);
     int mkdir(const String& aString);
-    int ls(Stream &aStream, const uint8_t aOption);
+    /**
+     * @brief ls
+     * @param[in] aStream : output of ls is printed directly through stream provided (eg: Serial1)
+     * @param[in] aMode : string contening "rsda" meaning recurse,size,date,all
+     * @return 0 Ok, <0 error
+     */
+    int ls(Stream &aStream, const String &aMode);
     Cmd2File();
     ~Cmd2File();
 };
@@ -65,7 +78,9 @@ int srStayOpen(const String& argFile);
 
 /** Prepare to open a file before read / write can be done
  *
- * \param[in] argFile Path name to the file
+ * \param[in] argFile Path name to the file, and open mode
+ *                    open mode is string with letters among "rwascet"
+ *                    they mean read,write,append,sync,create,exclude,trunc
  *
  * There is an attempt to open the file, then it is closed.
  * At each call to srReadNchar / srWriteln the file will be open

@@ -1,0 +1,253 @@
+writeln:cannot write on readonly
+playing with directories...
+Open cannot  create file at open  in subdirectory !!
+when I (pre)open a 2nd file, the 1st one is closed
+to remove a directory, I must end the name with a /
+
+
+# sortie mosquitto_sub
+
+phytotron/SDlog/send/ls rsda
+phytotron/SDlog/send/open test.txt,rwac
+phytotron/SDlog/send/writeln testing 1, 2, 3.
+phytotron/SDlog/send/writeln line2 is here
+phytotron/SDlog/send/writeln The line 3 is plain
+phytotron/SDlog/send/close (null)
+phytotron/SDlog/receive/ls/OK (null)
+phytotron/SDlog/receive/open/OK 0
+phytotron/SDlog/send/ls rsa
+phytotron/SDlog/receive/writeln/OK 1
+phytotron/SDlog/receive/writeln/OK 1
+phytotron/SDlog/receive/writeln/OK 1
+phytotron/SDlog/receive/close/OK 0
+phytotron/SDlog/receive/ls/OK (null)
+phytotron/SDlog/send/openStay test.txt,r
+phytotron/SDlog/send/readln (null)
+phytotron/SDlog/send/writeln cannot write on readonly
+phytotron/SDlog/send/close (null)
+phytotron/SDlog/receive/openStay/KO 2
+phytotron/SDlog/receive/readln/KO -1
+phytotron/SDlog/receive/writeln/KO -1
+phytotron/SDlog/receive/close/OK 0
+phytotron/SDlog/send/open test.txt,r
+phytotron/SDlog/send/move This line wont be found
+phytotron/SDlog/send/readln (null)
+phytotron/SDlog/send/move The line 3
+phytotron/SDlog/send/readNchar 30
+phytotron/SDlog/send/readln (null)
+phytotron/SDlog/receive/open/OK 0
+phytotron/SDlog/receive/move/OK (null)
+phytotron/SDlog/send/readNchar 30
+phytotron/SDlog/send/close (null)
+phytotron/SDlog/receive/readln/OK testing 1, 2, 3.
+phytotron/SDlog/send/ls rsa
+phytotron/SDlog/send/mkdir Folder1
+phytotron/SDlog/send/open Folder1/file1.txt,rwc
+phytotron/SDlog/receive/move/OK (null)
+phytotron/SDlog/send/close (null)
+phytotron/SDlog/send/open file1.txt,rwc
+phytotron/SDlog/receive/30,readNchar/OK The line 3 is plain
+phytotron/SDlog/send/open file2.txt,rwc
+phytotron/SDlog/send/close (null)
+phytotron/SDlog/send/ls rsa
+phytotron/SDlog/receive/readln/OK fter 2 empty
+phytotron/SDlog/send/rename file2.txt,Folder1/file3.txt
+phytotron/SDlog/send/ls rsa
+phytotron/SDlog/receive/readNchar/KO 0
+phytotron/SDlog/send/rm file1.txt
+phytotron/SDlog/send/rm Folder1/file3.txt
+phytotron/SDlog/send/rm Folder1/
+phytotron/SDlog/receive/close/OK 0
+phytotron/SDlog/send/ls rsa
+phytotron/SDlog/receive/ls/OK (null)
+phytotron/SDlog/receive/mkdir/OK (null)
+phytotron/SDlog/receive/open/KO -1
+phytotron/SDlog/receive/close/OK 0
+phytotron/SDlog/receive/open/OK 0
+phytotron/SDlog/receive/open/OK 0
+phytotron/SDlog/receive/close/OK 0
+phytotron/SDlog/receive/ls/OK (null)
+phytotron/SDlog/receive/rename/OK (null)
+phytotron/SDlog/receive/ls/OK (null)
+phytotron/SDlog/receive/rm/OK (null)
+phytotron/SDlog/receive/rm/OK (null)
+phytotron/SDlog/receive/rm/OK (null)
+phytotron/SDlog/receive/ls/OK (null)
+
+
+# sortie log de serial2MQTT
+
+[info]mqTopic:phytotron/SDlog/send/ls : rsda
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[unknown from /dev/ttyACM0]2000-01-01 01:00:00       3863 MES.CSV
+[unknown from /dev/ttyACM0]2000-01-01 01:00:00        702 CONS.CSV
+[unknown from /dev/ttyACM0]2000-01-01 01:00:00       1242 COM.CSV
+[unknown from /dev/ttyACM0]2000-01-01 01:00:00         74 test.txt
+[unknown from /dev/ttyACM0]2000-01-01 01:00:00        110 ctest.txt
+[to MQTT]phytotron/SDlog/receive/ls/OK =
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/open : test.txt,rwac
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[to MQTT]phytotron/SDlog/receive/open/OK = 0
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/writeln : testing 1, 2, 3.
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[to MQTT]phytotron/SDlog/receive/writeln/OK = 1
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/writeln : line2 is here
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[to MQTT]phytotron/SDlog/receive/writeln/OK = 1
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/writeln : The line 3 is plain
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[to MQTT]phytotron/SDlog/receive/writeln/OK = 1
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/close :
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[to MQTT]phytotron/SDlog/receive/close/OK = 0
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/ls : rsa
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[unknown from /dev/ttyACM0]      3863 MES.CSV
+[unknown from /dev/ttyACM0]       702 CONS.CSV
+[unknown from /dev/ttyACM0]      1242 COM.CSV
+[unknown from /dev/ttyACM0]        74 test.txt
+[unknown from /dev/ttyACM0]       110 ctest.txt
+[to MQTT]phytotron/SDlog/receive/ls/OK =
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/openStay : test.txt,r
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[unknown from /dev/ttyACM0]openStay:mode must be in [1..127]
+[to MQTT]phytotron/SDlog/receive/openStay/KO = 2
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/readln :
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[to MQTT]phytotron/SDlog/receive/readln/KO = -1
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/writeln : cannot write on readonly
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[to MQTT]phytotron/SDlog/receive/writeln/KO = -1
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/close :
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[to MQTT]phytotron/SDlog/receive/close/OK = 0
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/open : test.txt,r
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[to MQTT]phytotron/SDlog/receive/open/OK = 0
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/move : This line wont be found
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[to MQTT]phytotron/SDlog/receive/move/OK =
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/readln :
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[to MQTT]phytotron/SDlog/receive/readln/OK = testing 1, 2, 3.
+[unknown from /dev/ttyACM0]
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/move : The line 3
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[to MQTT]phytotron/SDlog/receive/move/OK =
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/readNchar : 30
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[to MQTT]phytotron/SDlog/receive/30,readNchar/OK = The line 3 is plain
+[unknown from /dev/ttyACM0]
+[unknown from /dev/ttyACM0]
+[unknown from /dev/ttyACM0]line 6 a
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/readln :
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[to MQTT]phytotron/SDlog/receive/readln/OK = fter 2 empty
+[unknown from /dev/ttyACM0]
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/readNchar : 30
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[to MQTT]phytotron/SDlog/receive/readNchar/KO = 0
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/close :
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[to MQTT]phytotron/SDlog/receive/close/OK = 0
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/ls : rsa
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[unknown from /dev/ttyACM0]      3863 MES.CSV
+[unknown from /dev/ttyACM0]       702 CONS.CSV
+[unknown from /dev/ttyACM0]      1242 COM.CSV
+[unknown from /dev/ttyACM0]        74 test.txt
+[unknown from /dev/ttyACM0]       110 ctest.txt
+[to MQTT]phytotron/SDlog/receive/ls/OK =
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/mkdir : Folder1
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[info]mqTopic:phytotron/SDlog/send/open : Folder1/file1.txt,rwc
+[info]mqTopic:phytotron/SDlog/send/close :
+[to MQTT]phytotron/SDlog/receive/mkdir/OK =
+[unknown from /dev/ttyACM0]
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[to MQTT]phytotron/SDlog/receive/open/KO = -1
+[unknown from /dev/ttyACM0]
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[to MQTT]phytotron/SDlog/receive/close/OK = 0
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/open : file1.txt,rwc
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[to MQTT]phytotron/SDlog/receive/open/OK = 0
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/open : file2.txt,rwc
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[to MQTT]phytotron/SDlog/receive/open/OK = 0
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/close :
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[to MQTT]phytotron/SDlog/receive/close/OK = 0
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/ls : rsa
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[unknown from /dev/ttyACM0]      3863 MES.CSV
+[unknown from /dev/ttyACM0]       702 CONS.CSV
+[unknown from /dev/ttyACM0]      1242 COM.CSV
+[unknown from /dev/ttyACM0]        74 test.txt
+[unknown from /dev/ttyACM0]       110 ctest.txt
+[unknown from /dev/ttyACM0]         0 FOLDER1/
+[unknown from /dev/ttyACM0]         0 file1.txt
+[unknown from /dev/ttyACM0]         0 file2.txt
+[to MQTT]phytotron/SDlog/receive/ls/OK =
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/rename : file2.txt,Folder1/file3.txt
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[to MQTT]phytotron/SDlog/receive/rename/OK =
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/ls : rsa
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[unknown from /dev/ttyACM0]      3863 MES.CSV
+[unknown from /dev/ttyACM0]       702 CONS.CSV
+[unknown from /dev/ttyACM0]      1242 COM.CSV
+[unknown from /dev/ttyACM0]        74 test.txt
+[unknown from /dev/ttyACM0]       110 ctest.txt
+[unknown from /dev/ttyACM0]         0 FOLDER1/
+[unknown from /dev/ttyACM0]           0 file3.txt
+[unknown from /dev/ttyACM0]         0 file1.txt
+[to MQTT]phytotron/SDlog/receive/ls/OK =
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/rm : file1.txt
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[to MQTT]phytotron/SDlog/receive/rm/OK =
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/rm : Folder1/file3.txt
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[to MQTT]phytotron/SDlog/receive/rm/OK =
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/rm : Folder1/
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[to MQTT]phytotron/SDlog/receive/rm/OK =
+[unknown from /dev/ttyACM0]
+[info]mqTopic:phytotron/SDlog/send/ls : rsa
+[unknown from /dev/ttyACM0]Message is a cmdUser cmd, I am parsing...
+[unknown from /dev/ttyACM0]      3863 MES.CSV
+[unknown from /dev/ttyACM0]       702 CONS.CSV
+[unknown from /dev/ttyACM0]      1242 COM.CSV
+[unknown from /dev/ttyACM0]        74 test.txt
+[unknown from /dev/ttyACM0]       110 ctest.txt
+[to MQTT]phytotron/SDlog/receive/ls/OK =
+[unknown from /dev/ttyACM0]
