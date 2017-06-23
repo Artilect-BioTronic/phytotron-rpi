@@ -27,10 +27,16 @@ extern SdFat SD;
 #include <RCSwitch.h>
 #include <OneWire.h>
 
-#define INSTAL_CPLT     1
-#define INSTAL_RTC      2
+#define CFG_CPLT        1
+#define CFG_SD_RTC      2
 
-#define INSTALLATION  INSTAL_CPLT
+#define CFG_MAT  CFG_CPLT
+
+#if (CFG_MAT == CFG_CPLT)
+#define SERIAL_MSG Serial1
+#else
+#define SERIAL_MSG Serial
+#endif
 
 #include "msgSerial.h"
 #include "TempHumMsg.h"
@@ -53,7 +59,7 @@ String fmt1CmdMqtt(const String & aTopic, const String& aLoad)
     return head1 + aTopic + ":" + aLoad + endOL;
 }
 
-#if (INSTALLATION == INSTAL_CPLT)
+#if (CFG_MAT == CFG_CPLT)
 const long serial1Rate=   115200;
 const long serialRate=    38400;
 bool bDemarreMnEntiere = true;
@@ -361,7 +367,6 @@ void setup(void)
   releveRTC ( ) ; //on releve date et heure sur l'horloge RTC
   releveValeurs ( ) ;
   afficheLCDregulier ( ) ;
-  tmElements_t tm ;
   secondesAffichagePrecedent = secondes ;
   Serial.println ( "Pas de panique, PAS BESOIN d attendre la fin de la minute entiere dans setup" ) ;
   do
@@ -383,6 +388,10 @@ void setup(void)
   secondesAffichagePrecedent = secondes ;
 }
 
+
+/*=====================================*/
+/*           fonctions  loop           */
+/*=====================================*/
 
 void loop ( )
 {
@@ -722,10 +731,12 @@ void loop ( )
 
   serListenerTH.checkMessageReceived();
 
+#if (CFG_MAT == CFG_CPLT)
   lectureSerialUSB_PM();
+#endif
 
-  // Lecture port serie RasbPi
-  lectureSerialRaspi_PM() ;
+  // Lecture port serie RasbPi  -->  remplace par serListenerTH
+//  lectureSerialRaspi_PM() ;
 
 }
 
@@ -893,6 +904,12 @@ int ecritConsigneDansFichier()   {
 
 void releveValeurs ( void )
 {
+#if (CFG_MAT != CFG_CPLT)
+    // Je suppose qu on n a pas des vrais capteurs connectes
+    // j en produits des fausses et je m en vais
+    fakeReleveValeurs();
+    return;
+#endif
   sensors_event_t event; // Lancer les mesures
   //Interieur
   CapteurHumiditeTemperatureInterieur.temperature().getEvent(&event); //temperature par DHT11

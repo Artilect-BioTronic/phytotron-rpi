@@ -99,3 +99,4 @@ serial2MQTTduplex.py -d "/dev/ttyAMA0" -t "/phytotron/" -u "/phytotron/"
 /home/pi/python/serial2MQTTduplex.py -d "/dev/ttyAMA0" -t "/phytotron/" -u "/phytotron/" &
 # new
 serial2MQTTduplex.py -r 38400 -d /dev/ttyACM0 -t '{"CM+":"phytotron/SDlog/receive/"}' -u '{"phytotron/SDlog/send/":"SD+"}' &
+serial2MQTTduplex.py -r 38400 -d /dev/ttyACM0 -t '{"CM+":"phytotron/py/","AT+":"phytotron/py/" }' -u '{"phytotron/oh/":"CM+", "phytotron/admini/":"AT+"}' &

@@ -7,7 +7,7 @@
 
 #include <DS1307RTC.h>
 
-SerialListener serListenerTH(Serial);
+SerialListener serListenerTH(SERIAL_MSG);
 
 Command cmdUserPhy[] = {
     Command("SV",                   &sendFakeVal),
@@ -80,6 +80,7 @@ int sendDate(const String& aStr)
                             + "-"
                             + numeroDix ( tm.Day ) ;
 
+    msgSPrint(getCommand(aStr) + "/state:"+ dateString +"T"+ heureString);
     msgSPrint(getCommand(aStr) + "/OK:"+ dateString +"T"+ heureString);
     }
     return 0;
@@ -112,7 +113,10 @@ int updateHumCsgn(const String& aStr)
 
     consigneHum = fValue;
 
-    // I send back OK msg
+    ecritConsigneDansFichier();
+
+    // I send back state and OK msg
+    msgSPrint(getCommand(aStr) + "/state:" +fValue);
     msgSPrint(getCommand(aStr) + "/OK:" +fValue);
     // I send back state msg
     //msgSPrint(String(F("state:")) + sValue);
@@ -148,10 +152,26 @@ int updateTempCsgn(const String& aStr)
 
     consigneTemp = fValue;
 
-    // I send back OK msg
+    ecritConsigneDansFichier();
+
+    // I send back state and OK msg
+    msgSPrint(getCommand(aStr) + "/state:" +fValue);
     msgSPrint(getCommand(aStr) + "/OK:" +fValue);
     // I send back state msg
     //msgSPrint(String(F("state:")) + sValue);
 
     return 0;
+}
+
+
+/*---------------------------------------------------------------*/
+/*       fonctions de remplacement materiel                      */
+/*---------------------------------------------------------------*/
+
+void fakeReleveValeurs()
+{
+    temperatureInterieureEntiere = 25 ;
+    humiditeInterieureEntiere = 41 ;
+    temperatureExterieureEntiere = 25.5 ;
+    humiditeExterieureEntiere = 42 ;
 }

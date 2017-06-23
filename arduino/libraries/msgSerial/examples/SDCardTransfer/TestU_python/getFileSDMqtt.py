@@ -28,6 +28,9 @@ cmdSendValue='SendValue'
 
 mqTopicSend='phytotron/SDlog/send/'
 mqTopicRec ='phytotron/SDlog/receive/'
+print('WARNING: ' + 'changement de nom de topic')
+mqTopicSend='phytotron/admini/'
+mqTopicRec ='phytotron/py/'
 
 
 
@@ -150,9 +153,9 @@ class MQTTChannel(mqtt.Client):
     """L objet va permettre la communication avec MQTT
     Tous les messages, aller et retour, utiliserons la meme racine de topic"""
     
-    maxCmdStore = 10   # I wont memorize too many different command in store
+    maxCmdStore = 20   # I wont memorize too many different command in store
     
-    def __init__(self, aTopicSend, aTopicRec, 
+    def __init__(self, aTopicSend, aTopicRec, timeOutMqtt=1.,
                  client_id="", clean_session=True, userdata=None, protocol=mqtt.MQTTv31):
         mqtt.Client.__init__(self, client_id=client_id, clean_session=clean_session,
                             userdata=userdata, protocol=protocol)
@@ -160,6 +163,7 @@ class MQTTChannel(mqtt.Client):
         self.topicRec = aTopicRec
         self.store = {}
         self.timeSleepResponse = 0.02
+        self.timeOutMqtt = timeOutMqtt
     
     def pubGetMqtt(self, aCmd, aLoad, aRetain=False):
         """I send msg, then I wait for response.
@@ -182,7 +186,7 @@ class MQTTChannel(mqtt.Client):
         # when a response is received, the OK key (or KO key) will be present
         while ( (not self.store.has_key(aCmd+'/OK')) and 
                 (not self.store.has_key(aCmd+'/KO')) and 
-                (time.time() - timeStartWait) < 1. ) :
+                (time.time() - timeStartWait) < self.timeOutMqtt ) :
             # I put a small sleep to release CPU
             time.sleep(self.timeSleepResponse / 10.)
         #
@@ -204,7 +208,7 @@ class MQTTChannel(mqtt.Client):
 authInFile = readDictFromFile(filePassMqtt)
 
 # connection to mosquitto
-mqttch = MQTTChannel(mqTopicSend, mqTopicRec, "", True, None, mqtt.MQTTv31)
+mqttch = MQTTChannel(mqTopicSend, mqTopicRec, 2., "", True, None, mqtt.MQTTv31)
 mqttch.on_message = on_message
 mqttch.on_connect = on_connect
 if (authInFile.has_key('username') and authInFile.has_key('password')) :

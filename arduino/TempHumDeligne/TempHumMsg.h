@@ -36,10 +36,17 @@ int sendDate(const String& aStr);
 int updateHumCsgn(const String& aStr);
 int updateTempCsgn(const String& aStr);
 
+void     fakeReleveValeurs();
+
 
 // liste des variables globales definies dans le fichier TempHumDeligne.ino
 extern byte consigneTemp;
 extern byte consigneHum ;
+
+extern byte temperatureInterieureEntiere ;
+extern byte humiditeInterieureEntiere ;
+extern byte temperatureExterieureEntiere ;
+extern byte humiditeExterieureEntiere ;
 
 
 // liste des variables dans le fichier TempHumMsg.cpp
