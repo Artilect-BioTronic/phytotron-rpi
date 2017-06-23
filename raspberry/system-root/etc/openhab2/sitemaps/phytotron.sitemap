@@ -100,7 +100,9 @@ sitemap phytotron label="Menu Principal"
 			Frame   {
 				Text item=DateTimePi
 				Text item=DateTimeArduino
-				Switch item=wifiAsk
+			}
+			Switch item=wifiAsk             mappings=[1=Ask]
+			Frame   {
 				Text item=wifiName
 				Text item=wifiIP
 			}

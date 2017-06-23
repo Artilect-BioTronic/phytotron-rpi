@@ -13,30 +13,30 @@ Group:Number:AVG                Humidity    "Humidité relative moyenne [%.1f %%
 Group:Contact:OR(OPEN, CLOSED)  Porte       "Ouverture porte [(%d)]"                <contact>
 
 /* Lights */
-Dimmer Neopixel_Intensity    "Eclairage intensité [%s]"       (gLight, Lumieres, gAdmin)   {mqtt=">[local_mqtt:/phytotron/neopixel/oh/intensity:command:*:default],<[local_mqtt:/phytotron/neopixel/+/intensity/OK:state:default]"}
-Number Neopixel_num    "éclairage"    <light>   (gLight, Lumieres)   {mqtt=">[local_mqtt:/phytotron/neopixel/oh/mode:command:*:default]"}
+Dimmer Neopixel_Intensity    "Eclairage intensité [%s]"       (gLight, Lumieres, gAdmin)   {mqtt=">[local_mqtt:phytotron/neopixel/oh/intensity:command:*:default],<[local_mqtt:phytotron/neopixel/+/intensity/OK:state:default]"}
+Number Neopixel_num    "éclairage"    <light>   (gLight, Lumieres)   {mqtt=">[local_mqtt:phytotron/neopixel/oh/mode:command:*:default]"}
 
 
 /* Temperature control */
-Switch Heater   "Radiateur"      <heating>   (gDev, Radiateurs) {mqtt=">[local_mqtt:/phytotron/oh/ctrl/radiateur/switch:command:*:default],<[local_mqtt:/phytotron/+/ctrl/radiateur/state:state:default]"}
-Switch Climate  "Compresseur"    <climate>   (gDev, Radiateurs) {mqtt=">[local_mqtt:/phytotron/oh/ctrl/clim/switch:command:*:default],<[local_mqtt:/phytotron/+/ctrl/clim/state:state:default]"}
+Switch Heater   "Radiateur"      <heating>   (gDev, Radiateurs) {mqtt=">[local_mqtt:phytotron/arduMain/oh/ctrl/radiateur/switch:command:*:default],<[local_mqtt:phytotron/arduMain/+/ctrl/radiateur/state:state:default]"}
+Switch Climate  "Compresseur"    <climate>   (gDev, Radiateurs) {mqtt=">[local_mqtt:phytotron/arduMain/oh/ctrl/clim/switch:command:*:default],<[local_mqtt:phytotron/arduMain/+/ctrl/clim/state:state:default]"}
 
 // example of frame for temperature and humidity:
-// -t "/phytotron/cli/mesure/D;H;ti;hi;te;he;t3;t2;t1" 
+// -t "phytotron/cli/mesure/D;H;ti;hi;te;he;t3;t2;t1" 
 // -m "2017-05-08;12:34:56;11;12.1;21.1;22.1;33.1;32.1;31.1"
 
 /* Temperatures and humidity */
-Number Inside_Temperature       "Temperature_Interne [%.1f °C]"         <temperature>   (Temperature, gAtmo, gTempChart) {mqtt="<[local_mqtt:/phytotron/+/mesure/tempIn:state:default], <[local_mqtt:/phytotron/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;(.*);.*;.*;.*;.*;.*;.*)]"}
-Number Inside_Humidity          "Humidité_Interne [%.1f %%]"   <humidity>      (Humidity, gAtmo, gHumChart) {mqtt="<[local_mqtt:/phytotron/+/mesure/humidIn:state:default], <[local_mqtt:/phytotron/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;.*;(.*);.*;.*;.*;.*;.*)]"}
-Number TempInConsigne      "Température consigne [%.1f °C]"   <temperature>   {mqtt="<[local_mqtt:/phytotron/+/csgn/tempIn/used:state:default], >[local_mqtt:/phytotron/oh/csgn/tempIn/cmd:command:*:default]"}
-Number HumidityInConsigne  "Humidité consigne [%.1f %%]"  <humidity>   {mqtt="<[local_mqtt:/phytotron/+/csgn/humidityIn/used:state:default], >[local_mqtt:/phytotron/oh/csgn/humidityIn/cmd:command:*:default]"}
-Number TemperatureDS1      "TemperatureDS1 ambiant [%.1f °C]"         <temperature>   (Temperature, gTempChart) {mqtt="<[local_mqtt:/phytotron/+/mesure/DS1:state:default], <[local_mqtt:/phytotron/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;.*;.*;.*;.*;.*;.*;(.*))]"}
-Number TemperatureDS2      "TemperatureDS2 extérieur [%.1f °C]"         <temperature>   (gEnv, Temperature, gTempChart) {mqtt="<[local_mqtt:/phytotron/+/mesure/DS2:state:default], <[local_mqtt:/phytotron/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;.*;.*;.*;.*;.*;(.*);.*)]"}
-Number TemperatureDS3      "TemperatureDS3 froid [%.1f °C]"         <temperature>   (Temperature, gTempChart) {mqtt="<[local_mqtt:/phytotron/+/mesure/DS3:state:default], <[local_mqtt:/phytotron/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;.*;.*;.*;.*;(.*);.*;.*)]"}
+Number Inside_Temperature       "Temperature_Interne [%.1f °C]"         <temperature>   (Temperature, gAtmo, gTempChart) {mqtt="<[local_mqtt:phytotron/arduMain/+/mesure/tempIn:state:default], <[local_mqtt:phytotron/arduMain/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;(.*);.*;.*;.*;.*;.*;.*)]"}
+Number Inside_Humidity          "Humidité_Interne [%.1f %%]"   <humidity>      (Humidity, gAtmo, gHumChart) {mqtt="<[local_mqtt:phytotron/arduMain/+/mesure/humidIn:state:default], <[local_mqtt:phytotron/arduMain/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;.*;(.*);.*;.*;.*;.*;.*)]"}
+Number TempInConsigne      "Température consigne [%.1f °C]"   <temperature>   {mqtt="<[local_mqtt:phytotron/arduMain/+/csgn/temp/state:state:default], >[local_mqtt:phytotron/arduMain/oh/csgn/temp/cmd:command:*:default]"}
+Number HumidityInConsigne  "Humidité consigne [%.1f %%]"  <humidity>   {mqtt="<[local_mqtt:phytotron/arduMain/+/csgn/humidity/state:state:default], >[local_mqtt:phytotron/arduMain/oh/csgn/humidity/cmd:command:*:default]"}
+Number TemperatureDS1      "TemperatureDS1 ambiant [%.1f °C]"         <temperature>   (Temperature, gTempChart) {mqtt="<[local_mqtt:phytotron/arduMain/+/mesure/DS1:state:default], <[local_mqtt:phytotron/arduMain/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;.*;.*;.*;.*;.*;.*;(.*))]"}
+Number TemperatureDS2      "TemperatureDS2 extérieur [%.1f °C]"         <temperature>   (gEnv, Temperature, gTempChart) {mqtt="<[local_mqtt:phytotron/arduMain/+/mesure/DS2:state:default], <[local_mqtt:phytotron/arduMain/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;.*;.*;.*;.*;.*;(.*);.*)]"}
+Number TemperatureDS3      "TemperatureDS3 froid [%.1f °C]"         <temperature>   (Temperature, gTempChart) {mqtt="<[local_mqtt:phytotron/arduMain/+/mesure/DS3:state:default], <[local_mqtt:phytotron/arduMain/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;.*;.*;.*;.*;(.*);.*;.*)]"}
 
 Group  Weather_Chart
-Number Outside_Temperature      "Temperature_Externe [%.1f °C]"         <temperature>   (gEnv, Temperature, gTempChart) {mqtt="<[local_mqtt:/phytotron/+/mesure/tempOut:state:default], <[local_mqtt:/phytotron/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;.*;.*;(.*);.*;.*;.*;.*)]"}
-Number Outside_Humidity         "Humidité_Externe [%.1f %%]"   <humidity>      (gEnv, Humidity, gHumChart) {mqtt="<[local_mqtt:/phytotron/+/mesure/humidOut:state:default], <[local_mqtt:/phytotron/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;.*;.*;.*;(.*);.*;.*;.*)]"}
+Number Outside_Temperature      "Temperature_Externe [%.1f °C]"         <temperature>   (gEnv, Temperature, gTempChart) {mqtt="<[local_mqtt:phytotron/arduMain/+/mesure/tempOut:state:default], <[local_mqtt:phytotron/arduMain/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;.*;.*;(.*);.*;.*;.*;.*)]"}
+Number Outside_Humidity         "Humidité_Externe [%.1f %%]"   <humidity>      (gEnv, Humidity, gHumChart) {mqtt="<[local_mqtt:phytotron/arduMain/+/mesure/humidOut:state:default], <[local_mqtt:phytotron/arduMain/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;.*;.*;.*;(.*);.*;.*;.*)]"}
 
 /* courbes de mesure */
 Number Mesures_Chart_Period     "Chart Period"                <clock>
@@ -45,23 +45,23 @@ Group gHumChart
 
 /* photos */
 Group gPhotos
-Switch TakePicture   "Prends une photo"   {mqtt=">[local_mqtt:/phytotron/camera/oh/newPicture:command:*:default]"}
+Switch TakePicture   "Prends une photo"   {mqtt=">[local_mqtt:phytotron/camera/oh/newPicture:command:*:default]"}
 // unfortunately the update with  urlImageCamera  is not taken into account
-String	urlImageCamera   {mqtt="<[local_mqtt:/phytotron/camera/+/urlImageCamera:state:default]"}
+String	urlImageCamera   {mqtt="<[local_mqtt:phytotron/camera/+/urlImageCamera:state:default]"}
 
 /* Administration items */
 Group gAdmin
-Number DateTimeAsk         "raffraichir heures"    <clock>   (gAdmin)   {mqtt=">[local_mqtt:/phytotron/oh/admin/askTime:command:*:default], >[local_mqtt:/phytotron/oh/admin/sendTime:command:*:send]"}
-DateTime DateTimePi        "Heure systeme pi [%1$tH:%1$tM:%1$tS]"   <clock>  (gAdmin)  {mqtt="<[local_mqtt:/phytotron/+/admin/piClock:state:default]"}
-DateTime DateTimeArduino   "Heure arduino [%1$tH:%1$tM:%1$tS]"   <clock>  (gAdmin)  {mqtt="<[local_mqtt:/phytotron/+/admin/arduClock/state:state:default]"}
-// String PiDateTestText2     "Heure temoin text [%s]"   <clock>   (gAdmin)  {mqtt="<[local_mqtt:/phytotron/+/admin/piClock:state:default]"}
+Number DateTimeAsk         "raffraichir heures"    <clock>   (gAdmin)   {mqtt=">[local_mqtt:phytotron/admin/oh/askTime:command:*:default], >[local_mqtt:phytotron/arduMain/oh/sendDate:command:*:default]"}
+DateTime DateTimePi        "Heure systeme pi [%1$tH:%1$tM:%1$tS]"   <clock>  (gAdmin)  {mqtt="<[local_mqtt:phytotron/admin/+/piClock:state:default]"}
+DateTime DateTimeArduino   "Heure arduino [%1$tH:%1$tM:%1$tS]"   <clock>  (gAdmin)  {mqtt="<[local_mqtt:phytotron/arduMain/+/sendDate/state:state:default]"}
+// String PiDateTestText2     "Heure temoin text [%s]"   <clock>   (gAdmin)  {mqtt="<[local_mqtt:phytotron/admin/+/piClock:state:default]"}
 // [%1$tH:%1$tM:%1$tS] 
 // "Heure [%1$tA, %1$tH:%1$tM:%1$tS]"  YYYY-MM-DDTHH:MM:SS  [%1$tA, %1$td.%1$tm.%1$tY]
 //Number test_ds_gp     "apparition test"                <clock>  (gAdmin)
 
-Switch   wifiAsk        "ask wifi name"      <network>     (gAdmin)     {mqtt=">[local_mqtt:/phytotron/oh/shellCmd/wifi:command:*:send]"} 
-String   wifiName       "wifi name: [%s]"    <network>     (gAdmin)     {mqtt="<[local_mqtt:/phytotron/+/shellCmd/wifi/essid/OK:state:default]"} 
-String   wifiIP         "wifi IP: [%s]"      <network>     (gAdmin)     {mqtt="<[local_mqtt:/phytotron/+/shellCmd/wifi/IP/OK:state:default]"} 
+Number   wifiAsk        "ask wifi name"      <network>     (gAdmin)     {mqtt=">[local_mqtt:phytotron/shellCmd/oh/wifiID:command:*:default]"} 
+String   wifiName       "wifi name: [%s]"    <network>     (gAdmin)     {mqtt="<[local_mqtt:phytotron/shellCmd/+/wifiID/essid:state:default]"} 
+String   wifiIP         "wifi IP: [%s]"      <network>     (gAdmin)     {mqtt="<[local_mqtt:phytotron/shellCmd/+/wifiID/IP:state:default]"} 
 //Switch   wifiAsk        "ask wifi name"      <network>     (gAdmin)    {channel="exec:command:wificon:run"}
 //String   wifiName       "wifi name: [%s]"    <network>     (gAdmin)     {channel="exec:command:wificon:output"}
 //Number TemperatureDemocurl "Ext. Temp. [%.1f°C]" { exec="<[curl -s http://weather.yahooapis.com/forecastrss?w=566473&u=c:60000]" }
@@ -73,7 +73,7 @@ Group gTest
 
 /* Windows */
 
-Contact Frontdoor     "Porte [MAP(en.map):%s]"  (Porte, gDev)	{mqtt="<[local_mqtt:/phytotron/+/porte/state:state:default]"}
+Contact Frontdoor     "Porte [MAP(en.map):%s]"  (Porte, gDev)	{mqtt="<[local_mqtt:phytotron/arduMain/+/porte/state:state:default]"}
 
 /* Demo items */
 
