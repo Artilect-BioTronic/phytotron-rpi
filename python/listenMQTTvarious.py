@@ -25,14 +25,15 @@ devSerial='/dev/ttyUSB0'   # serial port the arduino is connected to
 baudRate=9600
 
 mqTopic1='phytotron/camera/oh/newPicture'
-mqTopic2='phytotron/oh/shellCmd/wifi'
-mqTopic3='phytotron/oh/admin/askTime'
+mqTopic2='phytotron/shellCmd/oh/wifiID'
+mqTopic3='phytotron/admin/oh/askTime'
 #cmdTopic1="/home/arnaud/Workspaces/Arduino/PythonScripts/picam+mqttFake.py"
 cmdTopic1="/home/pi/python/picam+mqtt.py"
 cmdTopic2="iwgetid -r"
 cmdTopic2b="ifconfig wlan0 | sed -n -e 's/.*inet adr://' -e 's/ *Bcast.*//p'"
 mqRepShift2=['oh', 'pysys']
-mqRepTopic3='phytotron/py/admin/piClock'
+mqRepTopic3='phytotron/admin/py/piClock'
+
 
 # serial msg to arduino begin  with  prefTopic2 / prefTopic1 and end with endOfLine
 prefTopic1='CM+'
@@ -187,8 +188,8 @@ def on_message_mqTopicOH2(client, userdata, msg):
         retTopic = mqTopic2.replace(mqRepShift2[0], mqRepShift2[1]) + '/KO'
         mqttc.publish(retTopic, output2)
     retTopic = mqTopic2.replace(mqRepShift2[0], mqRepShift2[1])
-    mqttc.publish(retTopic + '/essid/OK', output2)
-    mqttc.publish(retTopic + '/IP/OK', output2b)
+    mqttc.publish(retTopic + '/essid', output2)
+    mqttc.publish(retTopic + '/IP', output2b)
     
 
 # The callback for when the server receives a message of  mqTopic3.

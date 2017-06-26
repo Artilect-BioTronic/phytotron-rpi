@@ -5,11 +5,8 @@
 #include "msgExampleFunction.h"
 
 
-#ifndef SERIAL_MSG
-    #define SERIAL_MSG Serial
-#endif
+#define SERIAL_MSG Serial1
 
-// You have to define STR__FILE__ in your main file sketch.ino, this way
 
 class SketchInfo   {
 public:

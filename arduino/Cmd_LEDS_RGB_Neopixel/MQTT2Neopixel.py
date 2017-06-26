@@ -22,8 +22,8 @@ logStartTime=0.
 devSerial='/dev/ttyUSB0'   # serial port the arduino is connected to
 baudRate=9600
 
-mqTopic1='/phytotron/neopixel/'
-mqTopic2='/phytotron/neopixelUnused/'
+mqTopic1='phytotron/neopixel/'
+mqTopic2='phytotron/neopixelUnused/'
 
 # serial msg to arduino begin  with  prefTopic2 / prefTopic1 and end with endOfLine
 prefTopic1='CM+'
