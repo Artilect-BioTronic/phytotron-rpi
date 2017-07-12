@@ -26,17 +26,20 @@ Switch Climate  "Compresseur"    <climate>   (gDev, Radiateurs) {mqtt=">[local_m
 // -m "2017-05-08;12:34:56;11;12.1;21.1;22.1;33.1;32.1;31.1"
 
 /* Temperatures and humidity */
-Number Inside_Temperature       "Temperature_Interne [%.1f °C]"         <temperature>   (Temperature, gAtmo, gTempChart) {mqtt="<[local_mqtt:phytotron/arduMain/+/mesure/tempIn:state:default], <[local_mqtt:phytotron/arduMain/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;(.*);.*;.*;.*;.*;.*;.*)]"}
+Number Inside_Temperature       "Temperature_Interne [%.1f °C]"         <temperature>   (Temperature, gAtmo) {mqtt="<[local_mqtt:phytotron/arduMain/+/mesure/tempIn:state:default], <[local_mqtt:phytotron/arduMain/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;(.*);.*;.*;.*;.*;.*;.*)]"}
 Number Inside_Humidity          "Humidité_Interne [%.1f %%]"   <humidity>      (Humidity, gAtmo, gHumChart) {mqtt="<[local_mqtt:phytotron/arduMain/+/mesure/humidIn:state:default], <[local_mqtt:phytotron/arduMain/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;.*;(.*);.*;.*;.*;.*;.*)]"}
-Number TempInConsigne      "Température consigne [%.1f °C]"   <temperature>   {mqtt="<[local_mqtt:phytotron/arduMain/+/csgn/temp/state:state:default], >[local_mqtt:phytotron/arduMain/oh/csgn/temp/cmd:command:*:default]"}
-Number HumidityInConsigne  "Humidité consigne [%.1f %%]"  <humidity>   {mqtt="<[local_mqtt:phytotron/arduMain/+/csgn/humidity/state:state:default], >[local_mqtt:phytotron/arduMain/oh/csgn/humidity/cmd:command:*:default]"}
-Number TemperatureDS1      "TemperatureDS1 ambiant [%.1f °C]"         <temperature>   (Temperature, gTempChart) {mqtt="<[local_mqtt:phytotron/arduMain/+/mesure/DS1:state:default], <[local_mqtt:phytotron/arduMain/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;.*;.*;.*;.*;.*;.*;(.*))]"}
-Number TemperatureDS2      "TemperatureDS2 extérieur [%.1f °C]"         <temperature>   (gEnv, Temperature, gTempChart) {mqtt="<[local_mqtt:phytotron/arduMain/+/mesure/DS2:state:default], <[local_mqtt:phytotron/arduMain/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;.*;.*;.*;.*;.*;(.*);.*)]"}
-Number TemperatureDS3      "TemperatureDS3 froid [%.1f °C]"         <temperature>   (Temperature, gTempChart) {mqtt="<[local_mqtt:phytotron/arduMain/+/mesure/DS3:state:default], <[local_mqtt:phytotron/arduMain/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;.*;.*;.*;.*;(.*);.*;.*)]"}
+Number TemperatureDS1      "TDS1 ambiant [%.1f °C]"         <temperature>   (Temperature, gTempChart) {mqtt="<[local_mqtt:phytotron/arduMain/+/mesure/DS1:state:default], <[local_mqtt:phytotron/arduMain/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;.*;.*;.*;.*;.*;.*;(.*))]"}
+Number TemperatureDS2      "TDS2 extérieur [%.1f °C]"         <temperature>   (gEnv, Temperature, gTempChart) {mqtt="<[local_mqtt:phytotron/arduMain/+/mesure/DS2:state:default], <[local_mqtt:phytotron/arduMain/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;.*;.*;.*;.*;.*;(.*);.*)]"}
+Number TemperatureDS3      "TDS3 froid [%.1f °C]"         <temperature>   (Temperature, gTempChart) {mqtt="<[local_mqtt:phytotron/arduMain/+/mesure/DS3:state:default], <[local_mqtt:phytotron/arduMain/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;.*;.*;.*;.*;(.*);.*;.*)]"}
 
-Group  Weather_Chart
-Number Outside_Temperature      "Temperature_Externe [%.1f °C]"         <temperature>   (gEnv, Temperature, gTempChart) {mqtt="<[local_mqtt:phytotron/arduMain/+/mesure/tempOut:state:default], <[local_mqtt:phytotron/arduMain/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;.*;.*;(.*);.*;.*;.*;.*)]"}
+Number Outside_Temperature      "Temperature_Externe [%.1f °C]"         <temperature>   (gEnv, Temperature) {mqtt="<[local_mqtt:phytotron/arduMain/+/mesure/tempOut:state:default], <[local_mqtt:phytotron/arduMain/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;.*;.*;(.*);.*;.*;.*;.*)]"}
 Number Outside_Humidity         "Humidité_Externe [%.1f %%]"   <humidity>      (gEnv, Humidity, gHumChart) {mqtt="<[local_mqtt:phytotron/arduMain/+/mesure/humidOut:state:default], <[local_mqtt:phytotron/arduMain/+/mesure/D;H;ti;hi;te;he;t3;t2;t1:state:REGEX(.*;.*;.*;.*;.*;(.*);.*;.*;.*)]"}
+
+Number TempInConsigne      "Température consigne OH [%.1f °C]"   <temperature>   {mqtt="<[local_mqtt:phytotron/arduMain/+/csgn/state/D;H;t;h:state:REGEX(.*;.*;(.*);.*)], >[local_mqtt:phytotron/arduMain/oh/csgn/temp/cmd:command:*:default]"}
+Number HumidityInConsigne  "Humidité consigne OH [%.1f %%]"  <humidity>   {mqtt="<[local_mqtt:phytotron/arduMain/+/csgn/state/D;H;t;h:state:REGEX(.*;.*;.*;(.*))], >[local_mqtt:phytotron/arduMain/oh/csgn/humidity/cmd:command:*:default]"}
+
+Number TempInConsigneArduino      "Température consigne arduino [%.1f °C]"   <temperature>   {mqtt="<[local_mqtt:phytotron/arduMain/+/csgn/state/D;H;t;h:state:REGEX(.*;.*;(.*);.*)]"}
+Number HumidityInConsigneArduino  "Humidité consigne arduino [%.1f %%]"  <humidity>   {mqtt="<[local_mqtt:phytotron/arduMain/+/csgn/state/D;H;t;h:state:REGEX(.*;.*;.*;(.*))]"}
 
 /* courbes de mesure */
 Number Mesures_Chart_Period     "Chart Period"                <clock>
@@ -45,7 +48,7 @@ Group gHumChart
 
 /* photos */
 Group gPhotos
-Switch TakePicture   "Prends une photo"   {mqtt=">[local_mqtt:phytotron/camera/oh/newPicture:command:*:default]"}
+Number  TakePicture   "Prends une photo"   {mqtt=">[local_mqtt:phytotron/camera/oh/newPicture:command:*:default]"}
 // unfortunately the update with  urlImageCamera  is not taken into account
 String	urlImageCamera   {mqtt="<[local_mqtt:phytotron/camera/+/urlImageCamera:state:default]"}
 

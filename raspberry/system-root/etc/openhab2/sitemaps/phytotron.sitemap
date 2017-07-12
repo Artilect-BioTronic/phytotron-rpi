@@ -13,15 +13,15 @@ sitemap phytotron label="Menu Principal"
 //		Group item=gAtmo  label="Atmosphère"  icon="smoke"
 		Text  label="Atmosphère"  icon="smoke"  {
 			Frame {
-				Text item=TempInConsigne
-				Text item=HumidityInConsigne
+				Text item=TempInConsigneArduino
+				Text item=HumidityInConsigneArduino
 			}
 			Frame {
-				Text item=Inside_Temperature
-				Text item=Inside_Humidity
-				Text item=TemperatureDS1
-				Text item=TemperatureDS2
-				Text item=TemperatureDS3
+				Text item=Inside_Temperature    
+				Text item=Inside_Humidity       
+				Text item=TemperatureDS1        label="TemperatureDS1 ambiant [%.1f °C]"
+				Text item=TemperatureDS2        label="TemperatureDS2 extérieur [%.1f °C]"
+				Text item=TemperatureDS3        label="TemperatureDS3 froid [%.1f °C]"
 			}
 		}
 		
@@ -43,6 +43,8 @@ sitemap phytotron label="Menu Principal"
 				Slider item=HumidityInConsigne
 				Setpoint item=TempInConsigne	 label="Température consigne (+0.5°) [%.1f °C]"  	minValue=0 maxValue=40 step=0.5
 				Setpoint item=HumidityInConsigne 	minValue=0 maxValue=100 step="1."
+				Text item=TempInConsigneArduino
+				Text item=HumidityInConsigneArduino
 				Text item=Heater
 				Text item=Climate
 				Text item=Frontdoor
@@ -81,7 +83,7 @@ sitemap phytotron label="Menu Principal"
 	Frame label="Photo" {
 		Text  label="Webcam du phytotron"  icon="camera"  {
 			Frame label="Photo" {
-				Switch  item=TakePicture  label="Prends une photo dans 5s"
+				Switch  item=TakePicture  label="Prends une photo dans 5s" icon="camera" mappings=[1=cheeese]
 				// With my firefox linux, the update with urlImageCamera does not work
 				Image   item=urlImageCamera url="http://192.168.2.1/pub/photos/lastPi.jpg" label="Webcam du phytotron" refresh=90000
 				// the file VueBalconSalon4.jog is in ../conf/html/, we can not use link
