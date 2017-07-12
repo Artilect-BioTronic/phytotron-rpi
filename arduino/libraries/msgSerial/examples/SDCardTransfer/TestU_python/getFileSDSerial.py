@@ -9,7 +9,7 @@ import sys, getopt
 
 
 devSerial='/dev/ttyACM0'   # serial port the arduino is connected to
-fileSDN = "COM.CSV"
+fileSDN = "test.txt"
 fileHDN = ""
 fileHD = sys.stdout
 moveTo = ''
@@ -22,9 +22,7 @@ cmdSendValue='SendValue'
 msgStartAT='CM+'
 msgStartDO='DO+'
 msgEnd='\n'
-# arduino responds with those 2 kinds of messages
-msg2py='2py'
-msg2mqtt='2mq'
+# arduino responds with same prefix
 
 
 # use to sort log messages
@@ -54,6 +52,8 @@ def read_args(argv):
 			moveTo = arg
 		elif opt in ("-n", "--moveTo2"):
 			moveTo2 = arg
+	if fileHDN == '':
+	    fileHDN = fileSDN
 	logp('fileInSDCard is '+ fileSDN, 'debug')
 	logp('fileOnHD is ' + fileHDN, 'debug')
 	logp('devserial is '+ devSerial, 'debug')
@@ -63,15 +63,6 @@ def read_args(argv):
 
 if __name__ == "__main__":
 	read_args(sys.argv[1:])
-
-
-# The callback for when a PUBLISH message is received from the server.
-# usually  we go to a specific callback that we have defined for each topic
-def on_message_myTopicSys(client, userdata, msg):
-	logp("spec callbackSys,"+msg.topic+":"+str(msg.payload), 'info')
-	cmd = msg.topic.replace(myTopic1, '').replace(topFromSys, '').replace('#','')
-	cmd2arduino = msgStartAT + cmd + ':' + str(msg.payload)+ msgEnd
-	ser.write(cmd2arduino)
 
 
 # open file on Hard Disk
@@ -93,30 +84,6 @@ def openHDFile(afileHDName):
 			sys.exit(3)
 	else :
 		print('I cant open destination file. name is empty')
-
-
-# read all available messages from arduino
-def readArduinoAvailableMsg(seri):
-    while seri.inWaiting():
-        # because of readline function, dont forget to open with timeout
-        response = seri.readline().replace('\n', '')
-        #logp ("answer is:" + response, 'debug')
-        tags = response.split(';')
-        if tags[0] == msg2mqtt:
-            # msg2mqtt: message to send to mqtt
-            # I dont analyse those messages, I transmit to mqtt
-            (topic, value) = tags[1].split(':')
-            pyTopic = myTopic1 + topFromPy + topic
-            # trace
-            logp('{} = {}'.format(pyTopic, value), 'to MQTT')
-            mqttc.publish(pyTopic, value, retain=True)
-        elif tags[0] == msg2py:
-            # msg2py: message 2 python only
-            # python use this to check connection with arduino
-            logp ('msg2py '+response, 'info')
-        else :
-            # I dont analyse, but I print
-            logp (response, 'unknown from '+devSerial)
 
 
 def emptyRx(ser):
@@ -217,7 +184,6 @@ def sendGetArd(aCmd):
 
 
 # connection to arduino
-# I use 9600, because I had many pb with pyserial at 38400 !!!
 ser = serial.Serial(devSerial, baudrate=38400, timeout=0.2, writeTimeout=0.2)
 logp (str(ser), 'info')
 # when we open serial to an arduino, this reset the board; it needs ~3s
@@ -231,23 +197,23 @@ time.sleep(1)
 openHDFile(fileHDN)
 print ('file: '+ fileHDN + ' opened')
 
-[response, cr] = sendGetArd("srPreOpen:" + fileSDN + ",1")
-if cr == -1 :
+[response, cr] = sendGetArd("open:" + fileSDN + ",r")
+if cr < 0 :
    print ('open : ', fileSDN, ' failed', '\nbye')
    sys.exit()
 
 print ('open : ', fileSDN , ':', cr)
 
 if moveTo != '':
-   [response, cr] = sendGetArd("srMove:" + moveTo)
+   [response, cr] = sendGetArd("move:" + moveTo)
 
 nbChar = 30
-[response, cr] = sendGetArd("srReadNchar:%d" % nbChar)
+[response, cr] = sendGetArd("readNchar:%d" % nbChar)
 while cr == 0 :
    print(response, end='', file=fileHD)
-   [response, cr] = sendGetArd("srReadNchar:%d" % nbChar)
+   [response, cr] = sendGetArd("readNchar:%d" % nbChar)
 
-[response, cr] = sendGetArd("srClose")
+[response, cr] = sendGetArd("close")
 print ('close, cr: ', cr)
 
 if fileHDN != '<stdout>' :

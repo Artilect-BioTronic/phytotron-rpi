@@ -100,6 +100,8 @@ int srMove(const String& a2Search);
 
 int srReadNchar(const String& aString);
 
+int srReadNln(const String& aString);
+
 int srRename(const String& aString);
 
 int srRemove(const String& aFilename);

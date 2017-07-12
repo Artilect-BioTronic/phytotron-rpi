@@ -115,11 +115,10 @@ int updateHumCsgn(const String& aStr)
 
     ecritConsigneDansFichier();
 
-    // I send back state and OK msg
-    msgSPrint(getCommand(aStr) + "/state:" +fValue);
+    // I send back OK msg
     msgSPrint(getCommand(aStr) + "/OK:" +fValue);
     // I send back state msg
-    //msgSPrint(String(F("state:")) + sValue);
+    sendConsigne();
 
     return 0;
 }
@@ -154,11 +153,10 @@ int updateTempCsgn(const String& aStr)
 
     ecritConsigneDansFichier();
 
-    // I send back state and OK msg
-    msgSPrint(getCommand(aStr) + "/state:" +fValue);
+    // I send back OK msg
     msgSPrint(getCommand(aStr) + "/OK:" +fValue);
     // I send back state msg
-    //msgSPrint(String(F("state:")) + sValue);
+    sendConsigne();
 
     return 0;
 }

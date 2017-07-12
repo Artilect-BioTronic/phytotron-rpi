@@ -407,6 +407,9 @@ void loop ( )
       minutesEnregistrementPrecedent = minutes ;
       EnregistrementFichierMesure ( ) ;
 
+      // we make sure that consigns are updated
+      sendConsigne();
+
       // we regularly re apply consignes to switches
       if (commandeRefroidissement)
           commandeSwitch ( refroidissementMarche ) ;

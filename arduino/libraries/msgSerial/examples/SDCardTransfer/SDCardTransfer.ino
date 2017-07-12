@@ -25,6 +25,7 @@ Command cmdUser[] = {
     Command("readln",       &srReadln),  // pas de param
     Command("writeln",      &srWriteln), // :nouvelle ligne
     Command("readNchar",    &srReadNchar),   // :nbchar
+    Command("readNln",      &srReadNln),   // :nb line to read
     Command("move",         &srMove),    // :str2search
     Command("dump2",        &srDump2),   // pas de param
     Command("ls",           &srLs),      // :15  donner les options du ls
@@ -32,7 +33,7 @@ Command cmdUser[] = {
     Command("mkdir",        &srMkdir),   // :/adir
     Command("rm",           &srRemove)   // :file.txt
 };
-CommandList cmdListUser("cmdUser", "SD+", SIZE_OF_TAB(cmdUser), cmdUser );
+CommandList cmdListUser("cmdUser", "CM+", SIZE_OF_TAB(cmdUser), cmdUser );
 
 Command cmdSys[] = {
     Command("idSketch",  &sendSketchId),

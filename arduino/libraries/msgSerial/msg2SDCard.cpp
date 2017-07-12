@@ -639,6 +639,45 @@ int srReadNchar(const String& aString)
     return 0;
 }
 
+int srReadNln(const String& aString)
+{
+    // arg must exist after :
+    int ind = aString.indexOf(":");
+    if (ind < 0)   {
+        msgSError(getCommand(aString) + F(":cmd needs 1 value"));
+        msgSPrintln(getCommand(aString) + F("/KO:-1"));
+        return -1;
+    }
+
+    // we get args
+    int nbLine = aString.substring(ind+1).toInt();
+    if ((nbLine <=0) || (200 < nbLine))   {
+        msgSPrintln(getCommand(aString) + F("/KO:nb lines must be in [0-200]"));
+        return -2;
+    }
+
+    String strRead="";
+    // I test that I have some memory available
+    if (! strRead.reserve(200))   {
+        msgSPrintln(getCommand(aString) + F("/KO:-3"));
+        return -3;
+    }
+    int cr = 0, i = 0;
+    for (i=1; i <= nbLine; i++)   {
+        // returns the number of read char,  0 if none, -1 if error
+        cr = cmd2File.readln(strRead);
+        if (cr <= 0)    break;
+        msgSPrintln(getCommand(aString) + "/" + i + ":" + strRead);
+    }
+
+    if (cr > 0)
+        msgSPrintln(getCommand(aString) + F("/OK:") + String(i-1));
+    else
+        msgSPrintln(getCommand(aString) + F("/KO:") + cr);
+
+    return 0;
+}
+
 int srRename(const String& aString)
 {
     // arg must exist after :
