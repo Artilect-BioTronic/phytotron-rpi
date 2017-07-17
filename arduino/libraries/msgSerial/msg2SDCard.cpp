@@ -670,7 +670,7 @@ int srReadNln(const String& aString)
         msgSPrintln(getCommand(aString) + "/" + i + ":" + strRead);
     }
 
-    if (cr > 0)
+    if (cr >= 0 && i>=2)
         msgSPrintln(getCommand(aString) + F("/OK:") + String(i-1));
     else
         msgSPrintln(getCommand(aString) + F("/KO:") + cr);

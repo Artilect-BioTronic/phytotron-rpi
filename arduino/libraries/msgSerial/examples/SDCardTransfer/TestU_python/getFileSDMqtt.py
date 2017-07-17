@@ -5,7 +5,7 @@ import paho.mqtt.client as mqtt
 import paho.mqtt.publish as publish
 import serial
 import time
-import ast
+import ast, re
 import sys, getopt
 
 
@@ -18,19 +18,20 @@ filePassMqtt="./passMqtt.txt"
 clientId='myNameOfClient'
 
 #devSerial='/dev/ttyACM0'   # serial port the arduino is connected to
-fileSDN = "COM.CSV"
+fileSDN = "test.txt"
 fileHDN = ""
 fileHD = sys.stdout
 moveTo = ''
 moveTo2 = ''
 
-cmdSendValue='SendValue'
+nbLnRead = 30
 
 mqTopicSend='phytotron/SDlog/send/'
 mqTopicRec ='phytotron/SDlog/receive/'
-print('WARNING: ' + 'changement de nom de topic')
-mqTopicSend='phytotron/admini/'
-mqTopicRec ='phytotron/py/'
+mqTopicRecReadNln = mqTopicRec + 'readNln/'
+#print('WARNING: ' + 'changement de nom de topic')
+#mqTopicSend='phytotron/admini/'
+#mqTopicRec ='phytotron/py/'
 
 
 
@@ -140,13 +141,29 @@ def on_message_topicRec(client, userdata, msg):
     """we cut off  generic part of topic, and we store the remaining
        ex: phytotron/SDlog/receive/read/OK ->
            read/OK as key   and msg.payload as value """
+    # At init, we may receive many retained messages, they may be obsolete
+    # they will be ignored until call to mqttch.initAcceptMsgMqtt()
+    if mqttch.dumpMqttRetainedMsg:
+        return
+    #
+    # we intercept  mqTopicRecReadNln  msg with number (eg: .../readNln/12)
+    if re.search(mqTopicRecReadNln + '\d\d*', msg.topic):
+        mqttch.writeInFile(msg.topic, msg.payload)
+        return
+    #
     key = msg.topic[len(mqttch.topicRec):]
+    #
+    # if it ends with a number (eg: readNln/12), we replace with same word num (eg readNln/num)
+    key = re.sub('/\d\d*', '/num', key)
     # I dont want to store numerous keys  (sign of bug)
-    if len(mqttch.store) <= mqttch.maxCmdStore :
-        mqttch.store[key] = msg.payload
-        #logp('I ve stored response:'+str(mqttch.store), 'trace')
-    else :
-        logp('too many topics of msg. msg:' +msg.topic+" : "+str(msg.payload), 'error')
+    if len(mqttch.store) >= mqttch.maxCmdStore :
+        logp('too many topics of msg. msg:' +msg.topic+" : "+str(msg.payload)
+        +" deleting last one" , 'error')
+        # I delete last one to have room
+        lastKey = mqttch.store.keys()[len(mqttch.store)-1]
+        del mqttch.store[ lastKey ]
+    #
+    mqttch.store[key] = msg.payload
 
 
 class MQTTChannel(mqtt.Client):
@@ -162,9 +179,30 @@ class MQTTChannel(mqtt.Client):
         self.topicSend = aTopicSend
         self.topicRec = aTopicRec
         self.store = {}
-        self.timeSleepResponse = 0.02
+        self.timeSleepResponse = 0.001
         self.timeOutMqtt = timeOutMqtt
+        self.isFileOpen = False
+        self.file = sys.stdout
+        self.dumpMqttRetainedMsg = True
     
+    def initAcceptMsgMqtt(self):
+        self.dumpMqttRetainedMsg = False
+    
+    def openFile(self, aFile):
+        # we close former file
+        if self.isFileOpen:
+            logp('You did not close former file before opening', 'warning')
+            self.closeFile()
+        self.file = aFile
+        self.isFileOpen = True
+
+    def closeFile(self):
+        if (not self.isFileOpen):
+            logp('file is already closed', 'warning')
+        self.file = sys.stdout
+        self.isFileOpen = False
+
+
     def pubGetMqtt(self, aCmd, aLoad, aRetain=False):
         """I send msg, then I wait for response.
         The response will be detected by subscribe call back and 
@@ -197,6 +235,12 @@ class MQTTChannel(mqtt.Client):
         else:    #timeout
             return ['', -2]
     
+    def writeInFile(self, aTopic, aLoad):
+        """This method is called by callback on mqtt for msg readNln"""
+        if (not self.isFileOpen):
+            logp('cannot write, open file !', 'error')
+            return
+        print(aLoad, file=self.file)
     
 
 
@@ -218,10 +262,12 @@ cr = mqttch.connect(hostMQTT, port=portMQTT, keepalive=60, bind_address="")
 mqttch.loop_start()
 # I sleep to empty retained messages of mqtt
 time.sleep(mqttch.timeSleepResponse *5)
+mqttch.initAcceptMsgMqtt()
 
 
 fileHD = openHDFile(fileHDN)
 print ('file: '+ fileHDN + ' opened')
+mqttch.openFile(fileHD)
 
 [response, cr] = mqttch.pubGetMqtt("open", fileSDN + ",r")
 if cr < 0 :
@@ -237,16 +283,16 @@ if moveTo2 != '':
    [response, cr] = mqttch.pubGetMqtt("move", moveTo2)
 
 
-[response, cr] = mqttch.pubGetMqtt("readln", "")
+[response, cr] = mqttch.pubGetMqtt("readNln", str(nbLnRead))
 while cr == 0 :
-   print(response, file=fileHD)
-   [response, cr] = mqttch.pubGetMqtt("readln", "")
+   [response, cr] = mqttch.pubGetMqtt("readNln", str(nbLnRead))
 
 [response, cr] = mqttch.pubGetMqtt("close", "")
 print ('close, cr: ', cr)
 
 if fileHDN != '<stdout>' :
    fileHD.close()
+mqttch.closeFile()
 
 
 #sys.exit(0)

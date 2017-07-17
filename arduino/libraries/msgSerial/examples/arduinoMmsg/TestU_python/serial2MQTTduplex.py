@@ -5,7 +5,7 @@ import paho.mqtt.client as mqtt
 import paho.mqtt.publish as publish
 import serial
 import time
-import ast
+import ast, re
 import os, sys, getopt
 
 # IP address of MQTT broker
@@ -143,10 +143,14 @@ def checkTopicAndPref(aPrefFromTopic, aTopicFromPref):
     for itopic in aPrefFromTopic.keys():
         if type(itopic) != type(''):
             logp("topic:"+itopic+" must be a string", 'error')
+            return -1
         if not itopic.endswith('/'):
             logp("topic:"+itopic+" must end with /", 'error')
+            return -2
         if aTopicFromPref.has_key(itopic):
             logp("topic:"+itopic+" can not be in both dict; it would create loop", 'error')
+            return -3
+    return 0
 
 
 # The callback for when the client receives a CONNACK response from the server.
@@ -215,14 +219,21 @@ def readArduinoAvailableMsg(seri):
                 value = ''
             # trace
             logp('{} = {}'.format(pyTopic, value), 'to MQTT')
-            mqttc.publish(pyTopic, value, retain=True)
+            # by default retain=True. But if topic ends with number, we assume there are numerous ones
+            #   so they should not be retained by broker
+            if re.search('/\d\d*', pyTopic):
+               retain = False
+            else:
+               retain = True
+            mqttc.publish(pyTopic, value, retain=retain)
         else :
             # I dont analyse, but I print
             logp (response, 'unknown from '+devSerial)
 
 
 # check the correspondance  pref <---> topic   are correct
-checkTopicAndPref(prefFromTopic, topicFromPref)
+if checkTopicAndPref(prefFromTopic, topicFromPref) != 0:
+    sys.exit()
 
 # connection to arduino
 ser = serial.Serial(devSerial, baudrate=baudRate, timeout=0.2)
