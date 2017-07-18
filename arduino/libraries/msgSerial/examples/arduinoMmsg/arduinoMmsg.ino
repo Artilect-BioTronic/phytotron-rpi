@@ -5,8 +5,8 @@
 
 #include "msgSerial.h"
 
-//#include "SPI.h"
-//#include "SdFat.h"
+#include "SPI.h"
+#include "SdFat.h"
 //#include "msg2SDCard.h"
 
 
@@ -16,7 +16,7 @@
 
 
 // list of available commands (user) that the arduino will accept
-int switchLed1(const String& dumb);
+int switchLed1(const CommandList& aCL, const String& dumb);
 
 SerialListener serList(Serial);
 
@@ -24,10 +24,8 @@ Command cmdUser[] = {
     Command("SendValue",     &sendMessageStatus),
     Command("S",             &sendMessageStatus),
     Command("MultiValue",    &sendMultiValue),
-    Command("sendDate",      &sendDate),
-    Command("csgn/humidityIn/cmd",    &updateHumCsgn),
-    Command("sl13",          &switchLed13),
-    Command("lit1/switch",   &switchLed1)
+    Command("lit1/switch",   &switchLed1),
+    Command("sl13",          &switchLed13)
 };
 CommandList cmdLUser("cmdUser", "CM+", SIZE_OF_TAB(cmdUser), cmdUser );
 
@@ -40,8 +38,7 @@ CommandList cmdLUser("cmdUser", "CM+", SIZE_OF_TAB(cmdUser), cmdUser );
 Command cmdSys[] = {
     Command("idSketch",  &sendSketchId),
     Command("idBuild",   &sendSketchBuild),
-    Command("listCmdAT", &sendListCmdAT),
-    Command("listCmdDO", &sendListCmdDO),
+    Command("listCmdAT", &sendListCmd),
     Command("listPin",   &sendListPin),
     Command("pinMode",   &cmdPinMode),
     Command("pinRead",   &cmdPinRead),
@@ -64,8 +61,8 @@ void setup()
     // I fill info on sketch
     sketchInfo.setFileDateTime(F(__FILE__), F(__DATE__), F(__TIME__));
     // I send identification of sketch
-    sendSketchId("");
-    sendSketchBuild("");
+    sendSketchId(cmdLSys, "");
+    sendSketchBuild(cmdLSys, "");
 }
  
 void loop()
@@ -82,8 +79,8 @@ void loop()
 /*---------------------------------------------------------------*/
 
 // switch the led On or Off
-int switchLed1(const String& sOnOff)
+int switchLed1(const CommandList& aCL, const String& sOnOff)
 {
-    return switchLed13(sOnOff);
+    return switchLed13(aCL, sOnOff);
 }
 

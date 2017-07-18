@@ -32,6 +32,7 @@ Command cmdSysPhy[] = {
     Command("readln",       &srReadln),  // pas de param
     Command("writeln",      &srWriteln), // :nouvelle ligne
     Command("readNchar",    &srReadNchar),   // :nbchar
+    Command("readNln",      &srReadNln),   // :nb line to read
     Command("move",         &srMove),    // :str2search
     Command("dump2",        &srDump2),   // pas de param
     Command("ls",           &srLs),      // :15  donner les options du ls
@@ -39,7 +40,7 @@ Command cmdSysPhy[] = {
     Command("mkdir",        &srMkdir),   // :/adir
     Command("rm",           &srRemove)   // :file.txt
 };
-CommandList cmdLSysPhy("cmdSys", "AT+", SIZE_OF_TAB(cmdSysPhy), cmdSysPhy );
+CommandList cmdLSysPhy("cmdSys", "SD+", SIZE_OF_TAB(cmdSysPhy), cmdSysPhy );
 
 /*---------------------------------------------------------------*/
 /*                                          */

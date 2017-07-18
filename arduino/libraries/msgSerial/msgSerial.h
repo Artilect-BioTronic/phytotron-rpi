@@ -5,7 +5,7 @@
 #include "msgExampleFunction.h"
 
 
-#define SERIAL_MSG Serial1
+#define SERIAL_MSG Serial
 
 
 class SketchInfo   {
@@ -42,10 +42,15 @@ int listPinSize = sizeof(listPin) / sizeof(stListPin);
 */
 #define PIN_LED13 13
 
+class CommandList;
+
 struct Command {
     const String cmdName;
-    int (*cmdFunction)(const String& topic_value) ;
-    Command(const char *cn, int (*cf)(const String&) ): cmdName(cn), cmdFunction(cf) {}
+    const String cmdFormat;
+    const String cmdLimit;
+    int (*cmdFunction)(const CommandList& aCL, const String& aTopicValue) ;
+    Command(const char *cn, int (*cf)(const CommandList&, const String&) ):
+        cmdName(cn), cmdFunction(cf) {}
 };
 
 extern boolean inputMessageReceived;
@@ -59,14 +64,13 @@ extern String msg2pyStart, msg2mqttStart, msg2pyEnd, prefAT, prefDO ;
 //   there is a list of functions in  msgExampleFunction.h
 
 // list of available commands (system ctrl) that the arduino will accept
-int sendSketchId(const String& dumb);
-int sendSketchBuild(const String& dumb);
-int sendListCmdAT(const String& dumb);
-int sendListCmdDO(const String& dumb);
-int sendListPin(const String& dumb);
-int cmdPinMode(const String& dumb);
-int cmdPinRead(const String& dumb);
-int cmdPinWrite(const String& dumb);
+int sendSketchId(const CommandList& aCL, const String& dumb);
+int sendSketchBuild(const CommandList& aCL, const String& dumb);
+int sendListCmd(const CommandList& aCL, const String& dumb);
+int sendListPin(const CommandList& aCL, const String& dumb);
+int cmdPinMode(const CommandList& aCL, const String& dumb);
+int cmdPinRead(const CommandList& aCL, const String& dumb);
+int cmdPinWrite(const CommandList &aCL, const String& dumb);
 
 // list of available commands (user) that the arduino will accept
 // ex  that you define in main sketch.ino
@@ -112,6 +116,7 @@ size_t msgSPrintln(const String& aMsg);
 size_t msgSError(const String& aMsg);
 String getCommand(const String& aCmdVal);
 
+class SerialListener;
 
 class CommandList
 {
@@ -121,6 +126,8 @@ private:
 
     const uint8_t _nbObjects;
     const Command *_arrayCmd;
+    Stream * _pStream;   /// provided by SerialListener
+    SerialListener * _pSerialListener;
     const String _nameListCmd;
     const String _prefix;
     const char _cmdEnd;
@@ -129,6 +136,15 @@ public:
     uint8_t getNbCmd() { return _nbObjects; }
     Command* getCmd(uint8_t i);
     char getCmdEnd() { return _cmdEnd; }
+    void setStream(Stream * apStream)   {_pStream = apStream;}
+    void setSerialListener(SerialListener * apSerialListener)   {_pSerialListener = apSerialListener;}
+    SerialListener* getSerialListener() const  {return _pSerialListener;}
+    int displayListCmd(String& aNameCL, String& asMode)  const;
+
+    size_t msgPrint(const String& aMsg) const;
+    size_t msgOK(const String& aStrCmd, const String& aMsg) const;
+    size_t msgKO(const String& aStrCmd, const String& aMsg) const;
+    size_t msgError(const String& aMsg) const;
 
     CommandList(const String &nameListCmd, const String &prefix,
                 const int nbObjects, const Command arrayCmd[],
@@ -156,8 +172,18 @@ public:
     bool addCmdList(CommandList& cmdL);
     void copyBuffer();
     void checkMessageReceived();
+
+    int displayListCmd(String& aNameCL, String& asMode)  const;
 };
 
+
+
+
+/**
+ * @brief The CommandC class is an array of Command; it counts its element
+ *
+ * The class is not used, we use simply CommandList
+ */
 class CommandC
 {
   private:
@@ -179,14 +205,19 @@ class CommandC
 
 //void serialEventMFMQTT();
 
-// because of bad communication, some messages may be stucked in
-//   serial buffer. If so, we trace it
+/**
+ because of bad communication, some messages may be stucked in
+   serial buffer. If so, we trace it
+ */
 int  checkNoStuckMessageInBuffer() ;
 
-// check if a message has been received and analyze it
-// in your main sketch.ino, you have to update global var inputMessageReceived and inputMessage
-// checkMessageReceived calls the function corresponding to  cmds/cmdos array
-void checkMessageReceived();
+/**
+ check if a message has been received and analyze it
+
+ in your main sketch.ino, you have to update global var inputMessageReceived and inputMessage
+ checkMessageReceived calls the function corresponding to  cmds/cmdos array
+ */
+//void checkMessageReceived();
 
 int getSensorValue(); 
 

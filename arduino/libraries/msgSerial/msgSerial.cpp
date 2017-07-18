@@ -38,10 +38,6 @@ size_t msgSPrint(const String& aMsg)   {
     return SERIAL_MSG.print(msg2py);
 }
 
-size_t msgSPrintln(const String& aMsg)   {
-    return msgSPrint(aMsg + "\n");
-}
-
 size_t msgSError(const String& aMsg)   {
     return SERIAL_MSG.println(aMsg);
 }
@@ -59,7 +55,7 @@ size_t msgSPrint2(const String& aMsg)   {
     return SERIAL_MSG.print(msg2py);
 }
 
-String getCommand(const String& aCmdVal) {
+String getCommand(const String& aCmdVal)   {
     // the aCmdVal contains  command:val   (with val=arg1,arg2 ...)
     int ind = aCmdVal.indexOf(":");
 
@@ -70,6 +66,25 @@ String getCommand(const String& aCmdVal) {
 
     // we get command part
     return aCmdVal.substring(0,ind);
+}
+
+size_t CommandList::msgPrint(const String& aMsg) const  {
+    String msg = _prefix + aMsg + _cmdEnd;
+    return _pStream->print(msg);
+}
+
+size_t CommandList::msgError(const String& aMsg) const  {
+    return _pStream->println(aMsg);
+}
+
+size_t CommandList::msgOK(const String& aStrCmd, const String& aMsg) const   {
+    String msg = getCommand(aStrCmd) + "/OK:" + aMsg;
+    return msgSPrint(msg);
+}
+
+size_t CommandList::msgKO(const String& aStrCmd, const String& aMsg) const {
+    String msg = getCommand(aStrCmd) + "/KO:" + aMsg;
+    return msgSPrint(msg);
 }
 
 uint8_t CommandC::nbObjects = 0;
@@ -112,6 +127,7 @@ CommandList::CommandList(const String &nameListCmd, const String &prefix,
                          const int nbObjects, const Command arrayCmd[],
                          char cmdSeparator, char argSeparator, char cmdEnd):
     _nameListCmd(nameListCmd), _prefix(prefix), _nbObjects(nbObjects), _arrayCmd(arrayCmd),
+    _pStream(NULL), _pSerialListener(NULL),
     _cmdSeparator(cmdSeparator), _argSeparator(argSeparator), _cmdEnd(cmdEnd)
 {}
 
@@ -120,15 +136,33 @@ SerialListener::SerialListener(Stream &aStream): _stream(aStream), _nbObjects(0)
     _cmdEnds("")
 {}
 
+/**
+ * @brief SerialListener::addCmdList
+ * @param cmdL
+ * @return
+ */
 bool SerialListener::addCmdList(CommandList &cmdL)   {
     if ( _nbObjects < _nbObjectsMax )   {
         _arrayObjects[_nbObjects] = &cmdL;
         _nbObjects++;
         _cmdEnds += cmdL.getCmdEnd();
+        cmdL.setStream(&_stream);
+        cmdL.setSerialListener(this);
+        return true;
     }
+    else
+        return false;
 }
 
-// returns true if cmd has been found; even if the cmd fails
+
+/**
+ * @brief CommandList::checkMessageReceived check if a message has been received and analyze it
+ *
+ * in your main sketch.ino, you have to update global var inputMessageReceived and inputMessage
+ * checkMessageReceived calls the function corresponding to  cmds/cmdos array
+ * @param aInputMessage
+ * @return true if cmd has been found; even if the cmd fails
+ */
 bool CommandList::checkMessageReceived(String aInputMessage)
 {
     // if it is a cmd for user
@@ -159,7 +193,7 @@ bool CommandList::checkMessageReceived(String aInputMessage)
             if (command == _arrayCmd[i].cmdName)
             {
                 cmdNotFound = false;
-                int cr = _arrayCmd[i].cmdFunction(nudeMessage);
+                int cr = _arrayCmd[i].cmdFunction(*this, nudeMessage);
             }
         }
         if (cmdNotFound)  {
@@ -170,6 +204,26 @@ bool CommandList::checkMessageReceived(String aInputMessage)
     }
     else
         return false;
+}
+
+/**
+ * @brief CommandList::displayListCmd  display the list of commands available
+ * @param aNameCL  selects which CommandList is to be displayed
+ * @param asMode   short: display only commands, full: display the argument format
+ * @return   0  if there is no pb
+ */
+int CommandList::displayListCmd(String& aNameCL, String& asMode)  const {
+    if ( (aNameCL != "") && (aNameCL != _nameListCmd) )
+        return 0;   // this CommandList is not to be displayed
+
+    for (int i=0; i<_nbObjects; i++)   {
+        if (asMode == "short")
+            msgPrint(String("list:") + _arrayCmd[i].cmdName);
+        else
+            msgPrint(String("list:") + _arrayCmd[i].cmdName +" "
+                     + _arrayCmd[i].cmdFormat +" "+ _arrayCmd[i].cmdLimit);
+    }
+    return 0;
 }
 
 void SerialListener::copyBuffer()
@@ -238,22 +292,37 @@ void SerialListener::checkMessageReceived()
     _inputMessageReceived = false;
 }
 
+/**
+ * @brief SerialListener::displayListCmd  display the list of commands available
+ * @param aNameCL  selects which CommandList is to be displayed
+ * @param asMode   short: display only commands, full: display the argument format
+ * @return   0  if there is no pb
+ */
+int SerialListener::displayListCmd(String& aNameCL, String& asMode)  const {
+    int cr=0, cr2=0;
+    for (int i=0; i<_nbObjects; i++)   {
+        cr2 = _arrayObjects[i]->displayListCmd(aNameCL, asMode);
+        if (cr2 != 0)   cr = cr2;
+    }
+    return cr;
+}
+
 
 /*---------------------------------------------------------------*/
 /*                  list of user function                        */
 /*---------------------------------------------------------------*/
 
-int sendFakeVal(const String& dumb)
+int sendFakeVal(const CommandList &aCL, const String& dumb)
 {
     int sensorVal = getSensorValue();
-    msgSPrint(String("temp:") +sensorVal);
+    aCL.msgOK(dumb, String("temp:") +sensorVal);
     return 0;
 }
 
-int sendMessageStatus(const String& dumb)
+int sendMessageStatus(const CommandList& aCL, const String& dumb)
 {
     int sensorVal = getSensorValue(); 
-    msgSPrint(String("temp:") +sensorVal);
+    aCL.msgOK(dumb, String("temp:") +sensorVal);
     return 0;
 }
 
@@ -286,10 +355,10 @@ void SketchInfo::setFileDateTime(const String &aFullFilename, const String &aDat
 // send an identiant of arduino sketch: it sends the name of the file !
 // you have to define the var  in your sketch.ino
 //   with   setFile(F(__FILE__))
-int sendSketchId(const String& dumb)
+int sendSketchId(const CommandList& aCL, const String& dumb)
 {
     String msg2py= "idSketch:" + sketchInfo.getFile() ;
-    msgSPrint2(msg2py);
+    aCL.msgPrint(msg2py);
     return 0;
 }
 
@@ -298,45 +367,33 @@ int sendSketchId(const String& dumb)
 //   we use the __DATE__ and __TIME__ when it was built
 // you have to define those  var  in your sketch.ino
 //   with   sketchInfo.setFileDateTime(F(__FILE__), F(__DATE__), F(__TIME__))
-int sendSketchBuild(const String& dumb)
+int sendSketchBuild(const CommandList& aCL, const String& dumb)
 {
     String msg2py= "idBuild:" + sketchInfo.getDate() +','+ sketchInfo.getTime() ;
-    msgSPrint2(msg2py);
+    aCL.msgPrint(msg2py);
     return 0;
 }
 
 // send the list of cmd AT available
-int sendListCmdAT(const String& dumb)   // TODO: adapt
+int sendListCmd(const CommandList& aCL, const String& dumb)   // TODO: adapt
 {
-//    String availCmd = "";
-//    if (cmdsSize >= 0)
-//       availCmd = cmds[0].cmdName;
-//    for (int i=1; i<cmdsSize; i++)
-//       availCmd += "," + cmds[i].cmdName;
-    
-//    String msg2py = msg2pyStart + "listCmdAT" + ":" + availCmd
-//                   + msg2pyEnd;
-//    Serial.print(msg2py);
-    return 0;
-}
+    String sMode = "short";
+    if (dumb.lastIndexOf("full") >= 0)
+        sMode = "full";
 
-// send the list of cmd AT available
-int sendListCmdDO(const String& dumb)   // TODO: adapt
-{
-//    String availCmd = "";
-//    if (cmdosSize >= 0)
-//       availCmd = cmdos[0].cmdName;
-//    for (int i=1; i<cmdosSize; i++)
-//       availCmd += "," + cmdos[i].cmdName;
-    
-//    String msg2py = msg2pyStart + "listCmdDO" + ":" + availCmd
-//                   + msg2pyEnd;
-//    Serial.print(msg2py);
-    return 0;
+    String nameCL = "";   // "" will mean all CommandList
+
+    int cr = aCL.getSerialListener()->displayListCmd(nameCL, sMode);
+
+    if (cr == 0)
+        aCL.msgOK(dumb, String(cr));
+    else
+        aCL.msgKO(dumb, String(cr));
+    return cr;
 }
 
 // send the list of Pin definition
-int sendListPin(const String& dumb)
+int sendListPin(const CommandList& aCL, const String& dumb)
 {
 //    String availPin = "";
 //    if (listPinSize >= 0)
@@ -351,7 +408,7 @@ int sendListPin(const String& dumb)
 
 // change the blink period of the led
 //   led will blink thanks to blinkLed called in loop
-int ledBlinkTime(const String& sCmdAndBlinkTime)
+int ledBlinkTime(const CommandList& aCL, const String& sCmdAndBlinkTime)
 {
     // sCmdAndBlinkTime contains cmd and value with this format cmd:value
     // value must exist
@@ -404,7 +461,7 @@ void blinkLed() {
 }
 
 // switch the led On or Off
-int switchLed(const String& sOnOff)
+int switchLed(const CommandList &aCL, const String& sOnOff)
 {
     // sCmdAndBlinkTime contains cmd and value with this format cmd:value
     // value must exist
@@ -447,7 +504,7 @@ int switchLed(const String& sOnOff)
     return 0;
 }
 
-int cmdPinMode(const String& pin_mode) {
+int cmdPinMode(const CommandList& aCL, const String& pin_mode) {
     // pin_mode contains cmd and value with this format cmd:value
     // value must exist
     int ind = pin_mode.indexOf(":");
@@ -459,7 +516,7 @@ int cmdPinMode(const String& pin_mode) {
     String sValues = pin_mode.substring(ind+1);
     
     // we separate the 2 values
-    ind = pin_mode.indexOf(",");
+    ind = sValues.indexOf(",");
     if (ind < 0)   {
       LOG_ERROR(F("pinMode cmd needs 2 values"));
       return 2;
@@ -485,7 +542,7 @@ int cmdPinMode(const String& pin_mode) {
     int iValue2 = sValue.toInt();
     // toInt will return 0, if it is not an int
     if ( (iValue2 == 0) && ( ! sValue.equals("0")) )   {
-      LOG_ERROR(F("pinMode cmd: value 2 must be integer"));
+      LOG_ERROR(String(F("pinMode cmd: value 2 must be integer:")) + sValue);
       return 4;
     }
     else if ((iValue2 < 0) || (2 < iValue2))   {
@@ -505,7 +562,7 @@ int cmdPinMode(const String& pin_mode) {
 
 // cmd a analogRead or digitalRead
 // value fmt: pin (0-20), 1=digitalRead/2=analogRead
-int cmdPinRead(const String& pin_digitAnalog) {
+int cmdPinRead(const CommandList& aCL, const String& pin_digitAnalog) {
     // pin_mode contains cmd and value with this format cmd:value
     
     // value must exist
@@ -568,13 +625,13 @@ int cmdPinRead(const String& pin_digitAnalog) {
 
 // cmd a digitalWrite or analogWrite (PWM) 
 // value fmt: pin (0-20), 1=digitalRead/2=analogRead, value
-int cmdPinWrite(const String& pin_digitAnalog_val) {
+int cmdPinWrite(const CommandList& aCL, const String& pin_digitAnalog_val) {
     // pin_digitAnalog_val contains cmd and value with this format cmd:pin,digAn,value
     
     // value must exist
     int ind = pin_digitAnalog_val.indexOf(":");
     if (ind < 0)   {
-      LOG_ERROR(F("pinWrite cmd needs 3 values"));
+      aCL.msgKO(pin_digitAnalog_val, F("cmd needs 3 values"));
       return 1;
     }
     // we get value part
@@ -583,7 +640,7 @@ int cmdPinWrite(const String& pin_digitAnalog_val) {
     // we separate the values
     ind = sValues.indexOf(",");
     if (ind < 0)   {
-      LOG_ERROR(F("pinWrite cmd needs 3 values"));
+      aCL.msgKO(pin_digitAnalog_val, F("cmd needs 3 values"));
       return 2;
     }
 
@@ -593,11 +650,11 @@ int cmdPinWrite(const String& pin_digitAnalog_val) {
     int iValue1 = sValue.toInt();
     // toInt will return 0, if it is not an int
     if ( (iValue1 == 0) && ( ! sValue.equals("0")) )   {
-      LOG_ERROR(F("pinWrite cmd: value 1 must be integer"));
+      aCL.msgKO(pin_digitAnalog_val, F("value 1 must be integer"));
       return 21;
     }
     else if ((iValue1 < 0) || (20 < iValue1))   {   // note that the value 20 is not accurate
-      LOG_ERROR(F("pinWrite cmd: value 1 must be compatible with pin num"));
+      aCL.msgKO(pin_digitAnalog_val, F("value 1 must be compatible with pin num"));
       return 3;
     }
 
@@ -606,7 +663,7 @@ int cmdPinWrite(const String& pin_digitAnalog_val) {
     // we separate the 2 last values
     ind = sValues.indexOf(",");
     if (ind < 0)   {
-      LOG_ERROR(F("pinWrite cmd needs 3 values"));
+      aCL.msgKO(pin_digitAnalog_val, F("pinWrite cmd needs 3 values"));
       return 31;
     }
 
@@ -616,11 +673,11 @@ int cmdPinWrite(const String& pin_digitAnalog_val) {
     int iValue2 = sValue.toInt();
     // toInt will return 0, if it is not an int
     if ( (iValue2 == 0) && ( ! sValue.equals("0")) )   {
-      LOG_ERROR(F("pinWrite cmd: value 2 must be integer"));
+      aCL.msgKO(pin_digitAnalog_val, F("pinWrite cmd: value 2 must be integer"));
       return 4;
     }
     else if ((iValue2 < 1) || (2 < iValue2))   {
-      LOG_ERROR(F("pinWrite cmd: value 2 must be digital/analog=1/2"));
+      aCL.msgKO(pin_digitAnalog_val, F("pinWrite cmd: value 2 must be digital/analog=1/2"));
       return 5;
     }
 
@@ -630,11 +687,11 @@ int cmdPinWrite(const String& pin_digitAnalog_val) {
     int iValue3 = sValue.toInt();
     // toInt will return 0, if it is not an int
     if ( (iValue3 == 0) && ( ! sValue.equals("0")) )   {
-      LOG_ERROR(F("pinWrite cmd: value 3 must be integer"));
+      aCL.msgKO(pin_digitAnalog_val, F("pinWrite cmd: value 3 must be integer"));
       return 6;
     }
     else if (iValue3 < 0)   {
-      LOG_ERROR(F("pinWrite cmd: value 3 must be >=0"));
+      aCL.msgKO(pin_digitAnalog_val, F("pinWrite cmd: value 3 must be >=0"));
       return 7;
     }
 
@@ -645,8 +702,7 @@ int cmdPinWrite(const String& pin_digitAnalog_val) {
       analogWrite(iValue1,iValue3);
 
     // I send back OK msg
-    String msg2py = msg2pyStart + "pinWrite/OK" + msg2pyEnd;
-    SERIAL_MSG.print(msg2py);
+    aCL.msgOK(pin_digitAnalog_val, "");
     
     return 0;
 }

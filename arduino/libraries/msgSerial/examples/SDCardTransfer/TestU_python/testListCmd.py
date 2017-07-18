@@ -8,16 +8,6 @@ from __future__ import print_function
 import serial
 import time
 
-def emptyRx(ser):
-    response = ser.read(100)
-    while (len(response) >0 ):
-        print (response)
-        response = ser.read(100)
-
-# use to sort log messages
-def logp (msg, gravity='trace'):
-   print('['+gravity+']' + msg)
-
 msgStartAT='CM+'
 msgStartDO='DO+'
 msgEnd='\n'
@@ -27,9 +17,30 @@ bd=9600
 fileSD = "fake"
 
 
+# use to sort log messages
+def logp (msg, gravity='trace'):
+   print('['+gravity+']' + msg)
+
+def emptyRx(ser):
+    response = ser.read(100)
+    while (len(response) >0 ):
+        print (response, end='')
+        response = ser.read(100)
+    print ('')  # end of line
+
 def sendCmdArd(aCmd):
    cmd2arduino = msgStartAT + aCmd + msgEnd
    ser.write(cmd2arduino)
+
+def scar(aCmd, prefix=msgStartAT):
+   cmd2arduino = prefix + aCmd + msgEnd
+   ser.write(cmd2arduino)
+   emptyRx(ser)
+   
+def scar2(aCmd, prefix=msgStartDO):
+   cmd2arduino = prefix + aCmd + msgEnd
+   ser.write(cmd2arduino)
+   emptyRx(ser)
 
 def sendGetArd(aCmd):
    # I send the cmd
@@ -100,3 +111,5 @@ serial2MQTTduplex.py -d "/dev/ttyAMA0" -t "/phytotron/" -u "/phytotron/"
 serial2MQTTduplex.py -r 38400 -d /dev/ttyACM0 -t '{"CM+":"phytotron/SDlog/receive/"}' -u '{"phytotron/SDlog/send/":"SD+"}' &
 serial2MQTTduplex.py -r 38400 -d /dev/ttyACM0 -t '{"CM+":"phytotron/py/","AT+":"phytotron/py/" }' -u '{"phytotron/oh/":"CM+", "phytotron/admini/":"AT+"}' &
 ./serial2MQTTduplex.py -l "./logSerial2MQTT.txt" -r 115200 -d "/dev/ttyAMA0" -t '{"CM+":"phytotron/arduMain/py/","AT+":"phytotron/admini/py/" }' -u '{"phytotron/arduMain/oh/":"CM+", "phytotron/admini/oh":"AT+"}' &
+./serial2MQTTduplex.py -l "./logSerial2MQTT.txt" -r 115200 -d "/dev/ttyAMA0" -t '{"CM+":"phytotron/arduMain/py/","AT+":"phytotron/admini/py/", "SD+":"phytotron/SDlog/receive/" }' -u '{"phytotron/arduMain/oh/":"CM+", "phytotron/admini/oh/":"AT+", "phytotron/SDlog/send/":"SD+"}' &
+

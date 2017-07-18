@@ -11,7 +11,7 @@ float globVarConsignHumidity;
 /*---------------------------------------------------------------*/
 
 // switch the led On or Off
-int switchLed13(const String& sOnOff)
+int switchLed13(const CommandList& aCL, const String& sOnOff)
 {
     // switchLed13 contains cmd and value with this format cmd:value
     // value must exist
@@ -52,10 +52,10 @@ int switchLed13(const String& sOnOff)
 }
 
 
-int sendMultiValue(const String& dumb)
+int sendMultiValue(const CommandList& aCL, const String& dumb)
 {
     int sensorVal = fakeValue(100, 199);
-    msgSPrint(String("mulTest:") +sensorVal +","+fakeValue(200,299) +","+fakeValue(300,399));
+    aCL.msgOK(dumb, String("mulTest:") +sensorVal +","+fakeValue(200,299) +","+fakeValue(300,399));
     return 0;
 }
 
@@ -68,9 +68,9 @@ int fakeValue(int deb, int fin)
     return millis() % (fin - deb) + deb;
 }
 
-int sendFakeDate(const String& dumb)
+int sendFakeDate(const CommandList& aCL, const String& dumb)
 {
-    msgSPrint(String("admin/piClock:") +fakeDate(1));
+    aCL.msgOK(dumb, String("admin/piClock:") +fakeDate(1));
     return 0;
 }
 
