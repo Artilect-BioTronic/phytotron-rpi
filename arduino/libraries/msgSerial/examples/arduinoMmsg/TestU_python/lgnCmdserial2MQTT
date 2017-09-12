@@ -6,4 +6,5 @@
 #  - le fichier des mots de pass d acces a MQTT  passMqtt.txt
 #  - le futur fichier de log   log_serial2MQTTduplex
 
-cd /home/pi/python ; ./serial2MQTTduplex.py -l "./logSerial2MQTT.txt" -r 115200 -d "/dev/ttyAMA0" -t "/phytotron/" -u "/phytotron/"
+cd /home/pi/python ; ./serial2MQTTduplex.py -l "./logSerial2MQTT.txt" -r 115200 -d "/dev/ttyAMA0" -t '{"CM+":"phytotron/arduMain/py/","AT+":"phytotron/admini/py/", "SD+":"phytotron/SDlog/receive/" }' -u '{"phytotron/arduMain/oh/":"CM+", "phytotron/admini/oh/":"AT+", "phytotron/SDlog/send/":"SD+"}' &
+

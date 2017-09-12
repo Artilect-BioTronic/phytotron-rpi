@@ -15,7 +15,9 @@ const char Cmd2File::MOVE_BEGIN[] = "BEGIN";
 const char Cmd2File::MOVE_END[]   = "END";
 const char Cmd2File::endOfLine_[]   = "\n";  // could be "\r\n" for windows
 
-Cmd2File::Cmd2File(): file_(NULL),fileName_(""),isOpened_(false),isPreOpened_(false),filePos_(0)  {}
+Cmd2File::Cmd2File(): file_(NULL),fileName_(""),
+    isOpened_(false),isPreOpened_(false),iMode_(O_READ),
+    filePos_(0)  {}
 Cmd2File::~Cmd2File()   {   close();  }
 
 int Cmd2File::close()   {
@@ -30,8 +32,9 @@ int Cmd2File::close()   {
     return 0;
 }
 
-int Cmd2File::stayOpen(const String& aFileName, uint8_t aMode)
+int Cmd2File::stayOpen(const String& aFileName, const String& aMode)
 {
+    // DOS format limits filename to  8.3 characters
     if ( (aFileName.length() <= 0) || (aFileName.length() > 12) )
         return -1;
 
@@ -39,6 +42,38 @@ int Cmd2File::stayOpen(const String& aFileName, uint8_t aMode)
     //   if it was preOpened it was already closed
     if (isOpened_)
         close();
+
+    // converts string aMode, from letters tecsawr to constants
+    // O_TRUNC | O_EXCL | O_CREAT | O_SYNC | O_APPEND | O_WRITE | O_READ
+    uint8_t iMode_=0;
+    for (int i=0; i<aMode.length(); i++)   {
+        switch(aMode.charAt(i))
+        {
+        case('r') :
+            iMode_ += O_READ;
+            break;
+        case('w') :
+            iMode_ += O_WRITE;
+            break;
+        case('a') :
+            iMode_ += O_APPEND;
+            break;
+        case('s') :
+            iMode_ += O_SYNC;
+            break;
+        case('c') :
+            iMode_ += O_CREAT;
+            break;
+        case('e') :
+            iMode_ += O_EXCL;
+            break;
+        case('t') :
+            iMode_ += O_TRUNC;
+            break;
+        default :
+            return -2 ;     // unknown letter not permitted
+        }
+    }
 
     // if the name is fake, we attach to a fake file
     if (aFileName.equals("fake"))   {
@@ -50,7 +85,7 @@ int Cmd2File::stayOpen(const String& aFileName, uint8_t aMode)
     else   // it is supposed to be a SD file
     {
         file_ = new FILELIKE();
-        *file_ = SD.open(aFileName, aMode);
+        *file_ = SD.open(aFileName, iMode_);
         if (! (*file_) )   {
             free (file_);
             file_ = NULL;
@@ -66,35 +101,36 @@ int Cmd2File::stayOpen(const String& aFileName, uint8_t aMode)
 
 int Cmd2File::preOpen(const String& aFileName, const String& aMode)
 {
-    if ( (aFileName.length() <= 0) || (aFileName.length() > 12) )
+    if ( ! isPathCompatibleDOS83(aFileName) )
         return -1;
 
     // converts string aMode, from letters tecsawr to constants
     // O_TRUNC | O_EXCL | O_CREAT | O_SYNC | O_APPEND | O_WRITE | O_READ
-    int iMode=0;
+    boolean isTrunc = false;
+    iMode_=0;
     for (int i=0; i<aMode.length(); i++)   {
         switch(aMode.charAt(i))
         {
         case('r') :
-            iMode += O_READ;
+            iMode_ += O_READ;
             break;
         case('w') :
-            iMode += O_WRITE;
+            iMode_ += O_WRITE;
             break;
         case('a') :
-            iMode += O_APPEND;
+            iMode_ += O_APPEND;
             break;
         case('s') :
-            iMode += O_SYNC;
+            iMode_ += O_SYNC;
             break;
         case('c') :
-            iMode += O_CREAT;
+            iMode_ += O_CREAT;
             break;
         case('e') :
-            iMode += O_EXCL;
+            iMode_ += O_EXCL;
             break;
         case('t') :
-            iMode += O_TRUNC;
+            isTrunc = true;
             break;
         default :
             return -2 ;     // unknown letter not permitted
@@ -106,8 +142,25 @@ int Cmd2File::preOpen(const String& aFileName, const String& aMode)
     if (isOpened_)
         close();
 
+    // if O_TRUNC is in open mode, it is not memorized for each future open
+    // we open once with O_TRUNC, and close it immeidately
+    if (isTrunc)   {
+        file_ = new FILELIKE();
+        *file_ = SD.open(aFileName, iMode_+O_TRUNC);
+        if (! (*file_) )   {
+            free (file_);
+            file_ = NULL;
+            return -3;
+        }
+        else   {
+            file_->close();
+            free (file_);
+            file_ = NULL;
+        }
+    }
+
     file_ = new FILELIKE();
-    *file_ = SD.open(aFileName, iMode);
+    *file_ = SD.open(aFileName, iMode_);
     if (! (*file_) )   {
         free (file_);
         file_ = NULL;
@@ -128,7 +181,7 @@ int Cmd2File::tmpOpen()
     if (! isPreOpened_)
         return -1;
 
-    if (! file_->open(fileName_.c_str(), O_WRITE | O_READ))
+    if (! file_->open(fileName_.c_str(), iMode_))
         return -2;
     if (! file_->seek(filePos_))
         return -3;
@@ -358,8 +411,48 @@ long Cmd2File::moveToNoOpen(const String& aString)
     return posInitial;
 }
 
+//------------------------------------------------------------------------------
+// re-write of FatFile::ls
+//   because I want to frame output of ls between  getCmdPrefix  and   getCmdEnd
+void FatFile_ls(const CommandList& aCL, const FatFile& aDir, uint8_t flags, uint8_t indent) {
+    FatFile file;
+    print_t* pr = aCL.getStream();
+    aDir.rewind();
+    while (file.openNext(&aDir, O_READ)) {
+        // indent for dir level
+        if (!file.isHidden() || (flags & LS_A)) {
+            pr->print(aCL.getCmdPrefix());
+            pr->print(F("ls:"));
+
+            for (uint8_t i = 0; i < indent; i++) {
+                pr->write(' ');
+            }
+            if (flags & LS_DATE) {
+                file.printModifyDateTime(pr);
+                pr->write(' ');
+            }
+            if (flags & LS_SIZE) {
+                file.printFileSize(pr);
+                pr->write(' ');
+            }
+            file.printName(pr);
+            if (file.isDir()) {
+                pr->write('/');
+            }
+//            pr->write('\r');
+//            pr->write('\n');
+            pr->print(aCL.getCmdEnd());
+
+            if ((flags & LS_R) && file.isDir()) {
+                FatFile_ls(aCL, file, flags, indent + 2);
+            }
+        }
+        file.close();
+    }
+}
+
 // print ls result through aStream, with option aString
-int Cmd2File::ls(Stream &aStream, const String& aMode)
+int Cmd2File::ls(const CommandList& aCL, const String& aMode)
 {
     // converts string aMode, from letters rsda to constants
     // (0X08 to 0X01): LS_R | LS_SIZE | LS_DATE | LS_A
@@ -384,9 +477,19 @@ int Cmd2File::ls(Stream &aStream, const String& aMode)
         }
     }
 
-    SD.ls(&aStream, "/", iMode);
+//    SD.ls(&aStream, "/", iMode);
+    FatFile dir;
+    dir.open(SD.vwd(), "/", O_READ);
+    FatFile_ls(aCL, dir, iMode, 0);
+
     return 0;
 }
+
+//void ls(print_t* pr, const char* path, uint8_t flags) {
+//  FatFile dir;
+//  dir.open(vwd(), path, O_READ);
+//  dir.ls(pr, flags);
+//}
 
 //
 // it returns 0 on success, -1 or negative if it fails
@@ -433,233 +536,246 @@ int Cmd2File::mkdir(const String& aString)
         return -2;
 }
 
+/*---------------------------------------------------------------*/
+/*          callback function to put in CommanList               */
+/*---------------------------------------------------------------*/
 
-int srStayOpen(const String& argFile)
+// "s,ss",  "*,rwascet"   ->  read write append size create excl trunc
+// open modes are transcripted as (0X40 to 0X01): O_TRUNC | O_EXCL | O_CREAT | O_SYNC | O_APPEND | O_WRITE | O_READ
+int srStayOpen(const CommandList& aCL, Command &aCmd, const String& aInput)
 {
-    // arg must exist after :
-    int ind = argFile.indexOf(":");
-    if (ind < 0)   {
-        msgSError(getCommand(argFile) + F(":cmd needs 2 values"));
-        msgSPrintln(getCommand(argFile) + F("/KO:") + 1);
-        return 1;
+    ParsedCommand parsedCmd(aCL, aCmd, aInput);
+
+    // verify that msg with arguments is OK with format and limit
+    if (parsedCmd.verifyFormatMsg(aCmd, aInput) != ParsedCommand::NO_ERROR)
+        return aCL.returnKO(aCmd, parsedCmd);
+
+    // get values
+    String sFile = parsedCmd.getValueStr(1);
+    String sMode = parsedCmd.getValueStr(2);
+
+    // we check that parsedCmd has not detected any error
+    if (parsedCmd.hasError())
+        return aCL.returnKO(aCmd, parsedCmd);
+
+    // DOS format limits filename to  8.3 characters
+    if ( ! isPathCompatibleDOS83(sFile) )   {
+         aCL.msgError(String(F("file is limited to format 8.3: ")) + sFile);
+         aCL.msgKO(aInput, -5);
+         return 0;
     }
 
-    // we get all args
-    String sValueAll = argFile.substring(ind+1);
+    int cr = cmd2File.stayOpen(sFile,sMode);
 
-    // 2 arg separated by ,
-    ind = sValueAll.indexOf(",");
-    if (ind < 1)   {
-        msgSError(getCommand(argFile) + F(":cmd needs 2 values"));
-        msgSPrintln(getCommand(argFile) + F("/KO:") + 10);
-        return 10;
-    }
+    if (cr == 0)
+        aCL.msgOK(aInput, cr);
+    else
+        aCL.msgKO(aInput, cr);
 
-    // we get 1st value part
-    String sFile = sValueAll.substring(0,ind);
-
-    // we get 1st value part
-    int iMode = sValueAll.substring(ind+1).toInt();
-
-    // mode values are in [1..127]
-    // open modes are (0X40 to 0X01): O_TRUNC | O_EXCL | O_CREAT | O_SYNC | O_APPEND | O_WRITE | O_READ
-    if ( iMode <= 0  || iMode > 127 )   {
-        msgSError(getCommand(argFile) + F(":mode must be in [1..127]"));
-        msgSPrintln(getCommand(argFile) + F("/KO:2"));
-        return 2;
-    }
-
-    int cr = cmd2File.stayOpen(sFile,iMode);
-
-    if (cr == 0)   {
-        // I send back state msg
-        msgSPrintln(getCommand(argFile) + F("/OK:") + cr);
-    }
-    else   {
-        msgSPrintln(getCommand(argFile) + F("/KO:") + cr);
-    }
     return 0;
 }
 
-int srPreOpen(const String& argFile)
+boolean isPathCompatibleDOS83(const String& aFile)
 {
-    // arg must exist after :
-    int ind = argFile.indexOf(":");
-    if (ind < 0)   {
-        msgSError(getCommand(argFile) + F(":cmd needs 2 values"));
-        msgSPrintln(getCommand(argFile) + F("/KO:-1"));
-        return -1;
+    if (aFile.length() <= 0)   return false;
+
+    // get basename of  aFile
+    String basename = aFile;
+    int indSlash = aFile.lastIndexOf("/");
+    if (indSlash >= 0)
+        basename = aFile.substring(indSlash+1);
+
+    // split  name.ext  in  name  .  ext
+    String name = basename;
+    String ext = "";        // ok if there is no ".ext"
+    int indDot = basename.indexOf(".");
+    // if there is  .ext
+    if (indDot >= 0)   {
+        name = basename.substring(0, indDot);
+        ext = basename.substring(indDot+1);
     }
 
-    // we get all args
-    String sValueAll = argFile.substring(ind+1);
+    // basename is <= 8   ,  ext is <= 3
+    if ( (name.length() <= 8) && (ext.length() <= 3) )
+        return true;
+    else
+        return false;
+}
 
-    // 2 arg separated by ,
-    ind = sValueAll.indexOf(",");
-    if (ind < 1)   {
-        msgSError(getCommand(argFile) + F(":cmd needs 2 values"));
-        msgSPrintln(getCommand(argFile) + F("/KO:-10"));
-        return -10;
+// "s,ss",  "*,rwascet"   ->  read write append size create excl trunc
+// open modes are transcripted as (0X40 to 0X01): O_TRUNC | O_EXCL | O_CREAT | O_SYNC | O_APPEND | O_WRITE | O_READ
+int srPreOpen(const CommandList& aCL, Command &aCmd, const String& aInput)
+{
+    ParsedCommand parsedCmd(aCL, aCmd, aInput);
+
+    // verify that msg with arguments is OK with format and limit
+    if (parsedCmd.verifyFormatMsg(aCmd, aInput) != ParsedCommand::NO_ERROR)
+        return aCL.returnKO(aCmd, parsedCmd);
+
+    // get values
+    String sFile = parsedCmd.getValueStr(1);
+    String sMode = parsedCmd.getValueStr(2);
+
+    // we check that parsedCmd has not detected any error
+    if (parsedCmd.hasError())
+        return aCL.returnKO(aCmd, parsedCmd);
+
+    // DOS format limits filename to  8.3 characters
+    if ( ! isPathCompatibleDOS83(sFile) )   {
+         aCL.msgError(String(F("file is limited to format 8.3: ")) + sFile);
+         aCL.msgKO(aInput, -5);
+         return 0;
     }
-
-    // we get 1st value part
-    String sFile = sValueAll.substring(0,ind);
-
-    // we get 1st value part
-    String sMode = sValueAll.substring(ind+1);
-
-    // open modes are (0X40 to 0X01): O_TRUNC | O_EXCL | O_CREAT | O_SYNC | O_APPEND | O_WRITE | O_READ
-    const String modePossibleValues = "rwascet";
-    for (int i=0; i<sMode.length(); i++)   {
-        if ( modePossibleValues.indexOf(sMode.charAt(i)) < 0 )   {
-            msgSError(getCommand(argFile) + F(":mode must be in [rwascet]"));
-            msgSPrintln(getCommand(argFile) + F("/KO:-2"));
-            return -2;
-        }
-    }
-
 
     int cr = cmd2File.preOpen(sFile,sMode);
 
-    if (cr == 0)   {
-        // I send back state msg
-        msgSPrintln(getCommand(argFile) + F("/OK:") + cr);
-    }
-    else   {
-        msgSPrintln(getCommand(argFile) + F("/KO:") + cr);
-    }
+    if (cr == 0)
+        aCL.msgOK(aInput, cr);
+    else
+        aCL.msgKO(aInput, cr);
+
     return 0;
 }
 
-int srClose(const String& argFile)
+// "", ""
+int srClose(const CommandList& aCL, Command &aCmd, const String& aInput)
 {
     // close file
     int cr = cmd2File.close();
 
     // I send back state msg
-    msgSPrintln(getCommand(argFile) + F("/OK:") + cr);
+    aCL.msgOK(aInput, cr);
 
     return 0;
 }
 
-int srReadln(const String& dumb)
+// "", ""
+int srReadln(const CommandList& aCL, Command &aCmd, const String& aInput)
 {
     String readString="";
 
     // the file is read until \n char, string goes in readString
     // returns the number of read char,  0 if none, -1 if error
     int cr = cmd2File.readln(readString);
+    // here we get rid of ending \n
+    readString.remove(readString.length()-1);
 
-    if (cr <= 0)
-        msgSPrintln(getCommand(dumb) + F("/KO:") + cr);
+    if (cr > 0)
+        aCL.msgOK(aInput, readString);
     else
-        // I send back the  String  that was read
-        msgSPrintln(getCommand(dumb) + F("/OK:") + readString);
+        aCL.msgKO(aInput, cr);
 
     return 0;
 }
 
-int srWriteln(const String& aToWrite)
+// "s", ""
+int srWriteln(const CommandList& aCL, Command &aCmd, const String& aInput)
 {
-    // arg must exist after :
-    int ind = aToWrite.indexOf(":");
-    if (ind < 0)   {
-        msgSError(getCommand(aToWrite) + F(":cmd needs 1 value"));
-        msgSPrintln(getCommand(aToWrite) + F("/KO:1"));
-        return 1;
-    }
+    ParsedCommand parsedCmd(aCL, aCmd, aInput);
 
-    // we get all args
-    String sValue = aToWrite.substring(ind+1);
+    // verify that msg with arguments is OK with format and limit
+    if (parsedCmd.verifyFormatMsg(aCmd, aInput) != ParsedCommand::NO_ERROR)
+        return aCL.returnKO(aCmd, parsedCmd);
+
+    // get values
+    String sValue = parsedCmd.getValueStr(1);
+
+    // we check that parsedCmd has not detected any error
+    if (parsedCmd.hasError())
+        return aCL.returnKO(aCmd, parsedCmd);
+
 
     // returns the number of printed char,  0 if none, -1 if error
     int cr = cmd2File.writeln(sValue);
 
-    if (cr < 0)
-        msgSPrintln(getCommand(aToWrite) + F("/KO:") +cr);
+    if (cr >= 0)
+        aCL.msgOK(aInput, cr);
     else
-        // I send back OK
-        msgSPrintln(getCommand(aToWrite) + F("/OK:") +cr);
+        aCL.msgKO(aInput, cr);
 
     return 0;
 }
 
-int srMove(const String& a2Search)
+// "s", ""
+int srMove(const CommandList& aCL, Command &aCmd, const String& aInput)
 {
-    // arg must exist after :
-    int ind = a2Search.indexOf(":");
-    if (ind < 0)   {
-        msgSError(getCommand(a2Search) + F(":cmd needs 1 value"));
-        msgSPrintln(getCommand(a2Search) + F("/KO:1"));
-        return 1;
-    }
+    ParsedCommand parsedCmd(aCL, aCmd, aInput);
 
-    // we get args
-    String sValue = a2Search.substring(ind+1);
+    // verify that msg with arguments is OK with format and limit
+    if (parsedCmd.verifyFormatMsg(aCmd, aInput) != ParsedCommand::NO_ERROR)
+        return aCL.returnKO(aCmd, parsedCmd);
+
+    // get values
+    String sValue = parsedCmd.getValueStr(1);
+
+    // we check that parsedCmd has not detected any error
+    if (parsedCmd.hasError())
+        return aCL.returnKO(aCmd, parsedCmd);
+
 
     int cr = cmd2File.moveTo(sValue);
 
     if (cr >= 0)
-        msgSPrintln(getCommand(a2Search) + F("/OK"));
+        aCL.msgOK(aInput, "");
     else
-        msgSPrintln(getCommand(a2Search) + F("/KO:") +cr);
+        aCL.msgKO(aInput, cr);
 
     return 0;
 }
 
-int srReadNchar(const String& aString)
+// "d", "0-200"
+int srReadNchar(const CommandList& aCL, Command &aCmd, const String& aInput)
 {
-    // arg must exist after :
-    int ind = aString.indexOf(":");
-    if (ind < 0)   {
-        msgSError(getCommand(aString) + F(":cmd needs 1 value"));
-        msgSPrintln(getCommand(aString) + F("/KO:-1"));
-        return -1;
-    }
+    ParsedCommand parsedCmd(aCL, aCmd, aInput);
 
-    // we get args
-    int nbChar = aString.substring(ind+1).toInt();
-    if ((nbChar <=0) || (200 < nbChar))   {
-        msgSPrintln(getCommand(aString) + F("/KO:nbChar must be in [0-200]"));
-        return -2;
-    }
+    // verify that msg with arguments is OK with format and limit
+    if (parsedCmd.verifyFormatMsg(aCmd, aInput) != ParsedCommand::NO_ERROR)
+        return aCL.returnKO(aCmd, parsedCmd);
+
+    // get values
+    int nbChar = parsedCmd.getValueInt(1);
+
+    // we check that parsedCmd has not detected any error
+    if (parsedCmd.hasError())
+        return aCL.returnKO(aCmd, parsedCmd);
+
 
     String strRead="";
     if (! strRead.reserve(nbChar))   {
-        msgSPrintln(getCommand(aString) + F("/KO:-3"));
+        aCL.msgKO(aInput, -3);
         return -3;
     }
     int cr = cmd2File.readNchar(strRead, nbChar);
 
     if (cr > 0)
-        msgSPrintln(String("+") +cr +","+ getCommand(aString) + F("/OK:") + strRead);
+        aCL.msgPrint(String("+") +cr +","+ aCL.getCommand(aInput) + F("/OK:") + strRead);
     else
-        msgSPrintln(getCommand(aString) + F("/KO:") + cr);
+        aCL.msgKO(aInput, cr);
 
     return 0;
 }
 
-int srReadNln(const String& aString)
+// "d", "0-200"
+int srReadNln(const CommandList& aCL, Command &aCmd, const String& aInput)
 {
-    // arg must exist after :
-    int ind = aString.indexOf(":");
-    if (ind < 0)   {
-        msgSError(getCommand(aString) + F(":cmd needs 1 value"));
-        msgSPrintln(getCommand(aString) + F("/KO:-1"));
-        return -1;
-    }
+    ParsedCommand parsedCmd(aCL, aCmd, aInput);
 
-    // we get args
-    int nbLine = aString.substring(ind+1).toInt();
-    if ((nbLine <=0) || (200 < nbLine))   {
-        msgSPrintln(getCommand(aString) + F("/KO:nb lines must be in [0-200]"));
-        return -2;
-    }
+    // verify that msg with arguments is OK with format and limit
+    if (parsedCmd.verifyFormatMsg(aCmd, aInput) != ParsedCommand::NO_ERROR)
+        return aCL.returnKO(aCmd, parsedCmd);
+
+    // get values
+    int nbLine = parsedCmd.getValueInt(1);
+
+    // we check that parsedCmd has not detected any error
+    if (parsedCmd.hasError())
+        return aCL.returnKO(aCmd, parsedCmd);
+
 
     String strRead="";
     // I test that I have some memory available
     if (! strRead.reserve(200))   {
-        msgSPrintln(getCommand(aString) + F("/KO:-3"));
+        aCL.msgKO(aInput, -3);
         return -3;
     }
     int cr = 0, i = 0;
@@ -667,139 +783,135 @@ int srReadNln(const String& aString)
         // returns the number of read char,  0 if none, -1 if error
         cr = cmd2File.readln(strRead);
         if (cr <= 0)    break;
-        msgSPrintln(getCommand(aString) + "/" + i + ":" + strRead);
+        // here we get rid of ending \n
+        strRead.remove(strRead.length()-1);
+        aCL.msgPrint(aCL.getCommand(aInput) + "/" + i + ":" + strRead);
     }
 
+
     if (cr >= 0 && i>=2)
-        msgSPrintln(getCommand(aString) + F("/OK:") + String(i-1));
+        aCL.msgOK(aInput, String(i-1) );
     else
-        msgSPrintln(getCommand(aString) + F("/KO:") + cr);
+        aCL.msgKO(aInput, cr);
 
     return 0;
 }
 
-int srRename(const String& aString)
+// "s,s", ""
+int srRename(const CommandList& aCL, Command &aCmd, const String& aInput)
 {
-    // arg must exist after :
-    int ind = aString.indexOf(":");
-    if (ind < 0)   {
-        msgSError(getCommand(aString) + F(":cmd needs 2 values"));
-        msgSPrintln(getCommand(aString) + F("/KO:-1"));
-        return -1;
-    }
+    ParsedCommand parsedCmd(aCL, aCmd, aInput);
 
-    // we get all args
-    String sValueAll = aString.substring(ind+1);
+    // verify that msg with arguments is OK with format and limit
+    if (parsedCmd.verifyFormatMsg(aCmd, aInput) != ParsedCommand::NO_ERROR)
+        return aCL.returnKO(aCmd, parsedCmd);
 
-    // 2 arg separated by ,
-    ind = sValueAll.indexOf(",");
-    if (ind < 1)   {
-        msgSError(getCommand(aString) + F(":cmd needs 2 values"));
-        msgSPrintln(getCommand(aString) + F("/KO:-10"));
-        return -10;
-    }
+    // get values
+    String sOld = parsedCmd.getValueStr(1);
+    String sNew = parsedCmd.getValueStr(2);
 
-    // we get 1st value part
-    String sOld = sValueAll.substring(0,ind);
-
-    // we get 1st value part
-    String sNew = sValueAll.substring(ind+1);
+    // we check that parsedCmd has not detected any error
+    if (parsedCmd.hasError())
+        return aCL.returnKO(aCmd, parsedCmd);
 
 
     int cr = cmd2File.rename(sOld, sNew);
 
     if (cr == 0)
-        msgSPrintln(getCommand(aString) + F("/OK"));
+        aCL.msgOK(aInput, "");
     else
-        msgSPrintln(getCommand(aString) + F("/KO:") + cr);
+        aCL.msgKO(aInput, cr);
 
     return 0;
 }
 
-int srRemove(const String& aString)
+// "s", "*"
+int srRemove(const CommandList& aCL, Command &aCmd, const String& aInput)
 {
-    // arg must exist after :
-    int ind = aString.indexOf(":");
-    if (ind < 0)   {
-        msgSError(getCommand(aString) + F(":cmd needs 1 value"));
-        msgSPrintln(getCommand(aString) + F("/KO:-1"));
-        return -1;
-    }
+    ParsedCommand parsedCmd(aCL, aCmd, aInput);
 
-    // we get args
-    String sValue = aString.substring(ind+1);
+    // verify that msg with arguments is OK with format and limit
+    if (parsedCmd.verifyFormatMsg(aCmd, aInput) != ParsedCommand::NO_ERROR)
+        return aCL.returnKO(aCmd, parsedCmd);
+
+    // get values
+    String sValue = parsedCmd.getValueStr(1);
+
+    // we check that parsedCmd has not detected any error
+    if (parsedCmd.hasError())
+        return aCL.returnKO(aCmd, parsedCmd);
+
 
     int cr = cmd2File.remove(sValue);
 
     if (cr == 0)
-        msgSPrintln(getCommand(aString) + F("/OK"));
+        aCL.msgOK(aInput, "");
     else
-        msgSPrintln(getCommand(aString) + F("/KO:") + cr);
+        aCL.msgKO(aInput, cr);
 
     return 0;
 }
 
-int srLs(const String& aString)
+// "ss", "rsda"   -> recurse size date all
+int srLs(const CommandList& aCL, Command &aCmd, const String& aInput)
 {
-    // arg must exist after :
-    int ind = aString.indexOf(":");
-    if (ind < 0)   {
-        msgSError(getCommand(aString) + F(":cmd needs 1 value"));
-        msgSPrintln(getCommand(aString) + F("/KO:-1"));
-        return -1;
-    }
+    ParsedCommand parsedCmd(aCL, aCmd, aInput);
 
-    // we get 1st value part
-    String sMode = aString.substring(ind+1);
+    // verify that msg with arguments is OK with format and limit
+    if (parsedCmd.verifyFormatMsg(aCmd, aInput) != ParsedCommand::NO_ERROR)
+        return aCL.returnKO(aCmd, parsedCmd);
 
-    // modes are (0X08 to 0X01): LS_R | LS_SIZE | LS_DATE | LS_A
-    const String modePossibleValues = "rsda";
-    for (int i=0; i<sMode.length(); i++)   {
-        if ( modePossibleValues.indexOf(sMode.charAt(i)) < 0 )   {
-            msgSError(getCommand(aString) + F(":mode must be in [rsda]"));
-            msgSPrintln(getCommand(aString) + F("/KO:-2"));
-            return -2;
-        }
-    }
+    // get values
+    String sMode = parsedCmd.getValueStr(1);
 
-    int cr = cmd2File.ls(SERIAL_MSG, sMode);
+    // we check that parsedCmd has not detected any error
+    if (parsedCmd.hasError())
+        return aCL.returnKO(aCmd, parsedCmd);
+
+
+//    int cr = cmd2File.ls(*(aCL.getStream()), sMode);
+    int cr = cmd2File.ls(aCL, sMode);
 
     if (cr == 0)
-        msgSPrintln(getCommand(aString) + F("/OK"));
+        aCL.msgOK(aInput, "");
     else
-        msgSPrintln(getCommand(aString) + F("/KO:") + cr);
+        aCL.msgKO(aInput, cr);
 
     return 0;
 }
 
-int srMkdir(const String& aString)
+// "s", "*"
+int srMkdir(const CommandList& aCL, Command &aCmd, const String& aInput)
 {
-    // arg must exist after :
-    int ind = aString.indexOf(":");
-    if (ind < 0)   {
-        msgSError(getCommand(aString) + F(":cmd needs 1 value"));
-        msgSPrintln(getCommand(aString) + F("/KO:-1"));
-        return -1;
-    }
+    ParsedCommand parsedCmd(aCL, aCmd, aInput);
 
-    // we get args
-    String sValue = aString.substring(ind+1);
+    // verify that msg with arguments is OK with format and limit
+    if (parsedCmd.verifyFormatMsg(aCmd, aInput) != ParsedCommand::NO_ERROR)
+        return aCL.returnKO(aCmd, parsedCmd);
+
+    // get values
+    String sValue = parsedCmd.getValueStr(1);
+
+    // we check that parsedCmd has not detected any error
+    if (parsedCmd.hasError())
+        return aCL.returnKO(aCmd, parsedCmd);
+
 
     int cr = cmd2File.mkdir(sValue);
 
     if (cr == 0)
-        msgSPrintln(getCommand(aString) + F("/OK"));
+        aCL.msgOK(aInput, "");
     else
-        msgSPrintln(getCommand(aString) + F("/KO:") + cr);
+        aCL.msgKO(aInput, cr);
 
     return 0;
 }
 
-int srDump2(const String& aString)
+int srDump2(const CommandList& aCL, Command &aCmd, const String& aInput)
 {
     dump2("COM.CSV");
 
-    msgSPrintln(getCommand(aString) + F("/OK"));
+    aCL.msgOK(aInput, "");
 
     return 0;
 }

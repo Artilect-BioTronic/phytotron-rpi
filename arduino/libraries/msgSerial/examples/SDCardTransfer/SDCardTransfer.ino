@@ -8,32 +8,33 @@
 // include the SD library:
 
 #include <SPI.h>
-//#include <SD.h>
-#include "SdFat.h"
+//#include <SD.h>    // default SD card library
+#include "SdFat.h"   // more complete SD card library:  https://github.com/greiman/SdFat
 //SdFat SD;
 
 #include "msgSerial.h"
+#include "msgExampleFunction.h"
 
 #include "msg2SDCard.h"
 
 SerialListener serList(Serial);
 
-Command cmdUser[] = {
-    Command("openStay",     &srStayOpen),    // :bob.txt,67  filenameDOS8.3 (short names), openMode (O_READ... specific to SdFat lib)
-    Command("open",         &srPreOpen),     // :prepare to open at each read/write (it is closed immediately after)
-    Command("close",        &srClose),   // pas de param
-    Command("readln",       &srReadln),  // pas de param
-    Command("writeln",      &srWriteln), // :nouvelle ligne
-    Command("readNchar",    &srReadNchar),   // :nbchar
-    Command("readNln",      &srReadNln),   // :nb line to read
-    Command("move",         &srMove),    // :str2search
-    Command("dump2",        &srDump2),   // pas de param
-    Command("ls",           &srLs),      // :15  donner les options du ls
-    Command("rename",       &srRename),  // :/adir/old,new
-    Command("mkdir",        &srMkdir),   // :/adir
-    Command("rm",           &srRemove)   // :file.txt
+Command cmdSD[] = {
+    Command("openStay",     &srStayOpen,    "s,cc", "*,rwascet"),   // :bob.txt,r  filenameDOS8.3 (short names), openMode (read write... )
+    Command("open",         &srPreOpen,     "s,cc", "*,rwascet"),   // :prepare to open at each read/write (it is closed immediately after)
+    Command("close",        &srClose),          // pas de param
+    Command("readln",       &srReadln),         // pas de param
+    Command("writeln",      &srWriteln,     "s"),               // :a new lign to write (not \n terminated)
+    Command("readNchar",    &srReadNchar,   "i",    "0-200"),   // :nbchar to read in a row
+    Command("readNln",      &srReadNln,     "i",    "0-200"),   // :nb lines to read in a row
+    Command("move",         &srMove,        "s"),       // :str2search
+    Command("dump2",        &srDump2),                  // pas de param
+    Command("ls",           &srLs,          "cc",   "rsda"),      // :sr  (recurse size ...)
+    Command("rename",       &srRename,      "s,s"),     // :/adir/old,new
+    Command("mkdir",        &srMkdir,       "s"),       // :/adir
+    Command("rm",           &srRemove,      "s")        // :file.txt
 };
-CommandList cmdListUser("cmdUser", "CM+", SIZE_OF_TAB(cmdUser), cmdUser );
+CommandList cmdListSD("cmdSD", "SD+", SIZE_OF_TAB(cmdSD), cmdSD );
 
 Command cmdSys[] = {
     Command("idSketch",  &sendSketchId),
@@ -68,11 +69,12 @@ void setup() {
 
     sketchInfo.setFileDateTime(F(__FILE__), F(__DATE__), F(__TIME__));
 
-    serList.addCmdList(cmdListUser);
+    serList.addCmdList(cmdListSD);
     serList.addCmdList(cmdListSys);
 
-    sendSketchId("");
-    sendSketchBuild("");
+    // I send identification of sketch
+    cmdListSys.readInternalMessage(F("idSketch"));
+    cmdListSys.readInternalMessage(F("idBuild"));
 }
 
 

@@ -30,6 +30,7 @@ extern SdFat SD;
 #define CFG_CPLT        1
 #define CFG_SD_RTC      2
 
+
 #define CFG_MAT  CFG_CPLT
 
 #if (CFG_MAT == CFG_CPLT)
@@ -64,7 +65,7 @@ const long serial1Rate=   115200;
 const long serialRate=    38400;
 bool bDemarreMnEntiere = true;
 #else
-const long serial1Rate=   9600;
+const long serial1Rate=   115200;
 const long serialRate=    38400;
 bool bDemarreMnEntiere = false;
 #endif
@@ -104,12 +105,12 @@ boolean validation = false ;
 unsigned long debutMenu = 0 ;
 boolean reglageTemp = false ;
 boolean reglageHum = false ;
-byte consigneTemp = 20 ;
-byte consigneTempProvisoire = 20 ;
-byte plageTemp = 2 ;
+int consigneTemp = 20 ;
+int consigneTempProvisoire = 20 ;
+byte plageTemp = 1 ;
 byte consigneHum = 50 ;
 byte consigneHumProvisoire = 50 ;
-byte plageHum = 0 ;
+byte plageHum = 5 ;
 bool commandeChauffage = false ;
 bool commandeRefroidissement = false ;
 bool commandeHum = false ;
@@ -233,6 +234,8 @@ void setup(void)
   }
   Serial.println ( "Debut de l'init" ) ;
 
+  // I fill info on sketch
+  sketchInfo.setFileDateTime(F(__FILE__), F(__DATE__), F(__TIME__));
   // on  setup  la librairie de communication
   setupTempHumMsg();
 
@@ -240,6 +243,7 @@ void setup(void)
   lcd.createChar ( 0 , degres ) ;
   CapteurHumiditeTemperatureInterieur.begin ( ) ;
   CapteurHumiditeTemperatureExterieur.begin ( ) ;
+
   releveRTC ( ) ; //on releve date et heure sur l'horloge RTC
   sensor_t sensor; //Initialise the sensor
   CapteurHumiditeTemperatureInterieur.temperature().getSensor(&sensor);
@@ -259,7 +263,6 @@ void setup(void)
     }
 
   */
-
 
 
 
@@ -362,7 +365,6 @@ void setup(void)
   {
     erreur ( 8 ) ; //non ecriture fichier mesure sur carte SD
   }
-
 
   releveRTC ( ) ; //on releve date et heure sur l'horloge RTC
   releveValeurs ( ) ;
@@ -624,8 +626,10 @@ void loop ( )
     }
   }
 
+  // Attention, On ne veut pas que le refroidissement du frigo ne declenche le chauffage
+  //   ici on penalise le chauffage car on est en ete
   // Chauffage prise " A "
-  if ( temperatureInterieureEntiere < ( consigneTemp - ( plageTemp * 2 ) ) && ! commandeChauffage )
+  if ( temperatureInterieureEntiere < ( consigneTemp - plageTemp*3 ) && ! commandeChauffage )
   {
     //telecommande.send ( 1361 , 24 ) ; // marche
     commandeSwitch ( chauffageMarche ) ;
@@ -651,7 +655,7 @@ void loop ( )
       erreur ( 14 ) ;
     }
   }
-  if ( temperatureInterieureEntiere > ( consigneTemp - plageTemp ) && commandeChauffage )
+  if ( temperatureInterieureEntiere > ( consigneTemp - plageTemp*2 ) && commandeChauffage )
   {
     //telecommande.send ( 1364 , 24 ) ; // arret
     commandeSwitch ( chauffageArret ) ;
@@ -679,7 +683,7 @@ void loop ( )
   }
 
   // Refroidissement prise " B "
-  if ( temperatureInterieureEntiere > ( consigneTemp + ( plageTemp * 2 ) ) && ! commandeRefroidissement )
+  if ( temperatureInterieureEntiere > ( consigneTemp + plageTemp ) && ! commandeRefroidissement )
   {
     //telecommande.send ( 4433 , 24 ) ; // marche
     commandeSwitch ( refroidissementMarche ) ;
@@ -705,7 +709,7 @@ void loop ( )
       erreur ( 16 ) ;
     }
   }
-  if ( temperatureInterieureEntiere < ( consigneTemp + plageTemp ) && commandeRefroidissement )
+  if ( temperatureInterieureEntiere < ( consigneTemp - plageTemp*2. ) && commandeRefroidissement )
   {
     //telecommande.send ( 4436 , 24 ) ; // arret
     commandeSwitch ( refroidissementArret ) ;
@@ -882,10 +886,11 @@ int sendConsigne()   {
 
 String getTrameConsigne() {
     String sTrame = "";
+    // String(floatValue)  will convert float to String with format %0.2f
     sTrame = dateString   +separateurFichier+
              heureString  +separateurFichier+
-             numeroDix ( consigneTemp )  +separateurFichier+
-             numeroDix ( consigneHum );
+             String ( consigneTemp )  +separateurFichier+
+             String ( consigneHum );
     return sTrame;
 }
 

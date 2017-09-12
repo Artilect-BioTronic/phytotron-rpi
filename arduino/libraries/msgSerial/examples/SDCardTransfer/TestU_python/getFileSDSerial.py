@@ -15,12 +15,11 @@ fileHD = sys.stdout
 moveTo = ''
 moveTo2 = ''
 
-cmdSendValue='SendValue'
 
-
-# serial msg to arduino begin  with  msgStartAT / msgStartDO and end with msgEnd
+# serial msg to arduino begin  with  msgStartSD / msgStartDO and end with msgEnd
 msgStartAT='CM+'
 msgStartDO='DO+'
+msgStartSD='SD+'
 msgEnd='\n'
 # arduino responds with same prefix
 
@@ -94,16 +93,16 @@ def emptyRx(ser):
    print('')
 
 def sendCmdArd(aCmd):
-   cmd2arduino = msgStartAT + aCmd + msgEnd
+   cmd2arduino = msgStartSD + aCmd + msgEnd
    ser.write(cmd2arduino)
 
 def parseCmdAnswer(aCmdAnswer):
-    if (not aCmdAnswer.startswith(msgStartAT)) :
+    if (not aCmdAnswer.startswith(msgStartSD)) :
         return ['', -1]
     else :
-       # we take off  msgStartAT  and  msgEnd
+       # we take off  msgStartSD  and  msgEnd
        responseRaw  = aCmdAnswer[:len(aCmdAnswer)-len(msgEnd)]
-       responseRaw2 = responseRaw.replace(msgStartAT, '')
+       responseRaw2 = responseRaw.replace(msgStartSD, '')
        tags = responseRaw2.split(':')
        respCmd = tags[0]
        if len(tags) > 1:
@@ -122,9 +121,9 @@ def isRespCplt(aResp) :
     CM++20,srCmd2:load\n               not complete
     CM++20,srCmd2:load\nabcdefgh\n     complete
     """
-    if (not aResp.startswith(msgStartAT)) :
+    if (not aResp.startswith(msgStartSD)) :
         return False
-    resp2 = aResp.replace(msgStartAT, '')
+    resp2 = aResp.replace(msgStartSD, '')
     #
     if (not resp2.startswith('+')) :
         return True
@@ -169,7 +168,7 @@ def sendGetArd(aCmd):
       else :
           respCplt = responseRaw
       #
-      if respCplt.startswith(msgStartAT) :
+      if respCplt.startswith(msgStartSD) :
          if isRespCplt(respCplt) :
              [respLoad, cr] = parseCmdAnswer(respCplt)
              return [respLoad, cr]

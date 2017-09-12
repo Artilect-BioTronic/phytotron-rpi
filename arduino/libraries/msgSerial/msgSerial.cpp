@@ -3,61 +3,19 @@
 #include "msgSerial.h"
 
 #define LOG_DEBUG(str)   Serial.println(str)
-#define LOG_ERROR(str)   SERIAL_MSG.println(str)
+//#define LOG_ERROR(str)   SERIAL_MSG.println(str)
 
-SketchInfo sketchInfo;
-
-String inputMessage = "";
-boolean inputMessageReceived = false;
-String msg2pyStart = "AT+";     // "2py;";
-String msg2mqttStart = "CM+";     // "2mq;";
-String msg2pyEnd = "\n";
-String prefAT = "AT+";
-String prefDO = "DO+";
-
-// listPin and listPinSize are defined in main sketch.ino
-// see ex of definition in msgFromMQTT.h
-extern stListPin listPin[];
-extern int listPinSize;
-// ex of definition
-/*
-// #define PIN_CAPTOR  10
-// #define PIN_LED 2
-stListPin listPin[] = {
-  stListPin(PIN_LED, "LED"),
-  stListPin(PIN_CAPTOR, "CAPTOR unknown")
-};
-int listPinSize = sizeof(listPin) / sizeof(stListPin);
-*/
+// definition of static variable
+const char ParsedCommand::PC_STRING[]     = "s";
+const char ParsedCommand::PC_CHAR_LIST[]  = "cc";
+const char ParsedCommand::PC_INT[]        = "i";
+const char ParsedCommand::PC_FLOAT[]      = "f";
+const char ParsedCommand::PC_LIM_ANY_OPT[]= "*";
 
 
-// functions to send back messages
-
-size_t msgSPrint(const String& aMsg)   {
-    String msg2py = msg2mqttStart + aMsg + msg2pyEnd;
-    return SERIAL_MSG.print(msg2py);
-}
-
-size_t msgSError(const String& aMsg)   {
-    return SERIAL_MSG.println(aMsg);
-}
-
-size_t msgSend(const String& aTopic, const String& aLoad)   {
-    return msgSPrint(aTopic + ":" + aLoad);
-}
-
-size_t msgSendln(const String& aTopic, const String& aLoad)   {
-    return msgSend(aTopic, aLoad + "\n");
-}
-
-size_t msgSPrint2(const String& aMsg)   {
-    String msg2py = msg2pyStart + aMsg + msg2pyEnd;
-    return SERIAL_MSG.print(msg2py);
-}
-
-String getCommand(const String& aCmdVal)   {
+String CommandList::getCommand(const String& aCmdVal) const   {
     // the aCmdVal contains  command:val   (with val=arg1,arg2 ...)
-    int ind = aCmdVal.indexOf(":");
+    int ind = aCmdVal.indexOf(getCmdSeparator());
 
     // if there is no val, then no ':', then ind=-1,
     if (ind < 0)   {
@@ -79,36 +37,26 @@ size_t CommandList::msgError(const String& aMsg) const  {
 
 size_t CommandList::msgOK(const String& aStrCmd, const String& aMsg) const   {
     String msg = getCommand(aStrCmd) + "/OK:" + aMsg;
-    return msgSPrint(msg);
+    return msgPrint(msg);
+}
+size_t CommandList::msgOK(const String& aStrCmd, int cr) const   {
+    return msgOK(aStrCmd, String(cr) );
 }
 
 size_t CommandList::msgKO(const String& aStrCmd, const String& aMsg) const {
     String msg = getCommand(aStrCmd) + "/KO:" + aMsg;
-    return msgSPrint(msg);
+    return msgPrint(msg);
+}
+size_t CommandList::msgKO(const String& aStrCmd, int cr) const {
+    return msgKO(aStrCmd, String(cr) );
 }
 
-uint8_t CommandC::nbObjects = 0;
-CommandC* CommandC::arrayObjects[nbObjectsMax];
-
-int CommandC::addCmdInArray(CommandC* pCmd) {
-    if (nbObjects >= nbObjectsMax) {
-        LOG_ERROR(F("too many CommandC objects created"));
-        return -1;
-    }
-    arrayObjects[nbObjects] = pCmd;
-    nbObjects++;
-    return 0;
+int CommandList::returnKO(Command& aCmd, ParsedCommand &aPC) const {
+    msgError(aPC.getErrorStr());
+    msgPrint(aCmd.cmdName + "/KO:" + aPC.getError());
+    return aPC.getError();
 }
 
-CommandC* CommandC::getObject(uint8_t i) {
-    if ( (i > nbObjectsMax) || (i <0) )
-        return NULL;
-
-    return arrayObjects[i];
-}
-
-
-int blinkTime=1000;   // used by blinkTime function
 
 // example of serialEvent  you have to put in your sketch.ino
 //   note that it empties serial buffer immediately
@@ -124,7 +72,7 @@ void serialEvent()
 */
 
 CommandList::CommandList(const String &nameListCmd, const String &prefix,
-                         const int nbObjects, const Command arrayCmd[],
+                         const int nbObjects, Command arrayCmd[],
                          char cmdSeparator, char argSeparator, char cmdEnd):
     _nameListCmd(nameListCmd), _prefix(prefix), _nbObjects(nbObjects), _arrayCmd(arrayCmd),
     _pStream(NULL), _pSerialListener(NULL),
@@ -132,34 +80,17 @@ CommandList::CommandList(const String &nameListCmd, const String &prefix,
 {}
 
 SerialListener::SerialListener(Stream &aStream): _stream(aStream), _nbObjects(0),
-    _inputMessage(""), _inputMessageReceived(false), _timeLastIncomingChar(0), _timeOut(100),
-    _cmdEnds("")
+    _inputMessage(""), _inputMessageReceived(false), _cmdEnds(""),
+    _timeLastIncomingChar(0), _timeOut(100)
 {}
 
-/**
- * @brief SerialListener::addCmdList
- * @param cmdL
- * @return
- */
-bool SerialListener::addCmdList(CommandList &cmdL)   {
-    if ( _nbObjects < _nbObjectsMax )   {
-        _arrayObjects[_nbObjects] = &cmdL;
-        _nbObjects++;
-        _cmdEnds += cmdL.getCmdEnd();
-        cmdL.setStream(&_stream);
-        cmdL.setSerialListener(this);
-        return true;
-    }
-    else
-        return false;
-}
-
 
 /**
- * @brief CommandList::checkMessageReceived check if a message has been received and analyze it
+ * @brief CommandList::checkMessageReceived check if a message is a command
  *
- * in your main sketch.ino, you have to update global var inputMessageReceived and inputMessage
- * checkMessageReceived calls the function corresponding to  cmds/cmdos array
+ * SerialListener checks a message is incoming, then it calls checkMessageReceived
+ * to check if it is adressed to this CommandList
+ * checkMessageReceived calls the callback command
  * @param aInputMessage
  * @return true if cmd has been found; even if the cmd fails
  */
@@ -193,17 +124,59 @@ bool CommandList::checkMessageReceived(String aInputMessage)
             if (command == _arrayCmd[i].cmdName)
             {
                 cmdNotFound = false;
-                int cr = _arrayCmd[i].cmdFunction(*this, nudeMessage);
+                int cr = _arrayCmd[i].cmdFunction(*this, _arrayCmd[i], nudeMessage);
             }
         }
         if (cmdNotFound)  {
-            LOG_ERROR(_nameListCmd + F(" cmd not recognized ! :") + command);
+            msgError(_nameListCmd + F(" cmd not recognized ! :") + command);
             return false;
         }
         return true;
     }
     else
         return false;
+}
+
+/**
+ * @brief CommandList::readInternalMessage execute command given as internal message
+ *
+ * if you want to execute a command internally in arduino, you cannot access the callback directly
+ * you have to use this readInternalMessage
+ * @param aInternalNudeMessage  String containing cmd, but without prefix & end used through SerialListener
+ * @return true if cmd has been found; even if the cmd fails
+ */
+bool CommandList::readInternalMessage(String aInternalNudeMessage)
+{
+    // check if CommandList is linked to a SerialListener
+    if (_pSerialListener == NULL)
+        return false;
+
+    // we extract the cmd name
+    String command = "";
+    int iCmdSeparator = aInternalNudeMessage.indexOf(_cmdSeparator);
+    if (iCmdSeparator > 0)
+        command = aInternalNudeMessage.substring(0, iCmdSeparator);
+    else   {
+        // if there is no arg => no separator,  indexOf returns -1
+        // so cmd goes from prefix to end of string
+        command = aInternalNudeMessage;
+    }
+
+    // We search the command among the list
+    bool cmdNotFound = true;
+    for (int i=0; i<_nbObjects && cmdNotFound; i++)
+    {
+        if (command == _arrayCmd[i].cmdName)
+        {
+            cmdNotFound = false;
+            int cr = _arrayCmd[i].cmdFunction(*this, _arrayCmd[i], aInternalNudeMessage);
+        }
+    }
+    if (cmdNotFound)  {
+        msgError(_nameListCmd + F(" internal cmd not recognized ! :") + command);
+        return false;
+    }
+    return true;
 }
 
 /**
@@ -226,6 +199,32 @@ int CommandList::displayListCmd(String& aNameCL, String& asMode)  const {
     return 0;
 }
 
+
+/**
+ * @brief SerialListener::addCmdList  add CommandList that will be managed by  SerialListener
+ * @param cmdL
+ * @return
+ */
+bool SerialListener::addCmdList(CommandList &cmdL)   {
+    if ( _nbObjects < _nbObjectsMax )   {
+        _arrayObjects[_nbObjects] = &cmdL;
+        _nbObjects++;
+        _cmdEnds += cmdL.getCmdEnd();
+        cmdL.setStream(&_stream);
+        cmdL.setSerialListener(this);
+        return true;
+    }
+    else
+        return false;
+}
+
+/**
+ * @brief SerialListener::copyBuffer  copy _stream buffer into SerialListener buffer
+ *
+ * copy _stream buffer  into  SerialListener buffer as soon as possible, this is
+ * called by checkMessageReceived.
+ * The copy is stopped when we encounter end msg char; the next msg stays in _stream buffer
+ */
 void SerialListener::copyBuffer()
 {
     // we block msg transfer from _stream buffer to inputMessage, that
@@ -307,403 +306,467 @@ int SerialListener::displayListCmd(String& aNameCL, String& asMode)  const {
     return cr;
 }
 
+// ParsedCommand class
 
-/*---------------------------------------------------------------*/
-/*                  list of user function                        */
-/*---------------------------------------------------------------*/
+// static var init
+const int _maxLengthString = 127;
+const int _maxNbArg = 5;
 
-int sendFakeVal(const CommandList &aCL, const String& dumb)
+
+ParsedCommand::ParsedCommand(const CommandList& aCmdList, const Command& aCmd, const String& aStrCmdArg) :
+    _cmdList(aCmdList), _cmd(aCmd), _strCmdArg(aStrCmdArg),
+    _numError(NO_ERROR), _strError("")
 {
-    int sensorVal = getSensorValue();
-    aCL.msgOK(dumb, String("temp:") +sensorVal);
+    if ( (_strCmdArg.length()     > _maxLengthString) ||
+         (_cmd.cmdFormat.length() > _maxLengthString) ||
+         (_cmd.cmdLimit.length()  > _maxLengthString)    )   {
+        _strError = F("string too long");
+        _numError = TOO_LONG;
+    }
+
+    // filling indices
+
+    // ie: _cmd.cmdFormat = "d,d,s"   ->   indicesFmt = {0,2,4,6,0,0,6}
+    splitString(_cmd.cmdFormat, _indicesFmt, _nbArg);
+
+    // _strCmdArg split begining after _cmdSeparator
+    // ie: _strCmdArg = "cmd:1,2,cd"   ->   indicesCmd = {4,6,8,11,0,0,11}
+    int indStart = _strCmdArg.indexOf(_cmdList.getCmdSeparator())+1;
+    // if CmdSeparator is missing   indexOf returns -1,  we restore this value
+    if (indStart <= 0)
+        indStart = -1;
+    uint8_t nbTemp=0;
+    splitString(_strCmdArg, _indicesCmd, nbTemp, indStart);
+    // we must have nbTemp == _nbArg; except if ... fmt is PC_CHAR_LIST, then the single arg may be optional
+    if (nbTemp != _nbArg)
+    {
+        // if format is a single string, it can contain arg separator "," ; we avoid string from being split in several
+        if ( (_cmd.cmdFormat == PC_STRING) && (_nbArg == 1) && (nbTemp > 1) )   {
+            // we reinterpret incoming _strCmdArg  as a single string
+            // we change the position of the end of 1st arg (=start of virtual 2nd arg)
+            _indicesCmd[1] = _strCmdArg.length()+1;
+        }
+        else if (  (_cmd.cmdFormat == PC_CHAR_LIST) && (_nbArg == 1) && (nbTemp == 0)  )
+        {
+            // if  fmt is PC_CHAR_LIST, then the single arg may be optional
+        }
+        else if ( (_cmd.cmdFormat == PC_STRING) &&
+                  (_nbArg == 1) && (nbTemp == 0) && (_cmd.cmdLimit == PC_LIM_ANY_OPT) )
+        {
+            // if  fmt is PC_STRING, then sometimes the single arg is optional
+            // user must express it by giving a lim  PC_LIM_ANY_OPT   (ie: "*")
+        }
+        else
+        {
+            _numError = NB_ARG_DIFFERENT;
+            _strError = String("Format: ")+ _cmd.cmdFormat +" requires "+ _nbArg +" arguments";
+        }
+    }
+
+    splitString(_cmd.cmdLimit, _indicesLim, nbTemp);
+    // we test error, but only if there is not already an error
+    // cmdLimit is optional, it is authorized to be empty; otherwise nb of arg must be the same
+    if ( (_numError == NO_ERROR) && (nbTemp != _nbArg) && (nbTemp != 0) )   {
+        _numError = NB_ARG_DIFFERENT;
+        _strError = String("Format: ")+ _cmd.cmdFormat +" incompatible with nb of limits "+ _cmd.cmdLimit;
+    }
+}
+
+int ParsedCommand::splitString(const String& aStrCmdArg, uint8_t aIndices[_maxNbArg],
+                               uint8_t& aNbArg, int aIndStart)   {
+    // DEBUG
+//    Serial.println(String("debug:") + aStrCmdArg +" starting at: "+ aIndStart);
+
+    aNbArg = 0;
+    int indEndOfStrArg = aStrCmdArg.length()-1;
+
+    // We check case if there is no arg
+    if ( aIndStart < 0 || indEndOfStrArg < aIndStart )   {
+        for (int i=0; i<=_maxNbArg; i++)   aIndices[i] = 0;
+        aIndices[1] = 1;    // so the cmd getArg(1) will send back empty arg
+        return 0;
+    }
+
+    int ind = aIndStart-1;
+    do   {
+        aIndices[aNbArg] = ind+1;
+        aNbArg++;
+        if (ind < indEndOfStrArg)
+            // indexOf returns -1 if not found
+            ind = aStrCmdArg.indexOf(_cmdList.getArgSeparator(), ind+1);
+        else
+            ind = -1;
+    }   while ((ind >= 0) && (aNbArg < _maxNbArg));
+
+    // test if there were too many arg
+    if ((ind >= 0) && (aNbArg == _maxNbArg))   {
+        aIndices[aNbArg] = ind+1;
+        _numError = TOO_MANY_ARG;
+        _strError = String("too many arg in string: ")+ aStrCmdArg;
+        return -1;
+    }
+
+    // we set ind for a virtual next arg; we set it at  last possible index +1
+    aIndices[aNbArg] = indEndOfStrArg+2;
+
+    /*
+    // DEBUG
+    String darg = "debug indices: "+ String(aIndices[0]);
+    for (int i=1; i<_maxNbArg+1; i++)   {
+        darg += String(",")+ aIndices[i];
+    }
+    Serial.println(darg);
+    */
     return 0;
 }
 
-int sendMessageStatus(const CommandList& aCL, const String& dumb)
-{
-    int sensorVal = getSensorValue(); 
-    aCL.msgOK(dumb, String("temp:") +sensorVal);
-    return 0;
+/**
+ * @brief ParsedCommand::getArgStrNum get arg num anum in string _strCmdArg
+ *
+ * the arg is returned as String
+ * @param anum  num of arg to get (starts with 1)
+ * @return String  arg of num anum in string _strCmdArg
+ */
+String ParsedCommand::getArgStrNum(uint8_t anum)    {
+    if (_numError != NO_ERROR)   return "";   // error may have been detected by constructor
+    if (anum > _nbArg)   {
+        _numError = INDEX_ABOVE_NB_ARG;
+        return "";
+    }
+    return _strCmdArg.substring(_indicesCmd[anum-1], _indicesCmd[anum-1+1]-1);
 }
 
-int getSensorValue()
-{
-  // fake sensor value
-  return millis() % 1024; 
+String ParsedCommand::getFmtNum(uint8_t anum)    {
+    if (_numError != NO_ERROR)   return "";   // error may have been detected by constructor
+    if (anum > _nbArg)   {
+        _numError = INDEX_ABOVE_NB_ARG;
+        return "";
+    }
+    return _cmd.cmdFormat.substring(_indicesFmt[anum-1], _indicesFmt[anum-1+1]-1);
 }
 
-// it extracts basename from  aFullFilename
-//   because  __FILE__  contains the full path. we strip it
-// to be called like this:  setFile(F(__FILE__))
-void SketchInfo::setFile(const String& aFullFilename)   {
-    int lastSlash = aFullFilename.lastIndexOf('/') +1;  // '/' is not for windows !
-    // if there is no '/',  lastIndexOf returns -1, so lastSlash=0
-    file_ = aFullFilename.substring(lastSlash);
+String ParsedCommand::getLimNum(uint8_t anum)    {
+    if (_numError != NO_ERROR)   return "";   // error may have been detected by constructor
+    if (anum > _nbArg)   {
+        _numError = INDEX_ABOVE_NB_ARG;
+        return "";
+    }
+    return _cmd.cmdLimit.substring(_indicesLim[anum-1], _indicesLim[anum-1+1]-1);
 }
 
-void SketchInfo::setFileDateTime(const String &aFullFilename, const String &aDate,const String &aTime)
-{
-    setFile(aFullFilename);
-    setDate(aDate);
-    setTime(aTime);
+int ParsedCommand::getValueInt(int anum)   {
+    // test input
+    if ( (anum < 1) || (_nbArg < anum) )   {
+        // if an error has been detected already, we dont erase the former one
+        if (_numError == NO_ERROR)  {
+            _numError = INDEX_ABOVE_NB_ARG;
+            _strError = String(F("index num: ")) + anum +" out of range";
+        }
+        return -1;
+    }
+
+    // check type of arg that is asked
+    if (getFmtNum(anum) != PC_INT)   {
+        // if an error has been detected already, we dont erase the former one
+        if (_numError == NO_ERROR)  {
+            _numError = CODE_BAD_FMT;
+            _strError = String(F("index num: ")) + anum +" code asks for wrong format";
+        }
+        return -1;
+    }
+
+    String arg = getArgStrNum(anum);
+    return arg.toInt();
+
 }
 
-/*---------------------------------------------------------------*/
-/*                  list of system ctrl function                 */
-/*---------------------------------------------------------------*/
+float ParsedCommand::getValueFloat(int anum)   {
+    // test input
+    if ( (anum < 1) || (_nbArg < anum) )   {
+        // if an error has been detected already, we dont erase the former one
+        if (_numError == NO_ERROR)  {
+            _numError = INDEX_ABOVE_NB_ARG;
+            _strError = String(F("index num: ")) + anum +" out of range";
+        }
+        return -1;
+    }
 
-// send an identiant of arduino sketch: it sends the name of the file !
-// you have to define the var  in your sketch.ino
-//   with   setFile(F(__FILE__))
-int sendSketchId(const CommandList& aCL, const String& dumb)
-{
-    String msg2py= "idSketch:" + sketchInfo.getFile() ;
-    aCL.msgPrint(msg2py);
-    return 0;
+    // check type of arg that is asked
+    if (getFmtNum(anum) != PC_FLOAT)   {
+        // if an error has been detected already, we dont erase the former one
+        if (_numError == NO_ERROR)  {
+            _numError = CODE_BAD_FMT;
+            _strError = String(F("index num: ")) + anum +" code asks for wrong format";
+        }
+        return -1;
+    }
+
+    String arg = getArgStrNum(anum);
+    return arg.toFloat();
+
 }
 
+String ParsedCommand::getValueStr(int anum)   {
+    // test input
+    if ( (anum < 1) || (_nbArg < anum) )   {
+        // if an error has been detected already, we dont erase the former one
+        if (_numError == NO_ERROR)  {
+            _numError = INDEX_ABOVE_NB_ARG;
+            _strError = String(F("index num: ")) + anum +" out of range";
+        }
+        return "";
+    }
 
-// send an identifiant for the version of the sketch
-//   we use the __DATE__ and __TIME__ when it was built
-// you have to define those  var  in your sketch.ino
-//   with   sketchInfo.setFileDateTime(F(__FILE__), F(__DATE__), F(__TIME__))
-int sendSketchBuild(const CommandList& aCL, const String& dumb)
-{
-    String msg2py= "idBuild:" + sketchInfo.getDate() +','+ sketchInfo.getTime() ;
-    aCL.msgPrint(msg2py);
-    return 0;
+    // check type of arg that is asked
+    if ( (getFmtNum(anum) != PC_STRING) && (getFmtNum(anum) != PC_CHAR_LIST) )  {
+        // if an error has been detected already, we dont erase the former one
+        if (_numError == NO_ERROR)  {
+            _numError = CODE_BAD_FMT;
+            _strError = String(F("index num: ")) + anum +" code asks for wrong format";
+        }
+        return "";
+    }
+
+    return getArgStrNum(anum);
+
 }
 
-// send the list of cmd AT available
-int sendListCmd(const CommandList& aCL, const String& dumb)   // TODO: adapt
-{
-    String sMode = "short";
-    if (dumb.lastIndexOf("full") >= 0)
-        sMode = "full";
-
-    String nameCL = "";   // "" will mean all CommandList
-
-    int cr = aCL.getSerialListener()->displayListCmd(nameCL, sMode);
-
-    if (cr == 0)
-        aCL.msgOK(dumb, String(cr));
+ParsedCommand::ERROR_PC ParsedCommand::checkType(const String& aArg, const String& aFmt) {
+    // if it is s String, any input is valid
+    if (aFmt == PC_STRING)
+        return NO_ERROR;
+    // if it is  ss , it is a string whose letters are optional (ie ls | ls r | ls ard )
+    //  all content in aArg may be possible, the validity will be checke with limit
+    else if (aFmt == PC_CHAR_LIST)
+        return NO_ERROR;
+    // if it is i  integer, we try and convert with toInt
+    else if (aFmt == PC_INT)
+    {
+        int iValue = aArg.toInt();
+        // toInt will return 0, if it is not an int
+        if ( (iValue == 0) && ( ! aArg.equals("0")) )   {
+          _strError = String(F("value: ")) + aArg + F(" must be integer");
+          _numError = INT_REQUIRED;
+          return INT_REQUIRED;
+        }
+    }
+    else if (aFmt == PC_FLOAT)
+    {
+        String notFloat = F("not a float");
+        double dValue = aArg.toFloat();
+        // toFloat will return 0.0, if it is not a float
+        if ( (dValue == notFloat.toFloat()) && ( ! aArg.equals("0."))
+                                            && ( ! aArg.equals("0"))  )   {
+          _strError = String(F("value: ")) + aArg + F(" must be float");
+          _numError = INT_REQUIRED;
+          return INT_REQUIRED;
+        }
+    }
     else
-        aCL.msgKO(dumb, String(cr));
-    return cr;
+    {
+        _strError = String(F("format: ")) + aFmt + F(" is not known");
+        _numError = UNKNOWN_FMT;
+        return UNKNOWN_FMT;
+    }
+
+    return NO_ERROR;
 }
 
-// send the list of Pin definition
-int sendListPin(const CommandList& aCL, const String& dumb)
-{
-//    String availPin = "";
-//    if (listPinSize >= 0)
-//       availPin = availPin + " " + listPin[0].numPin +" "+ listPin[0].namePin;
-//    for (int i=1; i<listPinSize; i++)
-//       availPin = availPin + ", " + listPin[i].numPin +" "+ listPin[i].namePin;
-    
-//    String msg2py = msg2pyStart + "listPin" + ":" + availPin + msg2pyEnd;
-//    SERIAL_MSG.print(msg2py);
-    return 0;
-}
+ParsedCommand::ERROR_PC ParsedCommand::checkLimit(const String& aArg,
+                                                  const String& aFmt, const String& aLim)  {
+    // indication of limit is optional,  * means all is possible
+    if (aLim == "*")   return NO_ERROR;
+    // empty lim, I accept as = "*"
+    // yet   if aFmt == PC_CHAR_LIST  then  aLim is mandatory
+    if ( (aLim == "") && (aFmt != PC_CHAR_LIST) )  return NO_ERROR;
 
-// change the blink period of the led
-//   led will blink thanks to blinkLed called in loop
-int ledBlinkTime(const CommandList& aCL, const String& sCmdAndBlinkTime)
-{
-    // sCmdAndBlinkTime contains cmd and value with this format cmd:value
-    // value must exist
-    int ind = sCmdAndBlinkTime.indexOf(":");
-    if (ind < 0)   {
-      LOG_ERROR(F("ledBlinkTime cmd needs 1 value"));
-      String msg2py = msg2pyStart + "ledBlinkTime/KO" + msg2pyEnd;
-      SERIAL_MSG.print(msg2py);
-      return 1;
-    }
-    
-    // we get value part
-    String sValue = sCmdAndBlinkTime.substring(ind+1);
-    // value must be an int
-    int iValue = sValue.toInt();
-    // toInt will return 0, if it is not an int
-    if ( (iValue == 0) && ( ! sValue.equals("0")) )   {
-      LOG_ERROR(F("ledBlinkTime: value must be 1 integer"));
-      String msg2py = msg2pyStart + "ledBlinkTime/KO" + msg2pyEnd;
-      SERIAL_MSG.print(msg2py);
-      return 2;
-    }
-    else if (iValue < 0)   {
-      LOG_ERROR(F("ledBlinkTime: value must be integer > 0"));
-      String msg2py = msg2pyStart + "ledBlinkTime/KO" + msg2pyEnd;
-      SERIAL_MSG.print(msg2py);
-      return 3;
+    // check aFmt=PC_CHAR_LIST : a string made of several optional char
+    // this case is different because there is only one pattern
+    if (aFmt == PC_CHAR_LIST)   {
+        if ( checkLimitSeveralChar(aArg, aFmt, aLim) )
+            return NO_ERROR;
+        else
+            return _numError;
     }
 
-    blinkTime = iValue;
-    
-    // I send back OK msg
-    String msg2py = msg2pyStart + "ledBlinkTime/OK:" + blinkTime + msg2pyEnd;
-    SERIAL_MSG.print(msg2py);
-    
-    return 0;
-}
+    boolean limOK = false;
 
-// that function is called in the loop
-// it blinks LED at speed blinkTime (global variable)
-void blinkLed() {
-  static long lastChange=0;
-  static int  blinkState=0;
+    // if aLim = "ON|OFF", there is 2 values for singleLim: ON  or  OFF
+    // we parse aLim and test each possible  singleLim
+    int indStart = 0;
+    int indSeparator=0;
+    do  {
+        indSeparator = aLim.indexOf("|", indStart);
 
-  if (millis() - lastChange > blinkTime)   {
-    lastChange = millis();
-    blinkState = ! blinkState;
-    digitalWrite(PIN_LED13, blinkState);
-  }
-}
-
-// switch the led On or Off
-int switchLed(const CommandList &aCL, const String& sOnOff)
-{
-    // sCmdAndBlinkTime contains cmd and value with this format cmd:value
-    // value must exist
-    int ind = sOnOff.indexOf(":");
-    if (ind < 0)   {
-      LOG_ERROR(F("switchLed cmd needs 1 value"));
-      String msg2py = msg2pyStart + "switchLed/KO" + msg2pyEnd;
-      SERIAL_MSG.print(msg2py);
-      return 1;
+        // if there is no separator, indexOf returns -1
+        int indEnd = indSeparator;
+        if (indEnd < 0)
+            indEnd = aLim.length();
+        //
+        String singleLim = aLim.substring(indStart, indEnd);
+        // if it is string
+        if (aFmt == PC_STRING)   {
+            limOK = checkLimit1Str(aArg, aFmt, singleLim);
+        }
+        else if (aFmt == PC_INT)   {
+            limOK = checkLimit1Int(aArg, aFmt, singleLim);
+        }
+        else if (aFmt == PC_FLOAT)   {
+            limOK = checkLimit1Float(aArg, aFmt, singleLim);
+        }
+        else   {
+            _strError = F("checkLimit does not recognize format");
+            return setError(UNKNOWN_FMT);
+        }
+        indStart = indSeparator + 1;
     }
-    
-    // we get value part
-    String sValue = sOnOff.substring(ind+1);
-    // value must be  ON  or  OFF
-    if ( ( ! sValue.equals("ON")) && ( ! sValue.equals("OFF")) )   {
-      LOG_ERROR(F("switchLed: value must be ON or OFF"));
-      String msg2py = msg2pyStart + F("switchLed/KO") + msg2pyEnd;
-      SERIAL_MSG.print(msg2py);
-      return 2;
-    }
+    while ( (indSeparator > 0) && (! limOK) );
 
-    int iValue=0;
-    // converts ON / OFF  to  1 / 0
-    if (sValue.equals("ON"))
-      iValue = 1;
-    else if (sValue.equals("OFF"))
-      iValue = 0;
+    if (! limOK)   {
+        // aArg  dont respect any limit pattern in aLim
+        _strError = String("arg: ") + aArg +" incompatible with limit: "+ aLim;
+        _numError = LIMIT_BAD;
+        return LIMIT_BAD;
+    }
     else
-      SERIAL_MSG.println ("jamais de la vie");
-   
-    digitalWrite(PIN_LED13, iValue);
-    
-    // I send back OK msg
-    String msg2py = msg2mqttStart + F("switchLed/OK:") + sValue + msg2pyEnd;
-    SERIAL_MSG.print(msg2py);
-    // I send back state msg
-    msg2py = msg2mqttStart + F("etat:") + sValue + msg2pyEnd;
-    SERIAL_MSG.print(msg2py);
-    
-    return 0;
+        return NO_ERROR;
 }
 
-int cmdPinMode(const CommandList& aCL, const String& pin_mode) {
-    // pin_mode contains cmd and value with this format cmd:value
-    // value must exist
-    int ind = pin_mode.indexOf(":");
-    if (ind < 0)   {
-      LOG_ERROR(F("pinMode cmd needs 2 values"));
-      return 1;
-    }
-    // we get value part
-    String sValues = pin_mode.substring(ind+1);
-    
-    // we separate the 2 values
-    ind = sValues.indexOf(",");
-    if (ind < 0)   {
-      LOG_ERROR(F("pinMode cmd needs 2 values"));
-      return 2;
-    }
+boolean ParsedCommand::checkLimit1Str(const String& aArg,
+                                      const String& aFmt, const String& aLim)  {
+    // DEBUG
+//    Serial.println(String("arg: ")+ aArg +" limit: "+ aLim);
 
-    // we get 1st value
-    String sValue = sValues.substring(0,ind);
-    // value must be an int
-    int iValue1 = sValue.toInt();
-    // toInt will return 0, if it is not an int
-    if ( (iValue1 == 0) && ( ! sValue.equals("0")) )   {
-      LOG_ERROR(F("pinMode cmd: value 1 must be integer"));
-      return 2;
-    }
-    else if ((iValue1 < 0) || (20 < iValue1))   {   // note that the value 20 is not accurate
-      LOG_ERROR(F("pinMode cmd: value 1 must be compatible with pin num"));
-      return 3;
-    }
+    if (aLim == "*")
+        return true;
 
-    // we get 2nd value
-    sValue = sValues.substring(ind+1);
-    // value must be an int
-    int iValue2 = sValue.toInt();
-    // toInt will return 0, if it is not an int
-    if ( (iValue2 == 0) && ( ! sValue.equals("0")) )   {
-      LOG_ERROR(String(F("pinMode cmd: value 2 must be integer:")) + sValue);
-      return 4;
-    }
-    else if ((iValue2 < 0) || (2 < iValue2))   {
-      LOG_ERROR(F("pinMode cmd: value 2 must be mode=0/1/2"));
-      return 5;
-    }
-
-    // ok, so we can make command
-    pinMode(iValue1, iValue2);
-
-    // I send back OK msg
-    String msg2py = msg2pyStart + "pinMode/OK" + msg2pyEnd;
-    SERIAL_MSG.print(msg2py);
-    
-    return 0;
+    if (aArg == aLim)
+        return true;
+    else
+        return false;
 }
 
-// cmd a analogRead or digitalRead
-// value fmt: pin (0-20), 1=digitalRead/2=analogRead
-int cmdPinRead(const CommandList& aCL, const String& pin_digitAnalog) {
-    // pin_mode contains cmd and value with this format cmd:value
-    
-    // value must exist
-    int ind = pin_digitAnalog.indexOf(":");
-    if (ind < 0)   {
-      LOG_ERROR(F("pinRead cmd needs 2 values"));
-      return 1;
-    }
-    // we get value part
-    String sValues = pin_digitAnalog.substring(ind+1);
-    
-    // we separate the 2 values
-    ind = sValues.indexOf(",");
-    if (ind < 0)   {
-      LOG_ERROR(F("pinRead cmd needs 2 values"));
-      return 2;
+boolean ParsedCommand::checkLimit1Int(const String& aArg,
+                                          const String& aFmt, const String& aLim)  {
+    // DEBUG
+//    Serial.println(String("arg: ")+ aArg +" limit: "+ aLim);
+
+    if (aLim == "*")
+        return true;
+
+    if (aArg == aLim)
+        return true;
+
+    // we check if the pattern is start - end  (ie 1-9)
+    int hyphen = aLim.indexOf("-");
+    // if pattern is of type  -10-10   (ie: from -10 to +10)
+    //   then we look for 2nd hyphen
+    if (hyphen == 0)
+        hyphen = aLim.indexOf("-", 1);
+
+    if (hyphen > 0)   {
+        String sstart = aLim.substring(0,hyphen);
+        String send = aLim.substring(hyphen+1);
+        int start = sstart.toInt();
+        int end = send.toInt();
+        int iArg = aArg.toInt();
+        // start and end must be integers.  if toInt fails, it returns 0
+        if (  ( (start == 0) && (sstart != "0") )  ||
+              ( (end   == 0) && (send   != "0") )  ||
+              ( (iArg  == 0) && (aArg   != "0") )     )   {
+            _strError = String("error in limit pattern with hyphen: ") + aLim;
+            _numError = LIMIT_BAD;
+            return false;
+        }
+        if ( (start <= iArg) && (iArg <= end) )
+            return true;
     }
 
-    // we get 1st value
-    String sValue = sValues.substring(0,ind);
-    // value must be an int
-    int iValue1 = sValue.toInt();
-    // toInt will return 0, if it is not an int
-    if ( (iValue1 == 0) && ( ! sValue.equals("0")) )   {
-      LOG_ERROR(F("pinRead cmd: value 1 must be integer"));
-      return 21;
-    }
-    else if ((iValue1 < 0) || (20 < iValue1))   {   // note that the value 20 is not accurate
-      LOG_ERROR(F("pinRead cmd: value 1 must be compatible with pin num"));
-      return 3;
+    return false;
+}
+boolean ParsedCommand::checkLimit1Float(const String& aArg,
+                                        const String& aFmt, const String& aLim)  {
+    // DEBUG
+//    Serial.println(String("arg: ")+ aArg +" limit: "+ aLim);
+
+    if (aLim == "*")
+        return true;
+
+    if (aArg == aLim)
+        return true;
+
+    // we check if the pattern is start - end  (ie 1-9)
+    int hyphen = aLim.indexOf("-");
+    if (hyphen > 0)   {
+        String notFloat = F("not a float");
+        double dNoFloat = notFloat.toFloat();
+        String sstart = aLim.substring(0,hyphen);
+        String send = aLim.substring(hyphen+1);
+        double start = sstart.toFloat();
+        double end = send.toFloat();
+        double dArg = aArg.toFloat();
+        // start and end must be integers.  if toFloat fails, it returns 0.
+        if (  ( (start == dNoFloat) && ( ! sstart.startsWith("0")) )  ||
+              ( (end   == dNoFloat) && ( ! send.startsWith("0")  ) )  ||
+              ( (dArg  == dNoFloat) && ( ! aArg.startsWith("0")  ) )     )   {
+            _strError = String("error in limit pattern with hyphen: ") + aLim;
+            _numError = LIMIT_BAD;
+            return false;
+        }
+        if ( (start <= dArg) && (dArg <= end) )
+            return true;
     }
 
-    // we get 2nd value
-    sValue = sValues.substring(ind+1);
-    // value must be an int
-    int iValue2 = sValue.toInt();
-    // toInt will return 0, if it is not an int
-    if ( (iValue2 == 0) && ( ! sValue.equals("0")) )   {
-      LOG_ERROR(F("pinRead cmd: value 2 must be integer"));
-      return 4;
-    }
-    else if ((iValue2 < 1) || (2 < iValue2))   {
-      LOG_ERROR(F("pinRead cmd: value 2 must be digital/analog=1/2"));
-      return 5;
-    }
-
-    // ok, so we can make command
-    int iValue=0;
-    if (iValue2 == 1)
-      iValue = digitalRead(iValue1);
-    else   // iValue2 == 2
-      iValue = analogRead(iValue1);
-
-    // I send back OK msg
-    String msg2py = msg2pyStart + "pinRead:" + iValue + msg2pyEnd;
-    SERIAL_MSG.print(msg2py);
-    
-    return 0;
+    return false;
 }
 
-// cmd a digitalWrite or analogWrite (PWM) 
-// value fmt: pin (0-20), 1=digitalRead/2=analogRead, value
-int cmdPinWrite(const CommandList& aCL, const String& pin_digitAnalog_val) {
-    // pin_digitAnalog_val contains cmd and value with this format cmd:pin,digAn,value
-    
-    // value must exist
-    int ind = pin_digitAnalog_val.indexOf(":");
-    if (ind < 0)   {
-      aCL.msgKO(pin_digitAnalog_val, F("cmd needs 3 values"));
-      return 1;
-    }
-    // we get value part
-    String sValues = pin_digitAnalog_val.substring(ind+1);
-    
-    // we separate the values
-    ind = sValues.indexOf(",");
-    if (ind < 0)   {
-      aCL.msgKO(pin_digitAnalog_val, F("cmd needs 3 values"));
-      return 2;
+boolean ParsedCommand::checkLimitSeveralChar(const String& aArg,
+                                      const String& aFmt, const String& aLim)  {
+    if (aLim == "")   {
+        _strError = String("empty lim, whereas it is mandatory with format: ") + aFmt;
+        _numError = LIMIT_BAD;
+        return false;
     }
 
-    // we get 1st value
-    String sValue = sValues.substring(0,ind);
-    // value must be an int
-    int iValue1 = sValue.toInt();
-    // toInt will return 0, if it is not an int
-    if ( (iValue1 == 0) && ( ! sValue.equals("0")) )   {
-      aCL.msgKO(pin_digitAnalog_val, F("value 1 must be integer"));
-      return 21;
-    }
-    else if ((iValue1 < 0) || (20 < iValue1))   {   // note that the value 20 is not accurate
-      aCL.msgKO(pin_digitAnalog_val, F("value 1 must be compatible with pin num"));
-      return 3;
+    // all char in aArg  must be present in aLim
+    for (int i=0; i<aArg.length(); i++)   {
+        // if  char is not  present  (indexOf returns -1)
+        if ( aLim.indexOf(aArg.charAt(i)) < 0 )   {
+            _strError = String("char:") + aArg.charAt(i) +" must be one of: " + aLim;
+            _numError = LIMIT_BAD;
+            return false;
+        }
     }
 
-    // we get the 2 last values
-    sValues = sValues.substring(ind+1);
-    // we separate the 2 last values
-    ind = sValues.indexOf(",");
-    if (ind < 0)   {
-      aCL.msgKO(pin_digitAnalog_val, F("pinWrite cmd needs 3 values"));
-      return 31;
-    }
-
-    // we get 2nd value
-    sValue = sValues.substring(0,ind);
-    // value must be an int
-    int iValue2 = sValue.toInt();
-    // toInt will return 0, if it is not an int
-    if ( (iValue2 == 0) && ( ! sValue.equals("0")) )   {
-      aCL.msgKO(pin_digitAnalog_val, F("pinWrite cmd: value 2 must be integer"));
-      return 4;
-    }
-    else if ((iValue2 < 1) || (2 < iValue2))   {
-      aCL.msgKO(pin_digitAnalog_val, F("pinWrite cmd: value 2 must be digital/analog=1/2"));
-      return 5;
-    }
-
-    // we get 3rd value
-    sValue = sValues.substring(ind+1);
-    // value must be an int
-    int iValue3 = sValue.toInt();
-    // toInt will return 0, if it is not an int
-    if ( (iValue3 == 0) && ( ! sValue.equals("0")) )   {
-      aCL.msgKO(pin_digitAnalog_val, F("pinWrite cmd: value 3 must be integer"));
-      return 6;
-    }
-    else if (iValue3 < 0)   {
-      aCL.msgKO(pin_digitAnalog_val, F("pinWrite cmd: value 3 must be >=0"));
-      return 7;
-    }
-
-    // ok, so we can make command
-    if (iValue2 == 1)
-      digitalWrite(iValue1,iValue3);
-    else   // iValue2 == 2
-      analogWrite(iValue1,iValue3);
-
-    // I send back OK msg
-    aCL.msgOK(pin_digitAnalog_val, "");
-    
-    return 0;
+    return true;
 }
+
+
+ParsedCommand::ERROR_PC ParsedCommand::verifyFormatMsg(Command& aCmd, const String& aStrCmdArg)   {
+    // error may have been detected by constructor
+    if (_numError != NO_ERROR)   return _numError;
+    // if cmdArg, cmdFormat or cmdLimit have different nb, this is detected by constructor
+
+    // DEBUG
+/*    String darg = "indices strcmdarg: "+ String(_indicesCmd[0]);
+    String dfmt = "indices strfmt: "+ String(_indicesFmt[0]);
+    String dlim = "indices strlim: "+ String(_indicesLim[0]);
+    for (int i=1; i<_nbArg+1; i++)   {
+        darg += String(",")+ _indicesCmd[i];
+        dfmt += String(",")+ _indicesFmt[i];
+        dlim += String(",")+ _indicesLim[i];
+    }
+    Serial.println(darg);
+    Serial.println(dfmt);
+    Serial.println(dlim);
+*/
+    for (int i=1; i<=_nbArg; i++)   {
+        // check type of arg
+        if (checkType(getArgStrNum(i), getFmtNum(i)) != NO_ERROR)   return _numError;
+        if (checkLimit(getArgStrNum(i), getFmtNum(i), getLimNum(i)) != NO_ERROR)   return _numError;
+    }
+
+    return NO_ERROR;
+}
+
 

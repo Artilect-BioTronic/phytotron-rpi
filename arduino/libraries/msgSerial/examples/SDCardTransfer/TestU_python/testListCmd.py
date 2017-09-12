@@ -8,12 +8,12 @@ from __future__ import print_function
 import serial
 import time
 
-msgStartAT='CM+'
-msgStartDO='DO+'
+msgStartT='t+'
+msgStartAT='AT+'
 msgEnd='\n'
 
 devSerial='/dev/ttyACM0'
-bd=9600
+bd=38400
 fileSD = "fake"
 
 
@@ -32,12 +32,12 @@ def sendCmdArd(aCmd):
    cmd2arduino = msgStartAT + aCmd + msgEnd
    ser.write(cmd2arduino)
 
-def scar(aCmd, prefix=msgStartAT):
+def scar(aCmd, prefix=msgStartT):
    cmd2arduino = prefix + aCmd + msgEnd
    ser.write(cmd2arduino)
    emptyRx(ser)
-   
-def scar2(aCmd, prefix=msgStartDO):
+
+def scar2(aCmd, prefix=msgStartAT):
    cmd2arduino = prefix + aCmd + msgEnd
    ser.write(cmd2arduino)
    emptyRx(ser)

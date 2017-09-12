@@ -2,75 +2,25 @@
 #define MSGSERIAL_H
 
 #include "Arduino.h"
-#include "msgExampleFunction.h"
 
-
-#define SERIAL_MSG Serial
-
-
-class SketchInfo   {
-public:
-    SketchInfo(): file_("unknown"), date_("unknown"),time_("unknown") {}
-    void setFile(const String &aFullFilename);
-    void setDate(const String &arg)   {date_ = arg;}
-    void setTime(const String &arg)   {time_ = arg;}
-    void setFileDateTime(const String &aFullFilename, const String &aDate,const String &aTime);
-    String getFile()   {return file_;}
-    String getDate()   {return date_;}
-    String getTime()   {return time_;}
-private:
-    String file_;
-    String date_;
-    String time_;
-};
-extern SketchInfo sketchInfo;
-
-struct stListPin { int numPin; const char *namePin;
-       stListPin(int n, const char *np) : numPin(n), namePin(np) {}
-};
-
-// listPin and listPinSize are defined in main sketch.ino
-// ex of definition
-/*
-// #define PIN_CAPTOR  10
-// #define PIN_LED 2
-stListPin listPin[] = {
-  stListPin(PIN_LED, "LED"),
-  stListPin(PIN_CAPTOR, "CAPTOR unknown")
-};
-int listPinSize = sizeof(listPin) / sizeof(stListPin);
-*/
-#define PIN_LED13 13
 
 class CommandList;
 
-struct Command {
+class Command {
+public:
     const String cmdName;
     const String cmdFormat;
     const String cmdLimit;
-    int (*cmdFunction)(const CommandList& aCL, const String& aTopicValue) ;
-    Command(const char *cn, int (*cf)(const CommandList&, const String&) ):
-        cmdName(cn), cmdFunction(cf) {}
+    int (*cmdFunction)(const CommandList& aCL, Command& aCmd, const String& aTopicValue) ;
+    Command(const char *cn, int (*cf)(const CommandList&, Command&, const String&),
+            const char *cfo ="", const char *cl ="") :
+        cmdName(cn), cmdFormat(cfo), cmdLimit(cl), cmdFunction(cf) {}
+
+//    int _ErrorNum;   // 0 if no error while processing command
 };
 
-extern boolean inputMessageReceived;
 extern String msg2pyStart, msg2mqttStart, msg2pyEnd, prefAT, prefDO ;
 
-// You can keep all those functions here
-//   they DO NOT take program space if you dont call them in main sketch.ino
-//   that means if they are not included in your cmdos and cmds  arrays
-
-// list of available commands (user) that the arduino will accept
-//   there is a list of functions in  msgExampleFunction.h
-
-// list of available commands (system ctrl) that the arduino will accept
-int sendSketchId(const CommandList& aCL, const String& dumb);
-int sendSketchBuild(const CommandList& aCL, const String& dumb);
-int sendListCmd(const CommandList& aCL, const String& dumb);
-int sendListPin(const CommandList& aCL, const String& dumb);
-int cmdPinMode(const CommandList& aCL, const String& dumb);
-int cmdPinRead(const CommandList& aCL, const String& dumb);
-int cmdPinWrite(const CommandList &aCL, const String& dumb);
 
 // list of available commands (user) that the arduino will accept
 // ex  that you define in main sketch.ino
@@ -109,14 +59,8 @@ int cmdsSize = sizeof(cmds) / sizeof(Commande);
 #define SIZE_OF_TAB(tab)            sizeof(tab)/sizeof(tab[0])
 
 
-// functions to send back messages
-
-size_t msgSPrint(const String& aMsg);
-size_t msgSPrintln(const String& aMsg);
-size_t msgSError(const String& aMsg);
-String getCommand(const String& aCmdVal);
-
 class SerialListener;
+class ParsedCommand;
 
 class CommandList
 {
@@ -125,7 +69,7 @@ private:
     char _argSeparator;
 
     const uint8_t _nbObjects;
-    const Command *_arrayCmd;
+    Command *_arrayCmd;
     Stream * _pStream;   /// provided by SerialListener
     SerialListener * _pSerialListener;
     const String _nameListCmd;
@@ -133,24 +77,39 @@ private:
     const char _cmdEnd;
 
 public:
-    uint8_t getNbCmd() { return _nbObjects; }
+    uint8_t getNbCmd() const  { return _nbObjects; }
     Command* getCmd(uint8_t i);
-    char getCmdEnd() { return _cmdEnd; }
+    char getCmdSeparator()  const   { return _cmdSeparator; }
+    char getArgSeparator()  const   { return _argSeparator; }
+    String getCmdPrefix() const     { return _prefix; }
+    char getCmdEnd() const          { return _cmdEnd; }
+    Stream* getStream()             { return _pStream;}
+    SerialListener* getSerialListener() const  {return _pSerialListener;}
+
+    String getCommand(const String& aCmdVal) const ;
+
     void setStream(Stream * apStream)   {_pStream = apStream;}
     void setSerialListener(SerialListener * apSerialListener)   {_pSerialListener = apSerialListener;}
-    SerialListener* getSerialListener() const  {return _pSerialListener;}
+
     int displayListCmd(String& aNameCL, String& asMode)  const;
 
     size_t msgPrint(const String& aMsg) const;
     size_t msgOK(const String& aStrCmd, const String& aMsg) const;
+    size_t msgOK(const String& aStrCmd, int aMsg) const;
     size_t msgKO(const String& aStrCmd, const String& aMsg) const;
+    size_t msgKO(const String& aStrCmd, int aMsg) const;
     size_t msgError(const String& aMsg) const;
+//    int returnKO(Command& aCmd) const ;
+    int returnKO(Command& aCmd, ParsedCommand& aPC) const ;
 
     CommandList(const String &nameListCmd, const String &prefix,
-                const int nbObjects, const Command arrayCmd[],
+                const int nbObjects, Command arrayCmd[],
                 char cmdSeparator=':', char argSeparator=',', char cmdEnd='\n');
 
     bool checkMessageReceived(String aInputMessage);
+    bool readInternalMessage(String aInternalNudeMessage);
+
+    int verifyFormatMsg(Command& aCmd, const String& sOnOff);
 };
 
 class SerialListener
@@ -176,50 +135,59 @@ public:
     int displayListCmd(String& aNameCL, String& asMode)  const;
 };
 
-
-
-
-/**
- * @brief The CommandC class is an array of Command; it counts its element
- *
- * The class is not used, we use simply CommandList
- */
-class CommandC
+class ParsedCommand
 {
-  private:
-  static uint8_t nbObjects;
-  static const uint8_t nbObjectsMax = 20;
-  static CommandC* arrayObjects[nbObjectsMax];
-  static int addCmdInArray(CommandC* pCmd);
+public:
+    enum  ERROR_PC { NO_ERROR=0, ERROR_IN_CODE, TOO_LONG, NB_ARG_DIFFERENT, INDEX_ABOVE_NB_ARG,
+                     TOO_MANY_ARG, INT_REQUIRED, FLOAT_REQUIRED, UNKNOWN_FMT,
+                     CODE_BAD_FMT, LIMIT_BAD };
+    static const int _maxLengthString = 127;
+    static const int _maxNbArg = 5;
+    static const char PC_STRING[];
+    static const char PC_CHAR_LIST[];
+    static const char PC_INT[];
+    static const char PC_FLOAT[];
+    static const char PC_LIM_ANY_OPT[];
 
-  public:
-  static uint8_t getNbObjects() {return nbObjects;}
-  static CommandC* getObject(uint8_t i);
+private:
+    const CommandList& _cmdList;
+    const Command& _cmd;
+    const String& _strCmdArg;
+    uint8_t _indicesCmd[_maxNbArg+1];
+    uint8_t _indicesFmt[_maxNbArg+1];
+    uint8_t _indicesLim[_maxNbArg+1];
+    ERROR_PC _numError;
+    String   _strError;
+    uint8_t _nbArg;
 
-  const String cmdName;
-  int (*cmdFunction)(const String& topic_value) ;
-  CommandC(const char* cn, int (*cf)(const String&) ): cmdName(cn), cmdFunction(cf) {
-    addCmdInArray(this);
-  }
+    boolean checkLimit1Str(const String& aArg, const String &aFmt, const String& aLim);
+    boolean checkLimit1Int(const String& aArg, const String &aFmt, const String& aLim);
+    boolean checkLimit1Float(const String& aArg, const String &aFmt, const String& aLim);
+    boolean checkLimitSeveralChar(const String& aArg, const String &aFmt, const String& aLim);
+
+public:
+    ParsedCommand(const CommandList& aCmdList, const Command &aCmd, const String& aStrCmdArg);
+
+    ParsedCommand::ERROR_PC setError(ERROR_PC nerr)   {_numError=nerr; return nerr;}
+    ParsedCommand::ERROR_PC getError()  const  {return _numError;}
+    String getErrorStr() const  {return _strError;}
+    boolean hasError()  const   {return _numError != NO_ERROR;}
+
+    ERROR_PC verifyFormatMsg(Command& aCmd, const String& aStrCmdArg) ;
+    ParsedCommand::ERROR_PC checkType(const String& aArg, const String& aFmt);
+    ParsedCommand::ERROR_PC checkLimit(const String& aArg, const String &aFmt, const String& aLim);
+
+    int splitString(const String& aStrCmdArg, uint8_t aIndices[_maxNbArg],
+                    uint8_t& aNbArg, int aIndStart=0);
+    String getArgStrNum(uint8_t anum);
+    String getFmtNum(uint8_t anum) ;
+    String getLimNum(uint8_t anum) ;
+
+    int getValueInt(int anum);
+    float getValueFloat(int anum);
+    String getValueStr(int anum);
+
 };
-
-//void serialEventMFMQTT();
-
-/**
- because of bad communication, some messages may be stucked in
-   serial buffer. If so, we trace it
- */
-int  checkNoStuckMessageInBuffer() ;
-
-/**
- check if a message has been received and analyze it
-
- in your main sketch.ino, you have to update global var inputMessageReceived and inputMessage
- checkMessageReceived calls the function corresponding to  cmds/cmdos array
- */
-//void checkMessageReceived();
-
-int getSensorValue(); 
 
 
 #endif // MSGSERIAL_H

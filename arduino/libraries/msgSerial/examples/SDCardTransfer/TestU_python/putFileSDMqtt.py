@@ -150,7 +150,7 @@ class MQTTChannel(mqtt.Client):
     """L objet va permettre la communication avec MQTT
     Tous les messages, aller et retour, utiliserons la meme racine de topic"""
     
-    maxCmdStore = 10   # I wont memorize too many different command in store
+    maxCmdStore = 20   # I wont memorize too many different command in store
     
     def __init__(self, aTopicSend, aTopicRec, 
                  client_id="", clean_session=True, userdata=None, protocol=mqtt.MQTTv31):

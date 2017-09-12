@@ -1,10 +1,30 @@
+#ifndef TEMPHUMMSG_H
+#define TEMPHUMMSG_H
+
 #include "Arduino.h"
 
-//#include "SD.h"
-//#include "SdFat.h"
-//extern SdFat SD;
-
 #include "msgSerial.h"
+
+#define CFG_CPLT        1
+#define CFG_SD_RTC      2
+
+#define CFG_MAT_CHECK   CFG_CPLT
+
+#ifdef CFG_MAT
+    #if (CFG_MAT != CFG_MAT_CHECK)
+        #error "CFG_MAT_CHECK" and "CFG_MAT" must be updated with same value
+    #endif
+#else
+    #define CFG_MAT     CFG_MAT_CHECK
+#endif
+
+#if (CFG_MAT == CFG_CPLT)
+#define SERIAL_MSG Serial1
+#else
+#define SERIAL_MSG Serial
+#endif
+
+#include "msgExampleFunction.h"
 
 /*---------------------------------------------------------------*/
 /*                                          */
@@ -32,15 +52,15 @@ int sendConsigne();
 String getTrameConsigne();
 
 // liste des fonctions definies dans le fichier TempHumMsg.cpp
-int sendDate(const String& aStr);
-int updateHumCsgn(const String& aStr);
-int updateTempCsgn(const String& aStr);
+int sendDate(const CommandList& aCL, Command &aCmd, const String& aInput);
+int updateHumCsgn(const CommandList& aCL, Command &aCmd, const String& aInput);
+int updateTempCsgn(const CommandList& aCL, Command &aCmd, const String& aInput);
 
 void     fakeReleveValeurs();
 
 
 // liste des variables globales definies dans le fichier TempHumDeligne.ino
-extern byte consigneTemp;
+extern int consigneTemp;
 extern byte consigneHum ;
 
 extern byte temperatureInterieureEntiere ;
@@ -60,3 +80,5 @@ extern CommandList cmdLSysPhy;   //("cmdSys", "AT+", SIZE_OF_TAB(cmdSysPhy), cmd
 int setupTempHumMsg();
 
 int changeNameVal(const String& astr);
+
+#endif // TEMPHUMMSG_H

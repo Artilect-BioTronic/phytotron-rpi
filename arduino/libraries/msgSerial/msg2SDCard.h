@@ -8,6 +8,10 @@ extern SdFat SD;
 
 #include "msgSerial.h"
 
+
+// utility function
+boolean isPathCompatibleDOS83(const String& aFile);
+
 /*---------------------------------------------------------------*/
 /*                                          */
 /*---------------------------------------------------------------*/
@@ -22,6 +26,7 @@ private:
     String fileName_;
     boolean isOpened_;
     boolean isPreOpened_;
+    uint8_t iMode_;
     long filePos_;
 
     int readlnNoOpen(String& aString);
@@ -34,7 +39,9 @@ public:
     static const char endOfLine_[];
 
 public:
-    int stayOpen(const String& aFileName, uint8_t aMode);
+    Cmd2File();
+    ~Cmd2File();
+    int stayOpen(const String& aFileName, const String &aMode);
     /**
      * @brief preOpen open file then close it, it will stay closed between read / write access
      * @param[in] aFileName : file name
@@ -59,9 +66,7 @@ public:
      * @param[in] aMode : string contening "rsda" meaning recurse,size,date,all
      * @return 0 Ok, <0 error
      */
-    int ls(Stream &aStream, const String &aMode);
-    Cmd2File();
-    ~Cmd2File();
+    int ls(const CommandList &aCL, const String &aMode);
 };
 
 
@@ -74,7 +79,7 @@ public:
  *
  * \return 0 for success and negative for failure
  */
-int srStayOpen(const String& argFile);
+int srStayOpen(const CommandList& aCL, Command &aCmd, const String& aInput);
 
 /** Prepare to open a file before read / write can be done
  *
@@ -88,26 +93,26 @@ int srStayOpen(const String& argFile);
  *
  * \return 0 for success and negative for failure
  */
-int srPreOpen(const String& argFile);
+int srPreOpen(const CommandList& aCL, Command &aCmd, const String& aInput);
 
-int srClose(const String& argFile);
+int srClose(const CommandList& aCL, Command &aCmd, const String& aInput);
 
-int srReadln(const String& dumb);
+int srReadln(const CommandList& aCL, Command &aCmd, const String& aInput);
 
-int srWriteln(const String& aToWrite);
+int srWriteln(const CommandList& aCL, Command &aCmd, const String& aInput);
 
-int srMove(const String& a2Search);
+int srMove(const CommandList& aCL, Command &aCmd, const String& aInput);
 
-int srReadNchar(const String& aString);
+int srReadNchar(const CommandList& aCL, Command &aCmd, const String& aInput);
 
-int srReadNln(const String& aString);
+int srReadNln(const CommandList& aCL, Command &aCmd, const String& aInput);
 
-int srRename(const String& aString);
+int srRename(const CommandList& aCL, Command &aCmd, const String& aInput);
 
-int srRemove(const String& aFilename);
+int srRemove(const CommandList& aCL, Command &aCmd, const String& aInput);
 
-int srLs(const String& arg);
+int srLs(const CommandList& aCL, Command &aCmd, const String& aInput);
 
-int srMkdir(const String& aString);
+int srMkdir(const CommandList& aCL, Command &aCmd, const String& aInput);
 
-int srDump2(const String& aString);
+int srDump2(const CommandList& aCL, Command &aCmd, const String& aInput);

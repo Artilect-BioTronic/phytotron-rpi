@@ -3,44 +3,48 @@
 #include "TempHumMsg.h"
 
 #include "msgSerial.h"
+#include "msgExampleFunction.h"
 #include "msg2SDCard.h"
 
 #include <DS1307RTC.h>
 
 SerialListener serListenerTH(SERIAL_MSG);
 
-Command cmdUserPhy[] = {
-    Command("SV",                   &sendFakeVal),
-    Command("csgn/humidity/cmd",    &updateHumCsgn),
-    Command("csgn/temp/cmd",        &updateTempCsgn),
-    Command("sendDate",             &sendDate)
-};
-CommandList cmdLUserPhy("cmdUser", "CM+", SIZE_OF_TAB(cmdUserPhy), cmdUserPhy );
-
 // list of available commandes (system ctrl) that the arduino will accept
 // example:  int sendSketchId(const String& dumb);
 
 // list of available commands (user) that the arduino will accept
+Command cmdUserPhy[] = {
+    Command("SV",                   &sendFakeVal),
+    Command("csgn/humidity/cmd",    &updateHumCsgn,     "i",    "1-90"),
+    Command("csgn/temp/cmd",        &updateTempCsgn,    "i",    "-5-50"),
+    Command("sendDate",             &sendDate)
+};
+CommandList cmdLUserPhy("cmdUser", "CM+", SIZE_OF_TAB(cmdUserPhy), cmdUserPhy );
 
 // list of available commands (system ctrl) that the arduino will accept
 Command cmdSysPhy[] = {
     Command("idSketch",     &sendSketchId),
-    Command("idBuild",      &sendSketchBuild),
-    Command("openStay",     &srStayOpen),    // :bob.txt,67  filenameDOS8.3 (short names), openMode (O_READ... specific to SdFat lib)
-    Command("open",         &srPreOpen),     // :prepare to open at each read/write (it is closed immediately after)
-    Command("close",        &srClose),   // pas de param
-    Command("readln",       &srReadln),  // pas de param
-    Command("writeln",      &srWriteln), // :nouvelle ligne
-    Command("readNchar",    &srReadNchar),   // :nbchar
-    Command("readNln",      &srReadNln),   // :nb line to read
-    Command("move",         &srMove),    // :str2search
-    Command("dump2",        &srDump2),   // pas de param
-    Command("ls",           &srLs),      // :15  donner les options du ls
-    Command("rename",       &srRename),  // :/adir/old,new
-    Command("mkdir",        &srMkdir),   // :/adir
-    Command("rm",           &srRemove)   // :file.txt
+    Command("idBuild",      &sendSketchBuild)
 };
-CommandList cmdLSysPhy("cmdSys", "SD+", SIZE_OF_TAB(cmdSysPhy), cmdSysPhy );
+CommandList cmdLSysPhy("cmdSys", "AT+", SIZE_OF_TAB(cmdSysPhy), cmdSysPhy );
+
+Command cmdSD[] = {
+    Command("openStay",     &srStayOpen,    "s,cc", "*,rwascet"),   // :bob.txt,r  filenameDOS8.3 (short names), openMode (read write... )
+    Command("open",         &srPreOpen,     "s,cc", "*,rwascet"),   // :prepare to open at each read/write (it is closed immediately after)
+    Command("close",        &srClose),          // pas de param
+    Command("readln",       &srReadln),         // pas de param
+    Command("writeln",      &srWriteln,     "s"),               // :a new lign to write (not \n terminated)
+    Command("readNchar",    &srReadNchar,   "i",    "0-200"),   // :nbchar to read in a row
+    Command("readNln",      &srReadNln,     "i",    "0-200"),   // :nb lines to read in a row
+    Command("move",         &srMove,        "s"),       // :str2search
+    Command("dump2",        &srDump2),                  // pas de param
+    Command("ls",           &srLs,          "cc",   "rsda"),      // :sr  (recurse size ...)
+    Command("rename",       &srRename,      "s,s"),     // :/adir/old,new
+    Command("mkdir",        &srMkdir,       "s"),       // :/adir
+    Command("rm",           &srRemove,      "s")        // :file.txt
+};
+CommandList cmdLSD("cmdSD", "SD+", SIZE_OF_TAB(cmdSD), cmdSD );
 
 /*---------------------------------------------------------------*/
 /*                                          */
@@ -51,18 +55,20 @@ int setupTempHumMsg()
 {
     serListenerTH.addCmdList(cmdLUserPhy);
     serListenerTH.addCmdList(cmdLSysPhy);
+    serListenerTH.addCmdList(cmdLSD);
 
+    // following line is copied in main sketch.ino file
     // I fill info on sketch
-    sketchInfo.setFileDateTime(F(__FILE__), F(__DATE__), F(__TIME__));
+//    sketchInfo.setFileDateTime(F(__FILE__), F(__DATE__), F(__TIME__));
     // I send identification of sketch
-    sendSketchId("");
-    sendSketchBuild("");
+    cmdLSysPhy.readInternalMessage(F("idSketch"));
+    cmdLSysPhy.readInternalMessage(F("idBuild"));
 
     return 0;
 }
 
 
-int sendDate(const String& aStr)
+int sendDate(const CommandList& aCL, Command &aCmd, const String& aInput)
 {
     tmElements_t tm;
     if ( RTC.read ( tm ) )
@@ -81,83 +87,66 @@ int sendDate(const String& aStr)
                             + "-"
                             + numeroDix ( tm.Day ) ;
 
-    msgSPrint(getCommand(aStr) + "/state:"+ dateString +"T"+ heureString);
-    msgSPrint(getCommand(aStr) + "/OK:"+ dateString +"T"+ heureString);
+    aCL.msgPrint(aCL.getCommand(aInput) + "/state:"+ dateString +"T"+ heureString);
+    aCL.msgOK(aInput, dateString +"T"+ heureString);
     }
     return 0;
 }
 
-int updateHumCsgn(const String& aStr)
+// "i",  "0-90"
+int updateHumCsgn(const CommandList& aCL, Command &aCmd, const String& aInput)
 {
-    // updateHumCsgn contains cmd and value with this format cmd:value
-    // value must exist
-    int ind = aStr.indexOf(":");
-    if (ind < 0)   {
-      msgSError(getCommand(aStr) + F(" cmd needs 1 value"));
-      msgSPrint(getCommand(aStr) + "/KO:" +1);
-      return 1;
-    }
+    ParsedCommand parsedCmd(aCL, aCmd, aInput);
 
-    // we get value part
-    String sValue = aStr.substring(ind+1);
+    // verify that msg with arguments is OK with format and limit
+    if (parsedCmd.verifyFormatMsg(aCmd, aInput) != ParsedCommand::NO_ERROR)
+        return aCL.returnKO(aCmd, parsedCmd);
 
-    float fValue = sValue.toFloat();
-    // toInt will return 0, if it is not an int
-    if ( fabs(fValue) < 0.0001 && ( ! sValue.startsWith("0")) )   {
-      msgSError(getCommand(aStr) + F(" cmd: value must be float"));
-      return 2;
-    }
-    else if (fValue < 0 || fValue > 100)   {
-      msgSError(getCommand(aStr) + F(" cmd: value must be in [0-100]"));
-      return 3;
-    }
+    // get values
+    int iValue = parsedCmd.getValueInt(1);
 
-    consigneHum = fValue;
+    // we check that parsedCmd has not detected any error
+    if (parsedCmd.hasError())
+        return aCL.returnKO(aCmd, parsedCmd);
+
+
+    consigneHum = iValue;
 
     ecritConsigneDansFichier();
 
-    // I send back OK msg
-    msgSPrint(getCommand(aStr) + "/OK:" +fValue);
     // I send back state msg
     sendConsigne();
+    // I send back OK msg
+    aCL.msgOK(aInput, String(iValue));
 
     return 0;
 }
 
-
-int updateTempCsgn(const String& aStr)
+// "i",  "-5-50"
+int updateTempCsgn(const CommandList& aCL, Command &aCmd, const String& aInput)
 {
-    // updateHumCsgn contains cmd and value with this format cmd:value
-    // value must exist
-    int ind = aStr.indexOf(":");
-    if (ind < 0)   {
-      msgSError(getCommand(aStr) + F(" cmd needs 1 value"));
-      msgSPrint(getCommand(aStr) + "/KO:" +1);
-      return 1;
-    }
+    ParsedCommand parsedCmd(aCL, aCmd, aInput);
 
-    // we get value part
-    String sValue = aStr.substring(ind+1);
+    // verify that msg with arguments is OK with format and limit
+    if (parsedCmd.verifyFormatMsg(aCmd, aInput) != ParsedCommand::NO_ERROR)
+        return aCL.returnKO(aCmd, parsedCmd);
 
-    float fValue = sValue.toFloat();
-    // toInt will return 0, if it is not an int
-    if ( fabs(fValue) < 0.0001 && ( ! sValue.startsWith("0")) )   {
-      msgSError(getCommand(aStr) + F(" cmd: value must be float"));
-      return 2;
-    }
-    else if (fValue < -10 || fValue > 50)   {
-      msgSError(getCommand(aStr) + F(" cmd: value must be in [-10-50]"));
-      return 3;
-    }
+    // get values
+    int iValue = parsedCmd.getValueInt(1);
 
-    consigneTemp = fValue;
+    // we check that parsedCmd has not detected any error
+    if (parsedCmd.hasError())
+        return aCL.returnKO(aCmd, parsedCmd);
+
+
+    consigneTemp = iValue;
 
     ecritConsigneDansFichier();
 
-    // I send back OK msg
-    msgSPrint(getCommand(aStr) + "/OK:" +fValue);
     // I send back state msg
     sendConsigne();
+    // I send back OK msg
+    aCL.msgOK(aInput, String(iValue));
 
     return 0;
 }
