@@ -397,7 +397,7 @@ int cmdPinRead(const CommandList& aCL, Command& aCmd, const String& aInput) {
 
 // cmd a digitalWrite or analogWrite (PWM)
 // value fmt: pin (0-20), 1=digitalRead/2=analogRead, value
-// pin_digitAnalog_val contains cmd and value with this format cmd:pin,digAn,value
+// fmt and lim:  "i,s,i",    "0-30,d|a,*"
 int cmdPinWrite(const CommandList& aCL, Command &aCmd, const String& aInput) {
     ParsedCommand parsedCmd(aCL, aCmd, aInput);
 

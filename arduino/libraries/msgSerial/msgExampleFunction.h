@@ -54,7 +54,7 @@ public:
     void setDate(const String &arg)   {date_ = arg;}
     void setTime(const String &arg)   {time_ = arg;}
     void setFileDateTime(const String &aFullFilename, const String &aDate,const String &aTime);
-    void addListPin(const String &arg)   {listPin_ = listPin_ + arg;}
+    void addListPin(const String &arg)   {listPin_ = listPin_ +"\n"+ arg;}
     String getFile()   {return file_;}
     String getDate()   {return date_;}
     String getTime()   {return time_;}

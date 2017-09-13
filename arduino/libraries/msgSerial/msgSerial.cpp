@@ -535,8 +535,8 @@ ParsedCommand::ERROR_PC ParsedCommand::checkType(const String& aArg, const Strin
     // if it is s String, any input is valid
     if (aFmt == PC_STRING)
         return NO_ERROR;
-    // if it is  ss , it is a string whose letters are optional (ie ls | ls r | ls ard )
-    //  all content in aArg may be possible, the validity will be checke with limit
+    // if it is  cc , it is a string whose letters are optional (ie ls | ls r | ls ard )
+    //  all content in aArg may be possible, the validity will be checked with limit
     else if (aFmt == PC_CHAR_LIST)
         return NO_ERROR;
     // if it is i  integer, we try and convert with toInt

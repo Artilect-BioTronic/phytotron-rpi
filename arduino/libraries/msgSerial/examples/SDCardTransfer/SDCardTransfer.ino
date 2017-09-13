@@ -24,12 +24,12 @@ Command cmdSD[] = {
     Command("open",         &srPreOpen,     "s,cc", "*,rwascet"),   // :prepare to open at each read/write (it is closed immediately after)
     Command("close",        &srClose),          // pas de param
     Command("readln",       &srReadln),         // pas de param
-    Command("writeln",      &srWriteln,     "s"),               // :a new lign to write (not \n terminated)
-    Command("readNchar",    &srReadNchar,   "i",    "0-200"),   // :nbchar to read in a row
-    Command("readNln",      &srReadNln,     "i",    "0-200"),   // :nb lines to read in a row
+    Command("writeln",      &srWriteln,     "s",    "*"),           // :a new lign to write (not \n terminated)
+    Command("readNchar",    &srReadNchar,   "i",    "0-200"),       // :nbchar to read in a row
+    Command("readNln",      &srReadNln,     "i",    "0-200"),       // :nb lines to read in a row
     Command("move",         &srMove,        "s"),       // :str2search
     Command("dump2",        &srDump2),                  // pas de param
-    Command("ls",           &srLs,          "cc",   "rsda"),      // :sr  (recurse size ...)
+    Command("ls",           &srLs,          "cc",   "rsda"),        // :sr  (recurse size ...)
     Command("rename",       &srRename,      "s,s"),     // :/adir/old,new
     Command("mkdir",        &srMkdir,       "s"),       // :/adir
     Command("rm",           &srRemove,      "s")        // :file.txt
