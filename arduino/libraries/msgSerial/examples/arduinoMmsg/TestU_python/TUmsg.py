@@ -17,7 +17,7 @@ def emptyRx(ser):
 def logp (msg, gravity='trace'):
    print('['+gravity+']' + msg)
 
-msgStartCmd='t+'
+msgStartCmd='CM+'
 msgStartCmd2='AT+'
 msgEnd='\n'
 
@@ -52,54 +52,23 @@ ser.write("t+S\n")
 emptyRx(ser)
 sendCmdArd("S");emptyRx(ser)
 scar("S")
-scar("tonoff:ON")
+
+scar("MultiValue")
+scar("lit1/switch:ON")
 time.sleep(1)
-scar("tonoff:OFF")
+scar("sl13")      # error
+scar("sl13:off")  # error
+scar("sl13:OFF")
 
-sendCmdArd("t0lim");emptyRx(ser)
-scar("S")
-
-scar("t0lim:fmt_seul")
-scar("tls:rs")
-scar("tfval:1.2,rien")
-scar("tpinMode:2,i")
-
-print("Next commands are impossible, they generate errors")
-time.sleep(1)
-
-ser.write("not a command\n")
-emptyRx(ser)
-
-ser.write("no header S\n")
-emptyRx(ser)
-
-ser.write("t+S")
-emptyRx(ser)
-print("cmd is not already processed because there is no newline")
-print("Yet emptyRx wait 0.2s for a response !")
-time.sleep(0.2)
-emptyRx(ser)
-print("cmd is processed later, when buffer is emptied")
-
-ser.write("t+not_a_cmd\n")
-emptyRx(ser)
-
-print("arg missing")
-scar("t0lim")
-print("0 fmt with lim is not possible")
-scar("t0fmt")
-scar("t0fmt:fake")
-scar("tbadlim:ON")
-scar("tbadlim:ON,rien")
-scar("tls:t")
-scar("tls:rst")
-scar("tls:tr")
-scar("tls")
-
-print("bad type")
-scar("tpinMode:f,o")
-
-scar("tfval:notFloat")
-
+scar2("idSketch")
+scar2("idBuild")
+scar2("listCmd:,full")
+scar2("listCmd:CM+,short")
+scar2("listPin")
+scar2("pinMode:9,i")
+scar2("pinRead:9,d")
+scar2("pinRead:15,a")
+scar2("pinWrite:13,d,1")
+scar("sl13:OFF")
 
 ser.close()
