@@ -18,7 +18,7 @@ if [ "$_IP" ]; then
 fi
 
 # lien entre port Serial de pi et le broker MQTT
-cd /home/pi/python ; ./serial2MQTTduplex.py -l "./logSerial2MQTT.txt" -r 115200 -d "/dev/ttyAMA0" -t '{"CM+":"phytotron/arduMain/py/","AT+":"phytotron/admini/py/" }' -u '{"phytotron/arduMain/oh/":"CM+", "phytotron/admini/oh/":"AT+"}' &
+cd /home/pi/python ; ./serial2MQTTduplex.py -l "./logSerial2MQTT.txt" -r 115200 -d "/dev/ttyAMA0" -t '{"CM+":"phytotron/arduMain/py/","AT+":"phytotron/admini/py/", "SD+":"phytotron/SDlog/receive/" }' -u '{"phytotron/arduMain/oh/":"CM+", "phytotron/admini/oh/":"AT+", "phytotron/SDlog/send/":"SD+"}' &
 # lien avec l arduino neopixel
 cd /home/pi/python ; ./MQTT2Neopixel.py -l "./logMQTT2Neopixel.txt" -r 9600 &
 # permet de prendre des photos a la demande
