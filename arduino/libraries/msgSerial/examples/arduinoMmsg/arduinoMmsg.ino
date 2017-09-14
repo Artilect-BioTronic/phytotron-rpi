@@ -30,7 +30,7 @@ CommandList cmdLUser("cmdUser", "CM+", SIZE_OF_TAB(cmdUser), cmdUser );
 Command cmdSys[] = {
     Command("idSketch",  &sendSketchId),
     Command("idBuild",   &sendSketchBuild),
-    Command("listCmd",   &sendListCmd,      "s,s",      "*,short|full"),
+    Command("listCmd",   &sendListCmd,      "s,s",      "*,short|full"),  // eg: :cmdSys,short  or  :,full
     Command("listPin",   &sendListPin),
     Command("pinMode",   &cmdPinMode,       "i,s",      "0-30,o|i|ip"),
     Command("pinRead",   &cmdPinRead,       "i,s",      "0-30,d|a"),

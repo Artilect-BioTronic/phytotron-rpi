@@ -190,10 +190,10 @@ int CommandList::displayListCmd(String& aNameCL, String& asMode)  const {
         return 0;   // this CommandList is not to be displayed
 
     for (int i=0; i<_nbObjects; i++)   {
-        if (asMode == "short")
-            msgPrint(String("list:") + _arrayCmd[i].cmdName);
+        if (asMode == F("short"))
+            msgPrint(String(F("list:")) + _arrayCmd[i].cmdName);
         else
-            msgPrint(String("list:") + _arrayCmd[i].cmdName +" "
+            msgPrint(String(F("list:")) + _arrayCmd[i].cmdName +" "
                      + _arrayCmd[i].cmdFormat +" "+ _arrayCmd[i].cmdLimit);
     }
     return 0;
