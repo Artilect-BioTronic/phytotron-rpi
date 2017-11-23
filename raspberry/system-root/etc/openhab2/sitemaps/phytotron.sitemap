@@ -39,9 +39,9 @@ sitemap phytotron label="Menu Principal"
 		
 		Text   label="Phytotron"   icon="greenhouse"   {
 			Frame  {
-				Setpoint item=TempInConsigne	 label="Température consigne (+2.0°) [%.1f °C]"		minValue=0 maxValue=40 step=2
+				Setpoint item=TempInConsigne	 label="Température consigne (+3.0°) [%.1f °C]"		minValue=0 maxValue=40 step=3
 				Slider item=HumidityInConsigne
-				Setpoint item=TempInConsigne	 label="Température consigne (+0.5°) [%.1f °C]"  	minValue=0 maxValue=40 step=0.5
+				Setpoint item=TempInConsigne	 label="Température consigne (+1.0°) [%.1f °C]"  	minValue=0 maxValue=40 step=1
 				Setpoint item=HumidityInConsigne 	minValue=0 maxValue=100 step="1."
 				Text item=TempInConsigneArduino
 				Text item=HumidityInConsigneArduino
