@@ -8,7 +8,7 @@
 #define CFG_CPLT        1
 #define CFG_SD_RTC      2
 
-#define CFG_MAT_CHECK   CFG_SD_RTC
+#define CFG_MAT_CHECK   CFG_CPLT
 
 #ifdef CFG_MAT
     #if (CFG_MAT != CFG_MAT_CHECK)
