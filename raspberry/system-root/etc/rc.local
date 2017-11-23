@@ -26,9 +26,13 @@ cd /home/pi/python ; ./MQTT2Neopixel.py -l "./logMQTT2Neopixel.txt" -r 9600 &
 cd /home/pi/python ; ./listenMQTTvarious.py -l "loglistenMQTTvarious.txt" &
 
 # je creuse des tunnels inverse, j aurai acces au phytotron depuis une adresse internet
-autossh -f -M 25000 -N -R 0.0.0.0:12244:localhost:22 -p 2244 pi@ubiordi.freeboxos.fr &
-autossh -f -M 25004 -N -R 0.0.0.0:12310:localhost:8080 -p 2244 pi@ubiordi.freeboxos.fr &
+su -c "autossh -f -M 25000 -N -R 0.0.0.0:12244:localhost:22 -p 2244 pi@ubiordi.freeboxos.fr" ssh_user 
+su -c "autossh -f -M 25004 -N -R 0.0.0.0:12310:localhost:8080 -p 2244 pi@ubiordi.freeboxos.fr" ssh_user
 # creez vous meme ce tunnel si vous en voulez
-#autossh -f -M 25002 -N -R 0.0.0.0:12302:localhost:80 -p 2244 pi@ubiordi.freeboxos.fr &
+#su -c "autossh -f -M 25002 -N -R 0.0.0.0:12302:localhost:80 -p 2244 pi@ubiordi.freeboxos.fr" ssh_user
+
+# j allume le wlan1 a la main, j ai trop peur que l auto ne fonctionnerait pas
+# notez bien que je laisse 30s au systeme pour que le network soit pret
+sleep 30; sudo wpa_supplicant -B -D wext -i wlan1 -c /etc/wpa_supplicant/wpa_supplicant.conf &
 
 exit 0
