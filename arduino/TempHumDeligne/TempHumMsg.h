@@ -8,7 +8,7 @@
 #define CFG_CPLT        1
 #define CFG_SD_RTC      2
 
-#define CFG_MAT_CHECK   CFG_CPLT
+#define CFG_MAT_CHECK   CFG_SD_RTC
 
 #ifdef CFG_MAT
     #if (CFG_MAT != CFG_MAT_CHECK)
@@ -44,12 +44,14 @@ void commandeSwitch ( int valeur );
 void affichageUsbSecondes ( void );
 void affichageSerieRaspSecondes ( void );
 void FonctionTexteTrameMesures ( void );
+String getTexteEnteteMesures ( void );
 void EnregistrementFichierMesure ( void );
 int lectureSerialUSB_PM();
 int lectureSerialRaspi_PM();
 int ecritConsigneDansFichier();
 int sendConsigne();
 String getTrameConsigne();
+int sendCmdState(String warm, String cold, String humidity);
 
 // liste des fonctions definies dans le fichier TempHumMsg.cpp
 int sendDate(const CommandList& aCL, Command &aCmd, const String& aInput);
@@ -80,5 +82,22 @@ extern CommandList cmdLSysPhy;   //("cmdSys", "AT+", SIZE_OF_TAB(cmdSysPhy), cmd
 int setupTempHumMsg();
 
 int changeNameVal(const String& astr);
+
+class Chauffage
+{
+private:
+    uint8_t _pinRad1;
+    uint8_t _pinRad2;
+    uint8_t _pinFan;
+    boolean _isOn;
+    uint8_t _pctChauffe;
+
+public:
+    Chauffage(uint8_t pinRad1, uint8_t pinRad2, uint8_t pinFan, int pctChauffe);
+    int switchOn(void);
+    int switchOff(void);
+    boolean isOn(void)   {return _isOn;}
+    boolean isOff(void)   {return ! _isOn;}
+};
 
 #endif // TEMPHUMMSG_H

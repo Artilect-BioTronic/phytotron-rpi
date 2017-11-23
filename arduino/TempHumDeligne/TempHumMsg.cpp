@@ -153,6 +153,39 @@ int updateTempCsgn(const CommandList& aCL, Command &aCmd, const String& aInput)
 
 
 /*---------------------------------------------------------------*/
+/*       classe pour Chauffage                                   */
+/*---------------------------------------------------------------*/
+
+Chauffage::Chauffage(uint8_t pinRad1, uint8_t pinRad2, uint8_t pinFan, int pctChauffe) :
+    _pinRad1(pinRad1), _pinRad2(pinRad2), _pinFan(pinFan), _pctChauffe(pctChauffe)
+{
+    _isOn = false;
+    if (_pctChauffe > 100)   _pctChauffe = 0;
+
+    // switch off  chauffage
+    analogWrite(_pinRad1, _pctChauffe);
+    analogWrite(_pinRad2, _pctChauffe);
+    digitalWrite(_pinFan, LOW);
+}
+
+
+int Chauffage::switchOn(void)   {
+    _isOn = true;
+    analogWrite(_pinRad1, _pctChauffe);
+    analogWrite(_pinRad2, _pctChauffe);
+    digitalWrite(_pinFan, HIGH);
+    return 0;
+}
+
+int Chauffage::switchOff(void)   {
+    _isOn = false;
+    analogWrite(_pinRad1, _pctChauffe);
+    analogWrite(_pinRad2, _pctChauffe);
+    digitalWrite(_pinFan, LOW);
+    return 0;
+}
+
+/*---------------------------------------------------------------*/
 /*       fonctions de remplacement materiel                      */
 /*---------------------------------------------------------------*/
 
@@ -160,6 +193,6 @@ void fakeReleveValeurs()
 {
     temperatureInterieureEntiere = 25 ;
     humiditeInterieureEntiere = 41 ;
-    temperatureExterieureEntiere = 25.5 ;
-    humiditeExterieureEntiere = 42 ;
+    temperatureExterieureEntiere = 28 ;
+    humiditeExterieureEntiere = 62 ;
 }

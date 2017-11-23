@@ -43,6 +43,17 @@ extern SdFat SD;
 #include "TempHumMsg.h"
 
 
+const uint8_t pinRad1 = 30;
+const uint8_t pinRad2 = 31;
+const uint8_t pinFan = 32;
+const uint8_t pinStick = A0 ; // stick du deuligne pour menu
+//const int chipSelect = 10 ; // uno
+const uint8_t chipSelect = 53 ; // mega   (SPI pour SDCard)
+const uint8_t CapteurHumiditeTemperatureExterieurPIN = 2; // pin capteur humidite
+const uint8_t CapteurHumiditeTemperatureInterieurPIN = 40; // pin capteur humidite
+const uint8_t PinOneWire = 69 ; // pin capteur temperature Dallas
+const uint8_t pinTelecommande = 7 ;
+
 // Si vous n avez pas de shield deuligne, il faut connecter pinStick a 5V,
 //   sinon le sketch voit des actions permanentes pour naviguer dans le menu
 // Si vous n utilisez pas le serial1, il faut bouchonner rx
@@ -52,6 +63,7 @@ extern SdFat SD;
 // -m "2017-05-08;12:34:56;11;12.1;21.1;22.1;33.1;32.1;31.1"
 const String topicMesure        = "mesure/D;H;ti;hi;te;he;t3;t2;t1";
 const String topicConsigneState = "csgn/state/D;H;t;h";
+const String topicCmdState = "cmd/state/D;H;warm;cold;hum";
 const String head1="CM+";
 const String endOL="\n";
 
@@ -63,11 +75,9 @@ String fmt1CmdMqtt(const String & aTopic, const String& aLoad)
 #if (CFG_MAT == CFG_CPLT)
 const long serial1Rate=   115200;
 const long serialRate=    38400;
-bool bDemarreMnEntiere = true;
 #else
 const long serial1Rate=   115200;
 const long serialRate=    38400;
-bool bDemarreMnEntiere = false;
 #endif
 
 //reglages
@@ -78,8 +88,8 @@ const int humidificateurMarche = 5393 ;
 const int humidificateurArret = 5396 ;
 const int refroidissementMarche = 4433 ;
 const int refroidissementArret = 4436 ;
-const int chauffageMarche = 1361 ;
-const int chauffageArret = 1364 ;
+//const int chauffageMarche = 1361 ;
+//const int chauffageArret = 1364 ;
 
 
 // DeuLigne
@@ -95,7 +105,6 @@ byte degres[8] =
 } ;
 Deuligne lcd ;
 const String effacement = "                " ;
-const int pinStick = A0 ; // stick du deuligne pour menu
 // variables et constantes pour menu
 const unsigned long delaisMenu = 5000 ;
 unsigned int valeurStick = 0 ;
@@ -111,25 +120,23 @@ byte plageTemp = 1 ;
 byte consigneHum = 50 ;
 byte consigneHumProvisoire = 50 ;
 byte plageHum = 5 ;
-bool commandeChauffage = false ;
+//bool commandeChauffage = false ;  // use chauffage.isOn()
 bool commandeRefroidissement = false ;
 bool commandeHum = false ;
 unsigned long positionFichierConsignes ;
+Chauffage chauffage(pinRad1, pinRad2, pinFan, 50);
 
 
 //Génération des trames
 String TrameMesures = "" ;
-const char pointVirgule = ';' ;
+const String separateurFichier = ";" ;
 
 //enregistrement SD sur Memoire
-//const int chipSelect = 10 ; // uno
-const int chipSelect = 53 ; // mega
 //noms des fichiers
 const String  NomFichierConsignes  = "cons.csv" ;
 const String  NomFichierMesure  = "mes.csv" ;
 const String  NomFichierCommandes  = "com.csv" ;
 const unsigned long  positionEnregistrementFichierConsignes  = 7 ; // position avant derniere consigne temperature
-const String separateurFichier  = ";" ;
 
 //Echanges de fichiers
 const String debutFichier = "Debut du fichier" ;
@@ -142,7 +149,6 @@ const String  commandeLectureFichierCommandes  = "com" ;
 
 //Capteurs temperature-humidite
 //Exterieur
-#define CapteurHumiditeTemperatureExterieurPIN  2 // pin capteur humidite
 // Uncomment the type of sensor in use:
 #define CapteurHumiditeTemperatureExterieurTYPE           DHT11     // DHT 11
 //#define CapteurHumiditeTemperatureExterieurTYPE           DHT22     // DHT 22 (AM2302)
@@ -151,7 +157,6 @@ DHT_Unified CapteurHumiditeTemperatureExterieur( CapteurHumiditeTemperatureExter
 
 
 //Interieur
-#define CapteurHumiditeTemperatureInterieurPIN  40 // pin capteur humidite
 // Uncomment the type of sensor in use:
 //#define CapteurHumiditeTemperatureInterieurTYPE           DHT11     // DHT 11
 #define CapteurHumiditeTemperatureInterieurTYPE           DHT22     // DHT 22 (AM2302)
@@ -167,7 +172,6 @@ DHT_Unified CapteurHumiditeTemperatureInterieur( CapteurHumiditeTemperatureInter
 
 //capteur(s) temperature Dallas
 const byte nbCapteurs = 3 ;
-const int PinOneWire = 69 ; // pin capteur temperature Dallas
 byte octet ;
 byte present = 0;
 byte type_s;
@@ -193,7 +197,6 @@ float Dallas [ nbCapteurs ] ;
 
 //Prises telecommandees
 RCSwitch telecommande = RCSwitch ( ) ;
-const int pinTelecommande = 7 ;
 OneWire  Ds18b20 ( PinOneWire ) ;
 
 // Variables pour temps et mesures
@@ -207,11 +210,9 @@ String secondesDix ;
 String heureString ;
 String dateString ;
 unsigned long tempsEnregistrement = 0 ;
-byte minutesEnregistrementPrecedent = 0 ;
 byte minutes = 0 ;
 byte secondesAffichagePrecedent = 0 ;
 byte secondes = 0 ;
-unsigned long tempsAffichage = 0 ;
 
 // Variables pour communication serie
 //char lecturePortSerie ;
@@ -225,7 +226,7 @@ void setup(void)
   telecommande.enableTransmit ( pinTelecommande ) ;
   commandeSwitch ( humidificateurArret ) ;
   commandeSwitch ( refroidissementArret ) ;
-  commandeSwitch ( chauffageArret ) ;
+  chauffage.switchOff();
   Serial1.begin ( serial1Rate ) ;
   Serial.begin ( serialRate ) ;
   while ( !Serial )
@@ -276,14 +277,7 @@ void setup(void)
     File dataFile = SD.open ( NomFichierMesure , FILE_WRITE ) ;
     if (dataFile)
     {
-      dataFile.print ( "Date" ) ;
-      dataFile.print ( separateurFichier ) ;
-      dataFile.print ( "Heure" ) ;
-      dataFile.print ( separateurFichier ) ;
-      dataFile.print ( "Temperature" ) ;
-      dataFile.print ( separateurFichier ) ;
-      dataFile.print ( "Humidite" ) ;
-      dataFile.println ( "" ) ;
+      dataFile.println ( getTexteEnteteMesures() ) ;
       dataFile.close();
     }
     else
@@ -370,24 +364,9 @@ void setup(void)
   releveValeurs ( ) ;
   afficheLCDregulier ( ) ;
   secondesAffichagePrecedent = secondes ;
-  Serial.println ( "Pas de panique, PAS BESOIN d attendre la fin de la minute entiere dans setup" ) ;
-  do
-  {
-    releveRTC ( ) ; //on releve date et heure sur l'horloge RTC
-    // affichage regulier
-    if ( ( secondes != secondesAffichagePrecedent ) && ! menu )
-    {
-      secondesAffichagePrecedent = secondes ;
-      //tempsAffichage = tempsAffichage + intervalleAffichage ;
-      releveValeurs ( ) ;
-      afficheLCDregulier ( ) ;
-      Serial.println ( 61 - secondes ) ;
-    }
-  }
-  while ( secondes != 0 && bDemarreMnEntiere ) ; //Pour partir à une Minute entiére
-  tempsEnregistrement = tempsAffichage = millis ( ) ;
-  minutesEnregistrementPrecedent = minutes ;
-  secondesAffichagePrecedent = secondes ;
+  // tempsEnregistrement correspondra au moment du dernier enregistrement, 1 par mn
+  // je prefere arrondir tempsEnregistrement a une mn entiere
+  tempsEnregistrement = millis ( ) - secondes*1000 ;
 }
 
 
@@ -402,11 +381,10 @@ void loop ( )
   mesureTemperature18B20 ( ) ;
 
   // enregistrement regulier
-//  if ( minutes != minutesEnregistrementPrecedent )
+  //   (on en profite pour repeter les consignes)
   if ( (millis() - tempsEnregistrement)/1000 > intervalleEnregistrement)
   {
       tempsEnregistrement = millis();
-      minutesEnregistrementPrecedent = minutes ;
       EnregistrementFichierMesure ( ) ;
 
       // we make sure that consigns are updated
@@ -418,10 +396,10 @@ void loop ( )
       else
           commandeSwitch ( refroidissementArret ) ;
 
-      if (commandeChauffage)
-          commandeSwitch ( chauffageMarche) ;
+      if (chauffage.isOn())
+          chauffage.switchOn();
       else
-          commandeSwitch ( chauffageArret) ;
+          chauffage.switchOff();
 
       if (commandeHum)
           commandeSwitch ( humidificateurMarche) ;
@@ -430,10 +408,8 @@ void loop ( )
   }
 
   // affichage regulier
-  //if ( ( ( millis ( ) - tempsAffichage > intervalleAffichage ) ) && ! menu )
   if ( ( secondes !=  secondesAffichagePrecedent ) && ! menu )
   {
-    //tempsAffichage = tempsAffichage + intervalleAffichage ;
     secondesAffichagePrecedent = secondes ;
     releveValeurs ( ) ;
 //    EnregistrementFichierMesure ( ) ;
@@ -571,13 +547,20 @@ void loop ( )
     lcd.print ( effacement ) ;
   }
 
-  // Asservissements
+
+  //*********************************
+  //       Asservissements
+  //*********************************
+
   // Humidite prise " D"
   if ( (humiditeInterieureEntiere < ( consigneHum - plageHum )) & ! commandeHum )
   {
     //telecommande.send ( 5393 , 24 ) ; // marche
     commandeSwitch ( humidificateurMarche ) ;
     commandeHum = true ;
+
+    // previent du changement de commande
+    sendCmdState("","", "Marche_Humidification");
     File comFile = SD.open ( NomFichierCommandes , FILE_WRITE ) ;
     if ( comFile )
     {
@@ -604,6 +587,9 @@ void loop ( )
     //telecommande.send ( 5396 , 24 ) ; // arret
     commandeSwitch ( humidificateurArret ) ;
     commandeHum = false ;
+
+    // previent du changement de commande
+    sendCmdState("","", "Arret_Humidification");
     File comFile = SD.open ( NomFichierCommandes , FILE_WRITE ) ;
     if ( comFile )
     {
@@ -629,11 +615,12 @@ void loop ( )
   // Attention, On ne veut pas que le refroidissement du frigo ne declenche le chauffage
   //   ici on penalise le chauffage car on est en ete
   // Chauffage prise " A "
-  if ( temperatureInterieureEntiere < ( consigneTemp - plageTemp*3 ) && ! commandeChauffage )
+  if ( temperatureInterieureEntiere < ( consigneTemp - plageTemp*3 ) && chauffage.isOff() )
   {
-    //telecommande.send ( 1361 , 24 ) ; // marche
-    commandeSwitch ( chauffageMarche ) ;
-    commandeChauffage = true ;
+    chauffage.switchOn();
+
+    // previent du changement de commande
+    sendCmdState("Marche_Chauffage","", "");
     File comFile = SD.open ( NomFichierCommandes , FILE_WRITE ) ;
     if ( comFile )
     {
@@ -655,11 +642,13 @@ void loop ( )
       erreur ( 14 ) ;
     }
   }
-  if ( temperatureInterieureEntiere > ( consigneTemp - plageTemp*2 ) && commandeChauffage )
+
+  if ( temperatureInterieureEntiere > ( consigneTemp + plageTemp ) && chauffage.isOn() )
   {
-    //telecommande.send ( 1364 , 24 ) ; // arret
-    commandeSwitch ( chauffageArret ) ;
-    commandeChauffage = false ;
+    chauffage.switchOff();
+
+    // previent du changement de commande
+    sendCmdState("Arret_Chauffage","", "");
     File comFile = SD.open ( NomFichierCommandes , FILE_WRITE ) ;
     if ( comFile )
     {
@@ -683,11 +672,13 @@ void loop ( )
   }
 
   // Refroidissement prise " B "
-  if ( temperatureInterieureEntiere > ( consigneTemp + plageTemp ) && ! commandeRefroidissement )
+  if ( temperatureInterieureEntiere > ( consigneTemp + plageTemp*2 ) && ! commandeRefroidissement )
   {
-    //telecommande.send ( 4433 , 24 ) ; // marche
     commandeSwitch ( refroidissementMarche ) ;
     commandeRefroidissement = true ;
+
+    // previent du changement de commande
+    sendCmdState("","Marche_Refroidissement", "");
     File comFile = SD.open ( NomFichierCommandes , FILE_WRITE ) ;
     if ( comFile )
     {
@@ -711,9 +702,11 @@ void loop ( )
   }
   if ( temperatureInterieureEntiere < ( consigneTemp - plageTemp*2. ) && commandeRefroidissement )
   {
-    //telecommande.send ( 4436 , 24 ) ; // arret
     commandeSwitch ( refroidissementArret ) ;
     commandeRefroidissement = false ;
+
+    // previent du changement de commande
+    sendCmdState("","Arret_Refroidissement", "");
     File comFile = SD.open ( NomFichierCommandes , FILE_WRITE ) ;
     if ( comFile )
     {
@@ -881,6 +874,18 @@ int sendConsigne()   {
     String sTrame = getTrameConsigne();
     Serial.print( fmt1CmdMqtt (topicConsigneState, sTrame) );
     Serial1.print( fmt1CmdMqtt (topicConsigneState, sTrame) );
+    return 0;
+}
+
+int sendCmdState(String warm, String cold, String humidity)   {
+    // topicCmdState = "cmd/state/D;H;warm;cold;hum";
+    String sTrame = dateString   +separateurFichier+
+            heureString   +separateurFichier+
+            warm  +separateurFichier+
+            cold  +separateurFichier+
+            humidity  ;
+    Serial.print( fmt1CmdMqtt (topicCmdState, sTrame) );
+    Serial1.print( fmt1CmdMqtt (topicCmdState, sTrame) );
     return 0;
 }
 
@@ -1214,19 +1219,27 @@ void FonctionTexteTrameMesures ( void )
       String sDallas = String(Dallas [ boucle - 1 ]);
       //  si la valeur mesurée est bidon avec 85.00, on remet la valeur precedente
       if (sDallas.equals("85.00"))
-          textDallas = textDallas + String ( pointVirgule + String ( oldDallas [ boucle - 1 ] ) ) ;
+          textDallas = textDallas + String ( separateurFichier + String ( oldDallas [ boucle - 1 ] ) ) ;
       else   {
-          textDallas = textDallas + String ( pointVirgule + String ( Dallas [ boucle - 1 ] ) ) ;
+          textDallas = textDallas + String ( separateurFichier + String ( Dallas [ boucle - 1 ] ) ) ;
           oldDallas [ boucle - 1 ] = Dallas [ boucle - 1 ];
       }
   }
-  TrameMesures = String ( dateString + pointVirgule +
-                          heureString + pointVirgule +
-                          temperatureInterieureEntiere + pointVirgule +
-                          humiditeInterieureEntiere + pointVirgule +
-                          temperatureExterieureEntiere + pointVirgule +
+  TrameMesures = String ( dateString + separateurFichier +
+                          heureString + separateurFichier +
+                          temperatureInterieureEntiere + separateurFichier +
+                          humiditeInterieureEntiere + separateurFichier +
+                          temperatureExterieureEntiere + separateurFichier +
                           humiditeExterieureEntiere +
                           textDallas ) ;
+}
+
+String getTexteEnteteMesures ( void )
+{
+    return String("Date") +separateurFichier+ "Heure" +separateurFichier+
+            "TempInt" +separateurFichier+ "HumidInt" +separateurFichier+
+            "TempExt" +separateurFichier+ "HumidExt" +separateurFichier+
+            "Temp3" +separateurFichier+ "Temp2"  +separateurFichier+ "Temp1" ;
 }
 
 
@@ -1236,16 +1249,6 @@ void EnregistrementFichierMesure ( void )
   if ( dataFile )
   {
     dataFile.println ( TrameMesures ) ;
-    /*dataFile.print ( dateString ) ;
-      dataFile.print ( separateurFichier ) ;
-      dataFile.print ( heureString ) ;
-      dataFile.print ( separateurFichier ) ;
-      //     dataFile.print ( numeroDix ( temperatureInterieureEntiere ) ) ;
-      dataFile.print ( temperatureInterieureEntiere ) ;
-      dataFile.print ( separateurFichier ) ;
-      //      dataFile.print ( numeroDix ( humiditeInterieureEntiere ) ) ;
-      dataFile.print ( humiditeInterieureEntiere ) ;
-      dataFile.println ( "" ) ;*/
     dataFile.close();
   }
   else
