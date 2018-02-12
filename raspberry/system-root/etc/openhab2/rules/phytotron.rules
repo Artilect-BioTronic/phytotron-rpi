@@ -2,15 +2,39 @@ import org.openhab.core.library.types.*
 import org.openhab.core.persistence.*
 import org.openhab.model.script.actions.*
 
-/* currently lights are fake, they are not used to feed plants 
-   they are used make pretty lights. So these pretty leds are
-   automatically switched off at night. */
-rule "switch pretty leds at night"
+
+/* Currently the lights are set for algae    OFF at night */
+rule "switch off leds for algae"
 when
-	Time cron "0 */10 2,20,21,22,23 * * ?" or
-	Time cron "0 0 12,16 * * ?"
+	Time cron "0 * 20,21,22,23,0,1,2,3,4 * * ?" 
 then	
 	sendCommand(Neopixel_num, 0)
-	logInfo("led", "switch off pretty leds at night")
+	logInfo("led", "switch off pretty leds for algae")
 end
+
+/* Currently the lights are set for algae    ON  at day */
+rule "switch on leds for algae"
+when
+	Time cron "0 * 5-19 * * ?" 
+then	
+	sendCommand(Neopixel_num, 5)
+	sendCommand(Neopixel_Intensity, 20)
+	logInfo("led", "switch on pretty leds for algae")
+end
+
+
+/**
+ * currently lights are fake, they are not used to feed plants 
+ * they are used to shed pretty lights. So these pretty leds are
+ * automatically switched off at night. */
+/**
+ * rule "switch pretty leds at night"
+ * when
+ * 	Time cron "0 */10 2,20,21,22,23 * * ?" or
+ * 	Time cron "0 0 12,16 * * ?"
+ * then	
+ * 	sendCommand(Neopixel_num, 0)
+ * 	logInfo("led", "switch off pretty leds at night")
+ * end
+*/
 
