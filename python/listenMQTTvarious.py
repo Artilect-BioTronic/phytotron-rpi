@@ -27,13 +27,25 @@ baudRate=9600
 mqTopic1='phytotron/camera/oh/newPicture'
 mqTopic2='phytotron/shellCmd/oh/wifiID'
 mqTopic3='phytotron/admin/oh/askTime'
-#cmdTopic1="/home/arnaud/Workspaces/Arduino/PythonScripts/picam+mqttFake.py"
-cmdTopic1="/home/pi/python/picam+mqtt.py"
+mqTopic4='phytotron/shellCmd/oh/whatdoyouwant'
+mqTopic5='phytotron/shellCmd/oh/goadmin'
+
+#baseRepPython="/home/arnaud/Workspaces/Arduino/PythonScripts/"
+baseRepBin="/home/arnaud/Workspaces/bin/"
+baseRepPython="/home/pi/bin"
+#baseRepBin="/home/pi/python/"
+cmdTopic1=baseRepPython + "picam+mqttFake.py"
 cmdTopic2="iwgetid -r"
 cmdTopic2b="ifconfig wlan0 | sed -n -e 's/.*inet adr://' -e 's/ *Bcast.*//p'"
-mqRepShift2=['oh', 'pysys']
-mqRepTopic3='phytotron/admin/py/piClock'
+cmdTopic5=baseRepBin + "todo5"
 
+mqRepShift2=['oh', 'pysys']
+mqRepTopic3='phytotron/admin/pysys/piClock'
+mqRepTopic4='phytotron/shellCmd/pysys/what'
+mqRepTopic4b='phytotron/shellCmd/pysys/goadmin'
+
+meaning = list(range(10))
+meaning[5:7] = ["todo5h", "todo6r"]
 
 # serial msg to arduino begin  with  prefTopic2 / prefTopic1 and end with endOfLine
 prefTopic1='CM+'
@@ -103,11 +115,8 @@ def read_args(argv):
             devSerial = arg
     logp('logfile is '+ logfileName, 'debug')
     logp('broker is '+ hostMQTT, 'debug')
-    logp('baudrate is '+ str(baudRate), 'debug')
-    logp('namepy is '+ namePy, 'debug')
-    logp('mqTopic1 is '+ mqTopic1, 'debug')
-    logp('mqTopic2 is '+ mqTopic2, 'debug')
-    logp('devSerial is '+ devSerial, 'debug')
+#    logp('baudrate is '+ str(baudRate), 'debug')
+#    logp('devSerial is '+ devSerial, 'debug')
     # I try to open logfile
     if logfileName != '' :
         reOpenLogfile(logfileName)
@@ -125,29 +134,32 @@ def checkLogfileSize(logfile):
     if (logfile.name != '<stdout>') and (os.path.getsize(logfile.name) > 900900):
         reOpenLogfile(logfile.name)
 
-def readListSketchFromFile(fileName):
+def readFileUpdateDict(fileName, defaultDict):
     "read filename and append valid dict lines in returned dict"
-    logp('reading list of arguments for sketch in file : ' + fileName)
+    logp('reading dictionary in file : ' + fileName)
+    outSketch = defaultDict
     try:
-        fileListSketch = open(fileName, 'r')
+        fileDictionary = open(fileName, 'r')
     except:
-        logp('could not open list of sketch configuration file: ' + fileName, 'error')
-        return {}
+        logp('could not open dictionary file: ' + fileName, 'error')
+        return outSketch
     #
-    strLines = fileListSketch.readlines()
-    fileListSketch.close()
-    dSketch = {"username":"user", "password":"pass"}
+    strLines = fileDictionary.readlines()
+    fileDictionary.close()
+    #
+    # update dictionary with each line
     for strl in strLines:
         try:
+            # we can have comment lines, when they begin with '#'
             if (strl[0] != '#'):
                 itemDict = ast.literal_eval(strl)
                 if (type(itemDict) == type({})):
-                    dSketch.update(itemDict)
+                    outSketch.update(itemDict)
                 else:
                     logp ('line NOT dict:' + strl)
         except:
           logp('line fails as dict:' + strl)
-    return dSketch
+    return outSketch
 
 
 # The callback for when the client receives a CONNACK response from the server.
@@ -155,10 +167,13 @@ def on_connect(client, userdata, rc):
     print("Connected to mosquitto with result code "+str(rc))
     # Subscribing in on_connect() means that if we lose the connection and
     # reconnect then subscriptions will be renewed.
-    mqttc.subscribe([(mqTopic1, 0) , (mqTopic2+'/#', 0), (mqTopic3, 0)])
+    mqttc.subscribe([(mqTopic1, 0) , (mqTopic2+'/#', 0), (mqTopic3, 0), 
+                     (mqTopic4, 0) , (mqTopic5, 0) ])
     mqttc.message_callback_add(mqTopic1, on_message_mqTopicOH1)
     mqttc.message_callback_add(mqTopic2+'/#', on_message_mqTopicOH2)
     mqttc.message_callback_add(mqTopic3, on_message_mqTopicOH3)
+    mqttc.message_callback_add(mqTopic4, on_message_mqTopicOH4)
+    mqttc.message_callback_add(mqTopic5, on_message_mqTopicOH5)
 
 
 # The callback for when a PUBLISH message is received from the server.
@@ -186,7 +201,7 @@ def on_message_mqTopicOH2(client, userdata, msg):
     except:
         logp('exception managing msg:'+msg.topic+" : "+str(msg.payload), 'com error')
         retTopic = mqTopic2.replace(mqRepShift2[0], mqRepShift2[1]) + '/KO'
-        mqttc.publish(retTopic, output2)
+        mqttc.publish(retTopic, "")
     retTopic = mqTopic2.replace(mqRepShift2[0], mqRepShift2[1])
     mqttc.publish(retTopic + '/essid', output2)
     mqttc.publish(retTopic + '/IP', output2b)
@@ -197,6 +212,35 @@ def on_message_mqTopicOH3(client, userdata, msg):
     logp("mqTopicOH:"+msg.topic+" : "+str(msg.payload), 'info')
     # we publish system time  (module datetime) au format 2015-05-21T12:34:56 (16 char)
     mqttc.publish(mqRepTopic3, datetime.now().isoformat()[:19])
+
+# The callback for when the server receives a message of  mqTopic4.
+def on_message_mqTopicOH4(client, userdata, msg):
+    logp("mqTopicOH:"+msg.topic+" : "+str(msg.payload), 'info')
+    if msg.payload.isdigit() :
+        indMeaning = int(msg.payload)
+    else :
+        indMeaning = 0
+    # indMeaning is between 0 .. 9
+    if indMeaning < 0:   indMeaning = 0
+    if indMeaning > 9:   indMeaning = 0
+    mqttc.publish(mqRepTopic4, indMeaning)   # response to sender
+    # link to next topic 5
+    mqttc.publish(mqRepTopic4b, meaning[indMeaning])
+
+# The callback for when the server receives a message of  mqTopic5.
+def on_message_mqTopicOH5(client, userdata, msg):
+    logp("mqTopicOH:"+msg.topic+" : "+str(msg.payload), 'info')
+    # I put back to 0 the value of topic 4
+    indMeaning = 0
+    mqttc.publish(mqRepTopic4, indMeaning)   
+    mqttc.publish(mqRepTopic4b, meaning[indMeaning])
+    try :
+        output = subprocess.Popen(cmdTopic5 +" "+str(msg.payload), shell=True,
+                                  stdout=subprocess.PIPE).stdout.read()
+    except:
+        logp('exception managing msg:'+msg.topic+" : "+str(msg.payload), 'com error')
+        mqttc.publish(mqRepTopic4b + '/KO', "")
+    mqttc.publish(mqRepTopic4b + '/OK', '')
 
 
 # read all available messages from arduino
@@ -244,7 +288,7 @@ def readArduinoAvailableMsg(seri):
 #---------------------------------------------------
 
 # read password from file  passMqtt.txt
-authInFile = readListSketchFromFile(filePassMqtt)
+authInFile = readFileUpdateDict(filePassMqtt, {"username":"user", "password":"pass"})
 
 # connection to mosquitto
 mqttc = mqtt.Client("", True, None, mqtt.MQTTv31)
