@@ -213,7 +213,7 @@ def on_message_mqTopicSys(client, userdata, msg):
 def readArduinoAvailableMsg(seri):
     while seri.inWaiting():
         # because of readline function, dont forget to open with timeout
-        response = seri.readline().replace('\n', '')
+        response = seri.readline().decode('utf-8', errors='ignore').replace('\n', '')
         #logp ("answer is:" + response, 'debug')
         if response.startswith(prefTopic1):
             # prefTopic1: message to send to mqtt
