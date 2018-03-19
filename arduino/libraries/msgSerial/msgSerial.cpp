@@ -145,7 +145,7 @@ bool CommandList::checkMessageReceived(String aInputMessage)
  * @param aInternalNudeMessage  String containing cmd, but without prefix & end used through SerialListener
  * @return true if cmd has been found; even if the cmd fails
  */
-bool CommandList::readInternalMessage(String aInternalNudeMessage)
+bool CommandList::readInternalMessage(const String& aInternalNudeMessage)
 {
     // check if CommandList is linked to a SerialListener
     if (_pSerialListener == NULL)
@@ -306,12 +306,9 @@ int SerialListener::displayListCmd(String& aNameCL, String& asMode)  const {
     return cr;
 }
 
+
 // ParsedCommand class
-
-// static var init
-const int _maxLengthString = 127;
-const int _maxNbArg = 5;
-
+//--------------------
 
 ParsedCommand::ParsedCommand(const CommandList& aCmdList, const Command& aCmd, const String& aStrCmdArg) :
     _cmdList(aCmdList), _cmd(aCmd), _strCmdArg(aStrCmdArg),

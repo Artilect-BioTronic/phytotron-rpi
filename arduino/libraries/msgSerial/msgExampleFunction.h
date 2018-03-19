@@ -48,16 +48,18 @@ int cmdPinWrite     (const CommandList& aCL, Command& aCmd, const String& aInput
 
 
 class SketchInfo   {
+private:
+    static PROGMEM const char S_UNKNOWN[];
 public:
-    SketchInfo(): file_("unknown"), date_("unknown"),time_("unknown"),listPin_("") {}
+    SketchInfo(): file_(S_UNKNOWN), date_(S_UNKNOWN),time_(S_UNKNOWN),listPin_("") {}
     void setFile(const String &aFullFilename);
-    void setDate(const String &arg)   {date_ = arg;}
-    void setTime(const String &arg)   {time_ = arg;}
-    void setFileDateTime(const String &aFullFilename, const String &aDate,const String &aTime);
+    void setDate(const String& arg)   {date_ = arg;}
+    void setTime(const String& arg)   {time_ = arg;}
+    void setFileDateTime(const String &aFullFilename, const String& aDate, const String& aTime);
     void addListPin(const String &arg)   {listPin_ = listPin_ +"\n"+ arg;}
     String getFile()   {return file_;}
-    String getDate()   {return date_;}
-    String getTime()   {return time_;}
+    String getDate()   {return String(date_);}
+    String getTime()   {return String(time_);}
     String getListPin()   {return listPin_;}
 private:
     String file_;

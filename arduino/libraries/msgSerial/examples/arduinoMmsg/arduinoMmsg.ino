@@ -3,8 +3,8 @@
 #define LOG_DEBUG(str)   Serial.println(str)
 #define LOG_ERROR(str)   msgSError(str)
 
-//#include "SPI.h"
-//#include "SdFat.h"
+#include "SPI.h"
+#include "SdFat.h"
 //#include "msg2SDCard.h"
 
 #include "msgSerial.h"
@@ -47,7 +47,7 @@ void setup()
 {
     pinMode(pinLed, OUTPUT);
 
-    Serial.begin(9600);
+    Serial.begin(115200);
 
     serList.addCmdList(cmdLUser);
     serList.addCmdList(cmdLSys);

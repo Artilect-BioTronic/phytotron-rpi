@@ -414,7 +414,7 @@ long Cmd2File::moveToNoOpen(const String& aString)
 //------------------------------------------------------------------------------
 // re-write of FatFile::ls
 //   because I want to frame output of ls between  getCmdPrefix  and   getCmdEnd
-void FatFile_ls(const CommandList& aCL, const FatFile& aDir, uint8_t flags, uint8_t indent) {
+void FatFile_ls(const CommandList& aCL, FatFile& aDir, uint8_t flags, uint8_t indent) {
     FatFile file;
     print_t* pr = aCL.getStream();
     aDir.rewind();

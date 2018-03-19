@@ -54,7 +54,8 @@ String getTrameConsigne();
 int sendCmdState(String warm, String cold, String humidity);
 
 // liste des fonctions definies dans le fichier TempHumMsg.cpp
-int sendDate(const CommandList& aCL, Command &aCmd, const String& aInput);
+int setDate(const CommandList& aCL, Command& aCmd, const String& aInput);
+int getDate(const CommandList& aCL, Command &aCmd, const String& aInput);
 int updateHumCsgn(const CommandList& aCL, Command &aCmd, const String& aInput);
 int updateTempCsgn(const CommandList& aCL, Command &aCmd, const String& aInput);
 

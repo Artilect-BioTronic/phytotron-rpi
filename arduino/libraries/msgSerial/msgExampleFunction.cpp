@@ -256,6 +256,8 @@ int updateGlobalVar(const CommandList& aCL, Command& aCmd, const String& aInput)
 /*           functions to make system manipulation               */
 /*---------------------------------------------------------------*/
 
+PROGMEM const char SketchInfo::S_UNKNOWN[] = "unknown";
+
 SketchInfo sketchInfo;
 
 // it extracts basename from  aFullFilename
@@ -267,7 +269,7 @@ void SketchInfo::setFile(const String& aFullFilename)   {
     file_ = aFullFilename.substring(lastSlash);
 }
 
-void SketchInfo::setFileDateTime(const String &aFullFilename, const String &aDate,const String &aTime)
+void SketchInfo::setFileDateTime(const String& aFullFilename, const String &aDate, const String &aTime)
 {
     setFile(aFullFilename);
     setDate(aDate);

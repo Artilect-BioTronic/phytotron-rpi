@@ -107,7 +107,7 @@ public:
                 char cmdSeparator=':', char argSeparator=',', char cmdEnd='\n');
 
     bool checkMessageReceived(String aInputMessage);
-    bool readInternalMessage(String aInternalNudeMessage);
+    bool readInternalMessage(const String& aInternalNudeMessage);
 
     int verifyFormatMsg(Command& aCmd, const String& sOnOff);
 };
@@ -141,8 +141,8 @@ public:
     enum  ERROR_PC { NO_ERROR=0, ERROR_IN_CODE, TOO_LONG, NB_ARG_DIFFERENT, INDEX_ABOVE_NB_ARG,
                      TOO_MANY_ARG, INT_REQUIRED, FLOAT_REQUIRED, UNKNOWN_FMT,
                      CODE_BAD_FMT, LIMIT_BAD };
-    static const int _maxLengthString = 127;
-    static const int _maxNbArg = 5;
+    static const int _maxLengthString = 64;
+    static const int _maxNbArg = 6;
     static const char PC_STRING[];
     static const char PC_CHAR_LIST[];
     static const char PC_INT[];

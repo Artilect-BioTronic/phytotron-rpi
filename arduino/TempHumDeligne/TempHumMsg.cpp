@@ -18,7 +18,8 @@ Command cmdUserPhy[] = {
     Command("SV",                   &sendFakeVal),
     Command("csgn/humidity/cmd",    &updateHumCsgn,     "i",    "1-90"),
     Command("csgn/temp/cmd",        &updateTempCsgn,    "i",    "-5-50"),
-    Command("sendDate",             &sendDate)
+    Command("setDate",              &setDate,   "i,i,i,i,i,i",  "1900-2100,1-12,,0-23,,"),
+    Command("sendDate",             &getDate)
 };
 CommandList cmdLUserPhy("cmdUser", "CM+", SIZE_OF_TAB(cmdUserPhy), cmdUserPhy );
 
@@ -68,30 +69,66 @@ int setupTempHumMsg()
 }
 
 
-int sendDate(const CommandList& aCL, Command &aCmd, const String& aInput)
+int getDate(const CommandList& aCL, Command &aCmd, const String& aInput)
 {
     tmElements_t tm;
     if ( RTC.read ( tm ) )
     {
-      int minutes = tm.Minute ;
-      int secondes = tm.Second ;
-      String heureString = String ( numeroDix ( tm.Hour ) )
-                             + ":"
-                             + numeroDix ( minutes )
-                             + ":"
-                             + numeroDix ( secondes ) ;
+      char buffer[20];
+      snprintf(buffer, 20, "%d-%.2d-%.2dT%.2d:%.2d:%.2d", tmYearToCalendar(tm.Year),
+               tm.Month,tm.Day, tm.Hour,tm.Minute,tm.Second );
 
-      String dateString = String ( tmYearToCalendar ( tm.Year ))
-                            + "-"
-                            + numeroDix ( tm.Month )
-                            + "-"
-                            + numeroDix ( tm.Day ) ;
-
-    aCL.msgPrint(aCL.getCommand(aInput) + "/state:"+ dateString +"T"+ heureString);
-    aCL.msgOK(aInput, dateString +"T"+ heureString);
+      aCL.msgPrint(aCL.getCommand(aInput) + "/state:"+ buffer);
+      aCL.msgOK(aInput, buffer);
     }
     return 0;
 }
+
+// set date thanks to format Y:M:D T h:m:s: "i,i,i,i,i,i",  "1900-2100,1-12,,0-23,,"
+int setDate(const CommandList& aCL, Command& aCmd, const String& aInput)
+{
+    ParsedCommand parsedCmd(aCL, aCmd, aInput);
+
+    // verify that msg with arguments is OK with format and limit
+    if (parsedCmd.verifyFormatMsg(aCmd, aInput) != ParsedCommand::NO_ERROR)
+        return aCL.returnKO(aCmd, parsedCmd);
+
+    tmElements_t tm;
+
+    // get values
+    tm.Year = CalendarYrToTm(parsedCmd.getValueInt(1));
+    tm.Month = parsedCmd.getValueInt(2);
+    tm.Day = parsedCmd.getValueInt(3);
+    tm.Hour = parsedCmd.getValueInt(4);
+    tm.Minute = parsedCmd.getValueInt(5);
+    tm.Second = parsedCmd.getValueInt(6);
+
+    // we check that parsedCmd has not detected any error
+    if (parsedCmd.hasError())
+        return aCL.returnKO(aCmd, parsedCmd);
+
+    // we can write this time in RTC
+    RTC.write(tm);
+
+
+    // I read back time, to send it back
+    if ( RTC.read ( tm ) )
+    {
+        char buffer[20];
+        snprintf(buffer, 20, "%d-%.2d-%.2dT%.2d:%.2d:%.2d", tmYearToCalendar(tm.Year),
+                 tm.Month,tm.Day, tm.Hour,tm.Minute,tm.Second );
+
+        aCL.msgPrint(aCL.getCommand(aInput) + "/state:"+ buffer);
+        aCL.msgOK(aInput, buffer);
+    }
+    else   {
+        aCL.msgKO(aInput, F("I could not read back time !"));
+        return 1;
+    }
+
+    return 0;
+}
+
 
 // "i",  "0-90"
 int updateHumCsgn(const CommandList& aCL, Command &aCmd, const String& aInput)
