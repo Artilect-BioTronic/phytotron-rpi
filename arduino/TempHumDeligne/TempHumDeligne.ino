@@ -183,7 +183,7 @@ String moment = "" ;
 String emission = "" ; // pour envoyer le message au Kikiwi
 String emissionEnCours = "" ; // pour préparer la trame suivante
 byte noCapteur = 0 ; // pour éventuellement compter le nombre de capteurs
-byte i;
+byte i=0;
 byte phase = 0 ;
 int mesure = 0 ;
 unsigned long Temps = 0 ;
@@ -1002,7 +1002,7 @@ void mesureTemperature18B20 (void) //Dallas
 {
   if ( phase == 0 && ( Temps - TempsMesurePrecedent ) > 150  ) // a chaque nouveau capteur et apres un certain temps
   {
-    TempsMesurePrecedent += 150 ; // on lance le chrono
+    TempsMesurePrecedent = Temps; // on lance le chrono
     if ( !Ds18b20.search(addr)) // est-ce que le dernier est passé ?
     {
       noCapteur = 0 ; // on recommence au debut
@@ -1010,6 +1010,8 @@ void mesureTemperature18B20 (void) //Dallas
       //delay ( 10 ) ;
       emission = emissionEnCours ; // on met a jour le texte qui va etre emis
       emissionEnCours = "" ; // on efface la variable en cours puisque on est au debut
+
+//      Serial.println(String("DSresetS"));
     }
     else // il y a un capteur a mesurer
     {
@@ -1019,6 +1021,8 @@ void mesureTemperature18B20 (void) //Dallas
         emissionEnCours += ";" ; //  mettre un point virgule !
       }
       noCapteur ++ ; // un de plus
+
+//      Serial.println(String("DSnewC:")+ noCapteur);
     }
   }
   if ( phase == 1 ) // bon, on va mesurer enfin
@@ -1049,7 +1053,7 @@ void mesureTemperature18B20 (void) //Dallas
   }
   if ( phase == 2  && ( Temps - TempsMesurePrecedent ) > 800 )
   {
-    TempsMesurePrecedent += 800 ;
+    TempsMesurePrecedent = Temps;
     phase = 0 ; // on recommencera !
     present = Ds18b20.reset ( ) ;
     Ds18b20.select ( addr ) ; // on selectionne le capteur suivant
@@ -1078,7 +1082,8 @@ void mesureTemperature18B20 (void) //Dallas
     }
     float MesureDallas = ( float ) mesure / 16.0 ;
     Dallas [ noCapteur - 1 ] = MesureDallas ;
-    emissionEnCours += String ( ( float ) mesure / 16.0 ) ; // on ecris la nouvelle valeur sur la chaine
+    emissionEnCours += String ( ( float ) mesure / 16.0 ) ; // on ecrit la nouvelle valeur sur la chaine
+//    Serial.println(String("DS n°")+noCapteur +":"+MesureDallas);
   }
 }
 
@@ -1218,8 +1223,13 @@ void FonctionTexteTrameMesures ( void )
   {
       String sDallas = String(Dallas [ boucle - 1 ]);
       //  si la valeur mesurée est bidon avec 85.00, on remet la valeur precedente
-      if (sDallas.equals("85.00"))
+      //  si la valeur est incoherente, pareil
+      //  et on envoie une msg erreur
+      if ( sDallas.equals("85.00") || (Dallas [ boucle - 1 ] < -50.) || (Dallas [ boucle - 1 ] > 100.) )  {
           textDallas = textDallas + String ( separateurFichier + String ( oldDallas [ boucle - 1 ] ) ) ;
+          Serial.println(String("temp Dallas incoherente: ") + sDallas);
+          Serial1.println(String("temp Dallas incoherente: ") + sDallas);
+      }
       else   {
           textDallas = textDallas + String ( separateurFichier + String ( Dallas [ boucle - 1 ] ) ) ;
           oldDallas [ boucle - 1 ] = Dallas [ boucle - 1 ];
