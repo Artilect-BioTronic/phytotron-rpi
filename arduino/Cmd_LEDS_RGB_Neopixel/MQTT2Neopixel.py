@@ -59,7 +59,7 @@ def reOpenLogfile(logfileName):
 				logfile.close()
 			# file will be overwritten
 			if (logfileName != '<stdout>') :
-				logfile = open(logfileName, "w", 1)
+				logfile = open(logfileName, "a", 1)
 			logStartTime = time.time()
 			logp('logStartTime:' + time.asctime(time.localtime(time.time())), 'info')
 		except IOError:
@@ -113,13 +113,12 @@ if __name__ == "__main__":
 	read_args(sys.argv[1:])
 
 
-# if logfile is old, we remove it and overwrite it
+# if logfile is too big, we remove it and overwrite it
 #   because it must not grow big !
 def checkLogfileSize(logfile):
-	"if logfile is old, we remove it and overwrite it because it must not grow big !"
-	global logStartTime
-	if (time.time() - logStartTime) > 600:
-		reOpenLogfile(logfile.name)
+    "if logfile is too big, we remove it and overwrite it because it must not grow big !"
+    if (logfile.name != '<stdout>') and (os.path.getsize(logfile.name) > 900900):
+        reOpenLogfile(logfile.name)
 
 
 def readListSketchFromFile(fileName):
@@ -213,7 +212,14 @@ def on_message_mqTopicSys(client, userdata, msg):
 def readArduinoAvailableMsg(seri):
     while seri.inWaiting():
         # because of readline function, dont forget to open with timeout
-        response = seri.readline().decode('utf-8', errors='ignore').replace('\n', '')
+        # serial communication generates many errors!
+        #   this is a pb with devices on all the time
+        #   --> use try
+        try :
+            response = seri.readline().decode('utf-8', errors='ignore').replace('\n', '')
+        except :
+            response = ""
+        
         #logp ("answer is:" + response, 'debug')
         if response.startswith(prefTopic1):
             # prefTopic1: message to send to mqtt

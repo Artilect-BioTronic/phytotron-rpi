@@ -76,7 +76,7 @@ def reOpenLogfile(logfileName):
 				logfile.close()
 			# file will be overwritten
 			if (logfileName != '<stdout>') :
-				logfile = open(logfileName, "w", 1)
+				logfile = open(logfileName, "a", 1)
 			logStartTime = time.time()
 			logp('logStartTime:' + time.asctime(time.localtime(time.time())), 'info')
 		except IOError:

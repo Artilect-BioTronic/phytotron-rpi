@@ -51,7 +51,7 @@ def reOpenLogfile(logfileName):
                 logfile.close()
             # file will be overwritten
             if (logfileName != '<stdout>') :
-                logfile = open(logfileName, "w", 1)
+                logfile = open(logfileName, "a", 1)
                 logp('logStartTime:' + time.asctime(time.localtime(time.time())), 'info')
         except IOError:
             print('[error] could not open logfile:' + logfileName)
@@ -103,7 +103,7 @@ if __name__ == "__main__":
 	read_args(sys.argv[1:])
 
 
-# if logfile is old, we remove it and overwrite it
+# if logfile is too big, we remove it and overwrite it
 #   because it must not grow big !
 def checkLogfileSize(logfile):
     "if logfile is too big, we remove it and overwrite it because it must not grow big !"
@@ -197,7 +197,14 @@ def on_message_mqTopic(client, userdata, msg):
 def readArduinoAvailableMsg(seri):
     while seri.inWaiting():
         # because of readline function, dont forget to open with timeout
-        response = seri.readline().decode('utf-8', errors='ignore').replace('\n', '')
+        # serial communication generates many errors!
+        #   this is a pb with devices that stays on all the time
+        #   --> use try
+        try :
+            response = seri.readline().decode('utf-8', errors='ignore').replace('\n', '')
+        except :
+            response = ""
+        
         #logp ("answer is:" + response, 'debug')
         mqTopic = 'notFound'
         prefTopic = 'noPref'
