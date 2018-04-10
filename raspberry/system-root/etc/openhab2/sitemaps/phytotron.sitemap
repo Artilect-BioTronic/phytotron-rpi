@@ -68,6 +68,11 @@ sitemap phytotron label="Menu Principal"
 			}
 			Frame  {
 				Switch item=Mesures_Chart_Period label="Chart Period" mappings=[0="Hour", 1="Day", 2="Week"]
+				
+				Chart item=gTempExtChart period=h refresh=60 visibility=[Mesures_Chart_Period==0, Mesures_Chart_Period=="NULL"]
+				Chart item=gTempExtChart period=D refresh=3600 visibility=[Mesures_Chart_Period==1]
+				Chart item=gTempExtChart period=W refresh=3600 visibility=[Mesures_Chart_Period==2]
+
 				Chart item=gTempChart period=h refresh=60 visibility=[Mesures_Chart_Period==0, Mesures_Chart_Period=="NULL"]
 				Chart item=gTempChart period=D refresh=3600 visibility=[Mesures_Chart_Period==1]
 				Chart item=gTempChart period=W refresh=3600 visibility=[Mesures_Chart_Period==2]
@@ -108,6 +113,8 @@ sitemap phytotron label="Menu Principal"
 				Text item=wifiName
 				Text item=wifiIP
 			}
+			Setpoint item=SelectWhatAdmin	 label="Special"  	minValue=0 maxValue=20 step=1
+			Switch item=WhatAdmin        
 		}
 	}
 	Frame label="Groupes" {
