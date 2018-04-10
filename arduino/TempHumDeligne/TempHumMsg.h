@@ -84,6 +84,50 @@ int setupTempHumMsg();
 
 int changeNameVal(const String& astr);
 
+
+// some values may be changing often because of their last digit, we avoid this
+// if the change is small (< _diffStep), it must be changing several times to be accepted
+class FilterLastDigit
+{
+private:
+    float _value;
+    float _noDiffStep;
+    float _diffStep;
+    byte _nbDiff;
+    byte _nbDiffMin;
+
+public:
+    FilterLastDigit():
+         _value(0),   _noDiffStep(0), _diffStep(0),
+        _nbDiff(0), _nbDiffMin(4) {}
+    FilterLastDigit(float adiffStep, float aval=0.):
+         _value(aval), _noDiffStep(adiffStep/3.), _diffStep(adiffStep),
+        _nbDiff(0), _nbDiffMin(4) {}
+    float update(float aNewVal);
+    float get() {return _value;}
+};
+
+
+// filter with specificities for dallas temp
+// it avoids erratic values : 0. ,  85., some very low values ~ -2000.
+// it uses  FilterLastDigit  also
+class FilterDallas
+{
+private:
+    FilterLastDigit _value;
+
+public:
+    FilterDallas(float aval=0.)
+    {
+        // _diffStep ~= 1/8 avec ces dallas,
+        //    apres arrondi, cela donne 0.12 ou 0.13 !!  --> je mets 0.15
+        _value = FilterLastDigit(0.15, aval);
+    }
+    float update(float aval);
+    float get() {return _value.get();}
+};
+
+
 class Chauffage
 {
 private:

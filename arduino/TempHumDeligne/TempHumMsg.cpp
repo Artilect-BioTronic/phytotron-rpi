@@ -190,6 +190,67 @@ int updateTempCsgn(const CommandList& aCL, Command &aCmd, const String& aInput)
 
 
 /*---------------------------------------------------------------*/
+/*       classes pour filtrer                                    */
+/*---------------------------------------------------------------*/
+
+float FilterLastDigit::update(float aNewVal)
+{
+    // Si la new val est assez differente, on la replique et on reset le filtre
+    if (fabs(_value-aNewVal) > _diffStep)   {
+        _value = aNewVal;
+        _nbDiff = 0;
+    }
+    //  _diffStep > aNewVal > _noDiffStep
+    //  on accepte la  aNewVal  seulement au bout de  _nbDiffStep  fois
+    else if (fabs(_value-aNewVal) > _noDiffStep)   {
+        _nbDiff++ ;
+        Serial.println(String("filter small diff nb: ") + _nbDiff);
+        // Si le changement de valeur est assez frequent, on l accepte
+        if (_nbDiff >= _nbDiffMin)   {
+            _value = aNewVal;
+            _nbDiff = 0;
+        }
+    }
+    else   // _noDiffStep > aNewVal  > 0
+    {
+        if (_nbDiff < 2)
+            _nbDiff = 0;
+        else
+            _nbDiff = _nbDiff - 2 ;  // on diminue le compte de valeurs differentes rapidement
+        // la valeur precedente n est pas modifiee
+        Serial.println(String("filter no diff, nb: ") + _nbDiff);
+    }
+
+    return _value;
+}
+
+/*---------------------------------------------------------------*/
+
+float FilterDallas::update(float aval)
+{
+    // le Dallas peut renvoyer plusieurs valeurs erratiques:
+    // un 85. , une valeur très basse ~ -2000., peut-être d'autres très hautes
+    // ou un 0.
+    // j elimine une bonne partie avec des bornes [-50.; 84.]
+    if ( (aval < -50.) || (aval > 84.) )   {
+        Serial.println(String("temp Dallas rejetee: ") + aval);
+        Serial1.println(String("temp Dallas rejetee: ") + aval);
+        // on garde l ancienne  _value
+    }
+    else if ( fabs(aval) < 0.1)
+    {
+        Serial.println(String("temp Dallas rejetee: ") + aval);
+        Serial1.println(String("temp Dallas rejetee: ") + aval);
+        // on garde l ancienne  _value
+    }
+    else
+    {
+        _value.update(float(aval));
+    }
+    return _value.get();
+}
+
+/*---------------------------------------------------------------*/
 /*       classe pour Chauffage                                   */
 /*---------------------------------------------------------------*/
 

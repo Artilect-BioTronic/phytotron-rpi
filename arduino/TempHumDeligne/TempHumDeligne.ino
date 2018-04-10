@@ -164,40 +164,31 @@ DHT_Unified CapteurHumiditeTemperatureExterieur( CapteurHumiditeTemperatureExter
 DHT_Unified CapteurHumiditeTemperatureInterieur( CapteurHumiditeTemperatureInterieurPIN , CapteurHumiditeTemperatureInterieurTYPE ) ;
 
 
-
-
-
 //Adafruit_HTU21DF htu = Adafruit_HTU21DF();
 //boolean HTU21 = false ; // présence capteur HTU21
 
 //capteur(s) temperature Dallas
+OneWire  Ds18b20 ( PinOneWire ) ;
 const byte nbCapteurs = 3 ;
-byte octet ;
-byte present = 0;
-byte type_s;
-byte data[12];
-byte addr[8];
-float celsius ;
-String TempDs18b20 = "" ;
-String moment = "" ;
-String emission = "" ; // pour envoyer le message au Kikiwi
-String emissionEnCours = "" ; // pour préparer la trame suivante
-byte noCapteur = 0 ; // pour éventuellement compter le nombre de capteurs
-byte i=0;
-byte phase = 0 ;
-int mesure = 0 ;
+FilterDallas dallasFiltered[ nbCapteurs ] = {15., 15., 15.} ;
+//byte present = 0;
+//byte type_s;
+//byte data[12];
+//byte addr[8];
+//byte noCapteur = 0 ; // pour éventuellement compter le nombre de capteurs
+//byte i=0;
+//byte phase = 0 ;
+//int mesure = 0 ;
 unsigned long Temps = 0 ;
 unsigned long TempsMesure = 0 ;
 unsigned long TempsEnregistrement = 0 ;
 unsigned long TempsMesurePrecedent = 0 ;
 unsigned long TempsEnregistrementPrecedent = 0 ;
-float Dallas [ nbCapteurs ] ;
 
 
 
 //Prises telecommandees
 RCSwitch telecommande = RCSwitch ( ) ;
-OneWire  Ds18b20 ( PinOneWire ) ;
 
 // Variables pour temps et mesures
 byte temperatureInterieureEntiere ;
@@ -1000,6 +991,15 @@ void afficheLCDregulier ( void )
 
 void mesureTemperature18B20 (void) //Dallas
 {
+    static byte present = 0;
+    static byte type_s;
+    byte data[12];
+    static byte addr[8];
+    static byte noCapteur = 0 ; // pour éventuellement compter le nombre de capteurs
+    byte i=0;
+    static byte phase = 0 ;
+    int mesure = 0 ;
+
   if ( phase == 0 && ( Temps - TempsMesurePrecedent ) > 150  ) // a chaque nouveau capteur et apres un certain temps
   {
     TempsMesurePrecedent = Temps; // on lance le chrono
@@ -1008,20 +1008,12 @@ void mesureTemperature18B20 (void) //Dallas
       noCapteur = 0 ; // on recommence au debut
       Ds18b20.reset_search ( ) ; // on demande l'identification
       //delay ( 10 ) ;
-      emission = emissionEnCours ; // on met a jour le texte qui va etre emis
-      emissionEnCours = "" ; // on efface la variable en cours puisque on est au debut
-
 //      Serial.println(String("DSresetS"));
     }
     else // il y a un capteur a mesurer
     {
       phase = 1 ; // au coup suivant on ne passeras pas par la
-      if ( noCapteur > 0 ) // si autre que le premier
-      {
-        emissionEnCours += ";" ; //  mettre un point virgule !
-      }
       noCapteur ++ ; // un de plus
-
 //      Serial.println(String("DSnewC:")+ noCapteur);
     }
   }
@@ -1080,9 +1072,9 @@ void mesureTemperature18B20 (void) //Dallas
       else if ( cfg == 0x40 ) mesure = mesure & ~1 ; // 11 bit res, 375 ms
       //// default is 12 bit resolution, 750 ms conversion time
     }
-    float MesureDallas = ( float ) mesure / 16.0 ;
-    Dallas [ noCapteur - 1 ] = MesureDallas ;
-    emissionEnCours += String ( ( float ) mesure / 16.0 ) ; // on ecrit la nouvelle valeur sur la chaine
+    float mesureDallas = ( float ) mesure / 16.0 ;
+    dallasFiltered[ noCapteur - 1 ].update(mesureDallas) ;
+//    Dallas [ noCapteur - 1 ] = MesureDallas ;
 //    Serial.println(String("DS n°")+noCapteur +":"+MesureDallas);
   }
 }
@@ -1216,32 +1208,20 @@ void affichageSerieRaspSecondes ( void )
 
 void FonctionTexteTrameMesures ( void )
 {
-  String textDallas = "" ;
-  static float oldDallas[nbCapteurs]={15., 15., 15.};
+    String textDallas = "" ;
 
-  for ( byte boucle = nbCapteurs ; boucle > 0 ; boucle -- )
-  {
-      String sDallas = String(Dallas [ boucle - 1 ]);
-      //  si la valeur mesurée est bidon avec 85.00, on remet la valeur precedente
-      //  si la valeur est incoherente, pareil
-      //  et on envoie une msg erreur
-      if ( sDallas.equals("85.00") || (Dallas [ boucle - 1 ] < -50.) || (Dallas [ boucle - 1 ] > 100.) )  {
-          textDallas = textDallas + String ( separateurFichier + String ( oldDallas [ boucle - 1 ] ) ) ;
-          Serial.println(String("temp Dallas incoherente: ") + sDallas);
-          Serial1.println(String("temp Dallas incoherente: ") + sDallas);
-      }
-      else   {
-          textDallas = textDallas + String ( separateurFichier + String ( Dallas [ boucle - 1 ] ) ) ;
-          oldDallas [ boucle - 1 ] = Dallas [ boucle - 1 ];
-      }
-  }
-  TrameMesures = String ( dateString + separateurFichier +
-                          heureString + separateurFichier +
-                          temperatureInterieureEntiere + separateurFichier +
-                          humiditeInterieureEntiere + separateurFichier +
-                          temperatureExterieureEntiere + separateurFichier +
-                          humiditeExterieureEntiere +
-                          textDallas ) ;
+    for ( byte boucle = nbCapteurs ; boucle > 0 ; boucle -- )
+    {
+        textDallas = textDallas + separateurFichier +
+                     String ( dallasFiltered[ boucle - 1 ].get() ) ;
+    }
+    TrameMesures = String ( dateString + separateurFichier +
+                            heureString + separateurFichier +
+                            temperatureInterieureEntiere + separateurFichier +
+                            humiditeInterieureEntiere + separateurFichier +
+                            temperatureExterieureEntiere + separateurFichier +
+                            humiditeExterieureEntiere +
+                            textDallas ) ;
 }
 
 String getTexteEnteteMesures ( void )
