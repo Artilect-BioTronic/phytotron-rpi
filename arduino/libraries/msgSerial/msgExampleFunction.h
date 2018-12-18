@@ -21,6 +21,7 @@ int sendBackArg_ss  (const CommandList& aCL, Command& aCmd, const String& aInput
 int sendBackArg_is  (const CommandList& aCL, Command& aCmd, const String& aInput);
 int sendBackArg_fs  (const CommandList& aCL, Command& aCmd, const String& aInput);
 
+int switchLedOfPin  (const CommandList& aCL, Command& aCmd, const String& aInput, const uint8_t pinLed);
 int switchLed13     (const CommandList& aCL, Command& aCmd, const String& dumb);
 int sendMultiValue  (const CommandList& aCL, Command& aCmd, const String& dumb);
 int sendFakeDate    (const CommandList& aCL, Command& aCmd, const String& dumb);

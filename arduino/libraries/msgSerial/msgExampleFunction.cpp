@@ -116,8 +116,9 @@ int sendBackArg_ss(const CommandList& aCL, Command& aCmd, const String& aInput) 
 /*       common function to try message command library          */
 /*---------------------------------------------------------------*/
 
-// switch the led On or Off
-int switchLed13(const CommandList& aCL, Command& aCmd, const String& aInput)
+
+// switch the led On or Off, Led connected to pinLed
+int switchLedOfPin(const CommandList& aCL, Command& aCmd, const String& aInput, const uint8_t pinLed)
 {
     ParsedCommand parsedCmd(aCL, aCmd, aInput);
 
@@ -132,9 +133,9 @@ int switchLed13(const CommandList& aCL, Command& aCmd, const String& aInput)
 
     // converts ON / OFF  to  1 / 0
     if (sValue.equals("ON"))
-        digitalWrite(PIN_LED13, HIGH);
+        digitalWrite(pinLed, HIGH);
     else if (sValue.equals("OFF"))
-        digitalWrite(PIN_LED13, LOW);
+        digitalWrite(pinLed, LOW);
     else
         return aCL.returnKO(aCmd, parsedCmd);
 
@@ -143,6 +144,18 @@ int switchLed13(const CommandList& aCL, Command& aCmd, const String& aInput)
     aCL.msgPrint(aCL.getCommand(aInput) + F("/state:") + sValue);
 
     return 0;
+}
+
+// switch the led On or Off
+int switchLed13(const CommandList& aCL, Command& aCmd, const String& sOnOff)
+{
+    ParsedCommand parsedCmd(aCL, aCmd, sOnOff);
+
+    // verify that msg with arguments is OK with format and limit
+    if (parsedCmd.verifyFormatMsg(aCmd, sOnOff) != ParsedCommand::NO_ERROR)
+        return aCL.returnKO(aCmd, parsedCmd);
+
+    return switchLedOfPin(aCL, aCmd, sOnOff, 13);
 }
 
 
