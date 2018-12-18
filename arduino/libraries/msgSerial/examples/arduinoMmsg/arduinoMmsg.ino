@@ -3,10 +3,6 @@
 #define LOG_DEBUG(str)   Serial.println(str)
 #define LOG_ERROR(str)   msgSError(str)
 
-#include "SPI.h"
-#include "SdFat.h"
-//#include "msg2SDCard.h"
-
 #include "msgSerial.h"
 #include "msgExampleFunction.h"
 
