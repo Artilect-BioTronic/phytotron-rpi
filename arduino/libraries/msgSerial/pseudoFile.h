@@ -1,3 +1,9 @@
+/*---------------------------------------------------------------*/
+/*   This code was used to test the commands for a SD card       */
+/*     without connecting a SDcard module.                       */
+/*   But it was not very effective and it is not used often      */
+/*---------------------------------------------------------------*/
+
 #include "Arduino.h"
 
 //#include "SD.h"
@@ -5,10 +11,6 @@
 //extern SdFat SD;
 
 #include "msgSerial.h"
-
-/*---------------------------------------------------------------*/
-/*                                          */
-/*---------------------------------------------------------------*/
 
 class PseudoFile: public Stream
 {
