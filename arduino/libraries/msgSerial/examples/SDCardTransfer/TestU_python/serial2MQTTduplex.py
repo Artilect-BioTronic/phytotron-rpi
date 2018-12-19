@@ -1,0 +1,1 @@
+../../../pythonScripts/serial2MQTTduplex.py
