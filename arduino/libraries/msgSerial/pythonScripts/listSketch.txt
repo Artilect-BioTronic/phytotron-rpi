@@ -1,7 +1,26 @@
-# feeds arguments: ["logfile=","broker=","namepy=","mytopic1=","mytopic2=","devserial="]
+# feeds arguments: ["logfile=","broker=","portBroker=","devSerial=","baudrate=", 
+#                   "topicFromPref=","prefFromTopic="]
 # {nameSketch.ino : { arguments needed by serial2MQTTduplex.py}}
-{'arduinoChEnfant.ino': {'mytopic1':'/domotique/enfant/', 'mytopic2':'/domotique/garage/topictest2/', 'namepy':'py1', 'logfile':'arduinoChEnfant.ino.log', 'broker':'localhost'} }
-{'arduinoChParent.ino': {'mytopic1':'/domotique/parent/', 'mytopic2':'/domotique/garage/topictest2/', 'namepy':'py2', 'logfile':'arduinoChParent.ino.log', 'broker':'localhost'} }
-{'arduinoLiving.ino':   {'mytopic1':'/domotique/living/', 'mytopic2':'/domotique/garage/topictest2/', 'namepy':'py3', 'logfile':'arduinoLiving.ino.log', 'broker':'localhost'} }
-{'arduinoVolet1.ino':   {'mytopic1':'/domotique/volet1/', 'mytopic2':'/domotique/garage/topictest2/', 'namepy':'py4', 'logfile':'arduinoVolet1.ino.log', 'broker':'localhost'} }
-{'arduinoMmsg.ino': {'mytopic1':'/domotique/messagetest/', 'mytopic2':'/domotique/garage/topictest2/', 'namepy':'py10', 'logfile':'arduinoMmsg.ino.log', 'broker':'localhost'} }
+{
+'arduinoChEnfant.ino': 
+    {
+    'topicFromPref':    {"CM+":"domotique/enfant/py1/",  "AT+":"domotique/enfant/py1/"}, 
+    'prefFromTopic':    {"domotique/enfant/oh/":"CM+",  "domotique/enfant/sys/":"AT+"}, 
+    'logfile':'arduinoChEnfant.ino.log',  'broker':'localhost'
+    }
+,
+'arduinoChParent.ino': 
+    {
+    'topicFromPref':    {"CM+":"domotique/parent/py2/",  "AT+":"domotique/parent/py2/"}, 
+    'prefFromTopic':    {"domotique/parent/oh/":"CM+",  "domotique/parent/sys/":"AT+"}, 
+    'logfile':'arduinoChParent.ino.log', 'broker':'localhost'
+    }
+,
+'arduinoLiving.ino':
+    {
+    'topicFromPref':    {"CM+":"domotique/living/py3/",  "AT+":"domotique/living/py3/"}, 
+    'prefFromTopic':    {"domotique/living/oh/":"CM+",  "domotique/living/sys/":"AT+"}, 
+    'logfile':'arduinoLiving.ino.log', 'broker':'localhost'
+    }
+}
+

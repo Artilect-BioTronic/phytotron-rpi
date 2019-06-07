@@ -541,7 +541,7 @@ ParsedCommand::ERROR_PC ParsedCommand::checkType(const String& aArg, const Strin
     {
         int iValue = aArg.toInt();
         // toInt will return 0, if it is not an int
-        if ( (iValue == 0) && ( ! aArg.equals("0")) )   {
+        if ( (iValue == 0) && ( ! aArg.startsWith("0")) )   {
           _strError = String(F("value: ")) + aArg + F(" must be integer");
           _numError = INT_REQUIRED;
           return INT_REQUIRED;
@@ -552,8 +552,7 @@ ParsedCommand::ERROR_PC ParsedCommand::checkType(const String& aArg, const Strin
         String notFloat = F("not a float");
         double dValue = aArg.toFloat();
         // toFloat will return 0.0, if it is not a float
-        if ( (dValue == notFloat.toFloat()) && ( ! aArg.equals("0."))
-                                            && ( ! aArg.equals("0"))  )   {
+        if ( (dValue == notFloat.toFloat()) && ( ! aArg.startsWith("0")) )   {
           _strError = String(F("value: ")) + aArg + F(" must be float");
           _numError = INT_REQUIRED;
           return INT_REQUIRED;
@@ -668,9 +667,9 @@ boolean ParsedCommand::checkLimit1Int(const String& aArg,
         int end = send.toInt();
         int iArg = aArg.toInt();
         // start and end must be integers.  if toInt fails, it returns 0
-        if (  ( (start == 0) && (sstart != "0") )  ||
-              ( (end   == 0) && (send   != "0") )  ||
-              ( (iArg  == 0) && (aArg   != "0") )     )   {
+        if (  ( (start == 0) && ( ! sstart.startsWith("0") ) )  ||
+              ( (end   == 0) && ( ! send.startsWith("0")   ) )  ||
+              ( (iArg  == 0) && ( ! aArg.startsWith("0")   ) )     )   {
             _strError = String("error in limit pattern with hyphen: ") + aLim;
             _numError = LIMIT_BAD;
             return false;
@@ -694,6 +693,11 @@ boolean ParsedCommand::checkLimit1Float(const String& aArg,
 
     // we check if the pattern is start - end  (ie 1-9)
     int hyphen = aLim.indexOf("-");
+    // if pattern is of type  -10-10   (ie: from -10 to +10)
+    //   then we look for 2nd hyphen
+    if (hyphen == 0)
+        hyphen = aLim.indexOf("-", 1);
+
     if (hyphen > 0)   {
         String notFloat = F("not a float");
         double dNoFloat = notFloat.toFloat();
@@ -702,7 +706,7 @@ boolean ParsedCommand::checkLimit1Float(const String& aArg,
         double start = sstart.toFloat();
         double end = send.toFloat();
         double dArg = aArg.toFloat();
-        // start and end must be integers.  if toFloat fails, it returns 0.
+        // start and end must be floats.  if toFloat fails, it returns 0.
         if (  ( (start == dNoFloat) && ( ! sstart.startsWith("0")) )  ||
               ( (end   == dNoFloat) && ( ! send.startsWith("0")  ) )  ||
               ( (dArg  == dNoFloat) && ( ! aArg.startsWith("0")  ) )     )   {

@@ -3,6 +3,8 @@
 
 #include "Arduino.h"
 
+// the function  f  (or bloc of instructions)  will be run every inerval  i  milliseconds
+#define everyMillis(i,f) {static unsigned long l=0;unsigned long c=millis();if(c-l>=i){ l=c; {f} }}
 
 class CommandList;
 

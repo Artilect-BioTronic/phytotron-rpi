@@ -143,7 +143,7 @@ int Cmd2File::preOpen(const String& aFileName, const String& aMode)
         close();
 
     // if O_TRUNC is in open mode, it is not memorized for each future open
-    // we open once with O_TRUNC, and close it immeidately
+    // we open once with O_TRUNC, and close it immediately
     if (isTrunc)   {
         file_ = new FILELIKE();
         *file_ = SD.open(aFileName, iMode_+O_TRUNC);

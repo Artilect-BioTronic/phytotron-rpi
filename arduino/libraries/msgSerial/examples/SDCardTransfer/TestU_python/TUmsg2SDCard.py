@@ -8,9 +8,9 @@ import time
 def emptyRx(ser):
    response = ser.read(100)
    while (len(response) >0 ):
-      print (response, end='')
+      print (response.decode('utf-8'), end='')
       response = ser.read(100)
-   if (not response.endswith('\n')) and (len(response) >0):
+   if (not response.endswith(b'\n')) and (len(response) >0):
       print('')
 
 # use to sort log messages
@@ -26,20 +26,21 @@ devSerial='/dev/ttyACM0'
 
 def sendCmdArd(aCmd):
     cmd2arduino = msgStartCmd + aCmd + msgEnd
-    ser.write(cmd2arduino)
+    ser.write(cmd2arduino.encode('utf-8'))
 
 def sendCmdArdReceive(aCmd):
-    sendCmdArd(aCmd)
+    sendCmdArd(aCmd.encode('utf-8'))
     emptyRx(ser)
 
+# Send Cmd And Receive response
 def scar(aCmd, prefix=msgStartCmd):
    cmd2arduino = prefix + aCmd + msgEnd
-   ser.write(cmd2arduino)
+   ser.write(cmd2arduino.encode('utf-8'))
    emptyRx(ser)
 
 def scar2(aCmd, prefix=msgStartCmd2):
    cmd2arduino = prefix + aCmd + msgEnd
-   ser.write(cmd2arduino)
+   ser.write(cmd2arduino.encode('utf-8'))
    emptyRx(ser)
 
 

@@ -9,9 +9,11 @@ import sys, getopt
 import ast
 import os, glob
 
-repSketch='/opt/openhab2/conf/Python_MQTT2Arduino'
+#repSketch='/opt/openhab2/conf/Python_MQTT2Arduino'
+#repTmp='/media/ramdisk/openhab/logPython'
+repSketch=os.getcwd()
 fileNameListSketch = repSketch + '/listSketch.txt'
-repTmp='/media/ramdisk/openhab/logPython'
+repTmp=repSketch
 
 hostMQTT='localhost'
 portMQTT=1883
@@ -25,7 +27,7 @@ reconnectTopic='reconnect'
 prefAT='AT+'
 cmdIdSketch='idSketch'
 endOfLine='\n'
-msg2py='2py'
+msg2py='AT'
 
 logfile=sys.stdout
 
@@ -99,20 +101,47 @@ if __name__ == "__main__":
 # if logfile is old, we remove it and overwrite it
 #   because it must not grow big !
 def checkLogfileSize(logfile):
-	"if logfile is old, we remove it and overwrite it because it must not grow big !"
-	global logStartTime
-	if (time.time() - logStartTime) > 600:
-		#print('reOpenLogfile of name:' + logfile.name)
-		reOpenLogfile(logfile.name)
-
+    "if logfile is too big, we remove it and overwrite it because it must not grow big !"
+    if (logfile.name != '<stdout>') and (os.path.getsize(logfile.name) > 900900):
+        reOpenLogfile(logfile.name)
 
 def readListSketchFromFile(fileName):
-	"read filename and append valid dict lines in returned dict"
+	"read filename and append/update valid dict lines in returned dict"
 	logp('reading list of arguments for sketch in file : ' + fileName)
+	dSketch = updateDictFromFile(fileName)
+	return dSketch
+
+# update  dictionnary inDict with  the dictionnary  read in fileName
+def updateDictFromFile(fileName, inDict={}):
+	"read filename and append valid dict lines in returned dict"
+	try:
+		fileDict = open(fileName, 'r')
+	except:
+		logp('could not open dictionnary file: ' + fileName, 'error')
+		return inDict
+	#
+	try:
+	    newDict = ast.literal_eval(fileDict.read())
+	except:
+		logp('could not eval dictionnary in file: ' + fileName, 'error')
+		return inDict
+	#
+	# it must be dictionnary
+	if (type(newDict) != type({})):
+		logp('It was not of type dictionnary in file: ' + fileName, 'error')
+		return inDict
+	#
+	inDict.update(newDict)
+	#
+	fileDict.close()
+	return inDict
+
+def readDictFromFileOld(fileName, dSketch):
+	"read filename and append valid dict lines in returned dict"
 	try:
 		fileListSketch = open(fileName, 'r')
 	except:
-		logp('could not open list of sketch configuration file: ' + fileName, 'error')
+		logp('could not open dictionnary file: ' + fileName, 'error')
 		return {}
 	#
 	strLines = fileListSketch.readlines()
@@ -134,12 +163,15 @@ def readListSketchFromFile(fileName):
 def launchSerial2MQTT(da, arepTmp,adevSerial):
 	"Launches the python script serial2MQTTduplex.py thanks to the dictionnary of arg"
 	# test that it has all required arg
-	for keyNeeded in ("logfile","broker","namepy","mytopic1","mytopic2"):
+	for keyNeeded in ("logfile","broker","topicFromPref","prefFromTopic"):
 		if not (da.has_key(keyNeeded)):
 			logp('I refuse to launch serial2MQTTduplex ...', 'error')
 			logp(' because I cannot find key ' + keyNeeded, 'error')
 			return
-	cmd = repSketch+ '/serial2MQTTduplex.py'+ ' -t '+da['mytopic1'] + ' -n '+da['namepy'] + ' -l '+arepTmp+'/' + da['logfile'] + ' -b '+da['broker'] + ' -d ' + adevSerial +' &'
+	cmd = repSketch+ '/serial2MQTTduplex.py'+ ' -l '+arepTmp+'/' + da['logfile'] \
+	    + ' -b '+da['broker'] + ' -d ' + adevSerial + ' -r 9600' \
+	    + ' -t "'+str(da['topicFromPref'])+'"' + ' -u "'+str(da['prefFromTopic'])+'"' +' &'
+	logp('launching with cmd: ' + cmd , 'info')
 	os.system(cmd)
 
 
@@ -147,6 +179,7 @@ def askIdSketchSerial(adevSerial):
 	"try to know the id of the arduino sketch linked on serial adevSerial"
 	# I get rid of AMA0
 	if (adevSerial.count('AMA') > 0):
+		logp('I dont look for sketch on AMA serial', 'info')
 		return ' '
 	#
 	logp('trying to recognize arduino sketch on serial:' + adevSerial , 'info')
@@ -182,11 +215,9 @@ def askIdSketchSerial(adevSerial):
 		# because of readline function, dont forget to open with timeout
 		response = ser.readline().replace('\n', '')
 		#logp ("answer is:" + response, 'debug')
-		tags = response.split(';')
-		if tags[0] == msg2py:
-			# msg2py: message 2 python only
-			# python use this to check connection with arduino
-			logp ('msg2py '+response, 'info')
+		if response.rfind(prefAT + cmdIdSketch) >= 0:
+			# prefAT prefixe for sys cmd
+			logp ('prefAT '+response, 'info')
 			nameInd = response.rfind(':')	
 			if (nameInd >= 0):
 				rIdSketch = response[nameInd+1:]

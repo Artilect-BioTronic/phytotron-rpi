@@ -19,7 +19,7 @@ logfile=sys.stdout
 
 devSerial='/dev/ttyUSB0'   # serial port the arduino is connected to
 # I often use 9600, because I had many pb with pyserial at 38400 !!!
-baudRate=115200
+baudRate=9600
 
 # we convert  mqtt topic  to prefix for arduino
 prefFromTopic = {'phytotron/oh/':'SD+', 'phytotron/sys/':'AT+'}
@@ -111,35 +111,40 @@ def checkLogfileSize(logfile):
         reOpenLogfile(logfile.name)
 
 
+# returns empty dict if file is useless
 def readDictPassFromFile(fileName):
     "read filename and append valid dict lines in returned dict"
-    logp('reading list of arguments for sketch in file : ' + fileName)
-    try:
-        fileListSketch = open(fileName, 'r')
-    except:
-        logp('could not open list of sketch configuration file: ' + fileName, 'error')
-        return {}
-    #
-    strLines = fileListSketch.readlines()
-    fileListSketch.close()
-    dSketch = {"username":"user", "password":"pass"}
-    for strl in strLines:
-        try:
-            if (strl[0] != '#'):
-                itemDict = ast.literal_eval(strl)
-                if (type(itemDict) == type({})):
-                    dSketch.update(itemDict)
-                else:
-                    logp ('line NOT dict:' + strl)
-        except:
-          logp('line fails as dict:' + strl)
-    return dSketch
+    return updateDictFromFile(fileName)
+
+# update  dictionnary inDict with  the dictionnary  read in fileName
+def updateDictFromFile(fileName, inDict={}):
+	"read filename and append valid dict lines in returned dict"
+	try:
+		fileDict = open(fileName, 'r')
+	except:
+		logp('could not open dictionnary file: ' + fileName, 'error')
+		return inDict
+	#
+	try:
+	    newDict = ast.literal_eval(fileDict.read())
+	except:
+		logp('could not eval dictionnary in file: ' + fileName, 'error')
+		return inDict
+	#
+	# it must be dictionnary
+	if (type(newDict) != type({})):
+		logp('It was not of type dictionnary in file: ' + fileName, 'error')
+		return inDict
+	#
+	inDict.update(newDict)
+	#
+	fileDict.close()
+	return inDict
 
 # check the correspondance  pref <---> topic   are correct
 # check topics end with /
 # topic keys in prefFromTopic must not be in items of topicFromPref
 def checkTopicAndPref(aPrefFromTopic, aTopicFromPref):
-    print('TODO: write  checkTopicAndPref')
     for itopic in aPrefFromTopic.keys():
         if type(itopic) != type(''):
             logp("topic:"+itopic+" must be a string", 'error')
@@ -154,7 +159,7 @@ def checkTopicAndPref(aPrefFromTopic, aTopicFromPref):
 
 
 # The callback for when the client receives a CONNACK response from the server.
-def on_connect(client, userdata, rc):
+def on_connect(client, userdata, flags, rc):
     print("Connected to mosquitto with result code "+str(rc))
     # Subscribing in on_connect() means that if we lose the connection and
     # reconnect then subscriptions will be renewed.
@@ -162,6 +167,7 @@ def on_connect(client, userdata, rc):
         if type(itopic) != type(''):
             continue
         mqttc.subscribe(itopic +'#')
+        logp('subscribing topic:'+itopic +'#', 'trace')
         mqttc.message_callback_add(itopic + '#', on_message_mqTopic)
 
 # The callback for when a PUBLISH message is received from the server.
@@ -170,7 +176,7 @@ def on_connect(client, userdata, rc):
 def on_message(client, userdata, msg):
     logp('msg:' +msg.topic+" : "+str(msg.payload), 'info')
     cmd2arduino = prefTopic2 + str(msg.payload) + endOfLine
-    ser.write(cmd2arduino)
+    ser.write(cmd2arduino.encode('ascii','ignore'))
     # I immediately wait a moment for the arduino to respond
     time.sleep(sleepResponse)
     readArduinoAvailableMsg(ser)
@@ -187,7 +193,7 @@ def on_message_mqTopic(client, userdata, msg):
             prefTopic = prefFromTopic[itopic]
     cmd = msg.topic.replace(mqTopic, prefTopic)
     cmd2arduino = cmd + ':' + str(msg.payload)+ endOfLine
-    ser.write(cmd2arduino)
+    ser.write(cmd2arduino.encode('ascii','ignore'))
     # I immediately wait a moment for the arduino to respond
     time.sleep(sleepResponse)
     readArduinoAvailableMsg(ser)
@@ -263,13 +269,13 @@ time.sleep(2)
 authInFile = readDictPassFromFile(filePassMqtt)
 
 # connection to mosquitto
+# I write mqtt.MQTTv31, because broker may be V3.1  and not V3.1.1
 mqttc = mqtt.Client("", True, None, mqtt.MQTTv31)
 mqttc.on_message = on_message
 mqttc.on_connect = on_connect
 if (authInFile.has_key('username') and authInFile.has_key('password')) :
     mqttc.username_pw_set(authInFile["username"], authInFile["password"])
 
-#mqttc.connect('iot.eclipse.org', port=1883, keepalive=60, bind_address="")
 cr = mqttc.connect(hostMQTT, port=portMQTT, keepalive=60, bind_address="")
 mqttc.loop_start()
 

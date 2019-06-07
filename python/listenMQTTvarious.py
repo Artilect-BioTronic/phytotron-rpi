@@ -37,7 +37,7 @@ baseRepPython="/home/pi/bin"
 cmdTopic1=baseRepPython + "picam+mqttFake.py"
 cmdTopic2="iwgetid -r"
 cmdTopic2b="ifconfig wlan0 | sed -n -e 's/.*inet adr://' -e 's/ *Bcast.*//p'"
-cmdTopic5=baseRepBin + "todo5"
+cmdTopic5=baseRepBin+"/"
 
 mqRepShift2=['oh', 'pysys']
 mqRepTopic3='phytotron/admin/pysys/piClock'
@@ -230,16 +230,15 @@ def on_message_mqTopicOH4(client, userdata, msg):
 # The callback for when the server receives a message of  mqTopic5.
 def on_message_mqTopicOH5(client, userdata, msg):
     logp("mqTopicOH:"+msg.topic+" : "+str(msg.payload), 'info')
-    # I put back to 0 the value of topic 4
-    indMeaning = 0
     mqttc.publish(mqRepTopic4, indMeaning)   
     mqttc.publish(mqRepTopic4b, meaning[indMeaning])
     try :
-        output = subprocess.Popen(cmdTopic5 +" "+str(msg.payload), shell=True,
-                                  stdout=subprocess.PIPE).stdout.read()
+        output = subprocess.Popen(cmdTopic5+ meaning[indMeaning] +" "+ str(msg.payload),
+                                   shell=True, stdout=subprocess.PIPE).stdout.read()
     except:
-        logp('exception managing msg:'+msg.topic+" : "+str(msg.payload), 'com error')
+        logp('exception managing msg:'+msg.topic+" : "+str(msg.payload), 'error')
         mqttc.publish(mqRepTopic4b + '/KO', "")
+        return
     mqttc.publish(mqRepTopic4b + '/OK', '')
 
 

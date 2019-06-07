@@ -8,3 +8,6 @@
 
 cd /home/pi/python ; ./serial2MQTTduplex.py -l "./logSerial2MQTT.txt" -r 115200 -d "/dev/ttyAMA0" -t '{"CM+":"phytotron/arduMain/py/","AT+":"phytotron/admini/py/", "SD+":"phytotron/SDlog/receive/" }' -u '{"phytotron/arduMain/oh/":"CM+", "phytotron/admini/oh/":"AT+", "phytotron/SDlog/send/":"SD+"}' &
 
+# ou bien
+./serial2MQTTduplex.py -l "./arduinoChParent.ino.log" -r 9600 -d "/dev/ttyUSB0" -t '{"CM+":"domotique/parent/py/","AT+":"domotique/parent/py/"}' -u '{"domotique/parent/oh/":"CM+", "domotique/parent/sys/":"AT+"}' &
+
