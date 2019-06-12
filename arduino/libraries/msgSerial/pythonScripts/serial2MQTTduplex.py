@@ -36,7 +36,7 @@ sleepResponse=0.1    # sleep to leave enough time for the arduino to respond imm
 
 # use to sort log messages
 def logp (msg, gravity='trace'):
-	print('['+gravity+']' + msg, file=logfile)
+	print(('['+gravity+']' + msg).encode('utf-8'), file=logfile)
 
 # log file must not grow big
 # I need to overwrite it often
