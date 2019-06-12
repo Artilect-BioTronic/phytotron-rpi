@@ -145,4 +145,23 @@ public:
     boolean isOff(void)   {return ! _isOn;}
 };
 
+class ChaudCoexisteAvecFroid
+{
+private:
+    static const unsigned long _tempoChauffage = 1000UL * 1000;
+    static const unsigned long _tempoFrigo = 3600UL * 1000;
+
+private:
+    float _plageTemp;
+    unsigned long _lastChauffage;
+    unsigned long _lastRefroidst;
+
+public:
+    ChaudCoexisteAvecFroid(float plageTemp);
+    boolean isOldFinChaud(float tempCsgn, float tempActuel);
+    boolean isOldFinFroid(float tempCsgn, float tempActuel);
+    void timeChaudActif()   {_lastChauffage = millis();}
+    void timeFroidActif()   {_lastRefroidst = millis();}
+};
+
 #endif // TEMPHUMMSG_H

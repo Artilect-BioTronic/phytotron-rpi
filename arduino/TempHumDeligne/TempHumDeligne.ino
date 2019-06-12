@@ -125,7 +125,7 @@ bool commandeRefroidissement = false ;
 bool commandeHum = false ;
 unsigned long positionFichierConsignes ;
 Chauffage chauffage(pinRad1, pinRad2, pinFan, 50);
-
+ChaudCoexisteAvecFroid frigoContreChauffage(plageTemp);
 
 //Génération des trames
 String TrameMesures = "" ;
@@ -606,9 +606,12 @@ void loop ( )
   // Attention, On ne veut pas que le refroidissement du frigo ne declenche le chauffage
   //   ici on penalise le chauffage car on est en ete
   // Chauffage prise " A "
-  if ( temperatureInterieureEntiere < ( consigneTemp - plageTemp*3 ) && chauffage.isOff() )
+  if ( temperatureInterieureEntiere < ( consigneTemp - plageTemp ) &&
+       chauffage.isOff()   &&
+       frigoContreChauffage.isOldFinFroid(consigneTemp, temperatureInterieureEntiere) )
   {
     chauffage.switchOn();
+    frigoContreChauffage.timeChaudActif();
 
     // previent du changement de commande
     sendCmdState("Marche_Chauffage","", "");
@@ -634,9 +637,11 @@ void loop ( )
     }
   }
 
-  if ( temperatureInterieureEntiere > ( consigneTemp + plageTemp ) && chauffage.isOn() )
+  // arret chauffage
+  if ( temperatureInterieureEntiere > ( consigneTemp + plageTemp * 0. ) && chauffage.isOn() )
   {
     chauffage.switchOff();
+    frigoContreChauffage.timeChaudActif();
 
     // previent du changement de commande
     sendCmdState("Arret_Chauffage","", "");
@@ -662,11 +667,14 @@ void loop ( )
     }
   }
 
-  // Refroidissement prise " B "
-  if ( temperatureInterieureEntiere > ( consigneTemp + plageTemp*2 ) && ! commandeRefroidissement )
+  // declenchement Refroidissement, prise " B "
+  if ( temperatureInterieureEntiere > ( consigneTemp + plageTemp ) &&
+       ! commandeRefroidissement  &&
+       frigoContreChauffage.isOldFinChaud(consigneTemp, temperatureInterieureEntiere) )
   {
     commandeSwitch ( refroidissementMarche ) ;
     commandeRefroidissement = true ;
+    frigoContreChauffage.timeFroidActif();
 
     // previent du changement de commande
     sendCmdState("","Marche_Refroidissement", "");
@@ -691,10 +699,12 @@ void loop ( )
       erreur ( 16 ) ;
     }
   }
-  if ( temperatureInterieureEntiere < ( consigneTemp - plageTemp*2. ) && commandeRefroidissement )
+  // arret refroidissement
+  if ( temperatureInterieureEntiere < ( consigneTemp - plageTemp*0. ) && commandeRefroidissement )
   {
     commandeSwitch ( refroidissementArret ) ;
     commandeRefroidissement = false ;
+    frigoContreChauffage.timeFroidActif();
 
     // previent du changement de commande
     sendCmdState("","Arret_Refroidissement", "");

@@ -284,6 +284,26 @@ int Chauffage::switchOff(void)   {
 }
 
 /*---------------------------------------------------------------*/
+/*                             */
+/*---------------------------------------------------------------*/
+
+//ChaudCoexisteAvecFroid
+ChaudCoexisteAvecFroid::ChaudCoexisteAvecFroid (float plageTemp): _plageTemp(plageTemp)
+{
+    // les instructions ci dessous font un wrap avec les unsigned integer (autorise par C++)
+    _lastChauffage = millis() - 3600UL *1000;
+    _lastRefroidst = millis() - 3600UL *1000;
+}
+
+boolean ChaudCoexisteAvecFroid::isOldFinChaud(float tempCsgn, float tempActuel)   {
+    return (millis() - _lastChauffage) > _tempoChauffage;
+}
+
+boolean ChaudCoexisteAvecFroid::isOldFinFroid(float tempCsgn, float tempActuel)   {
+    return (millis() - _lastRefroidst) > _tempoFrigo;
+}
+
+/*---------------------------------------------------------------*/
 /*       fonctions de remplacement materiel                      */
 /*---------------------------------------------------------------*/
 
