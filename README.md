@@ -3,7 +3,7 @@ Phytotron Project - Raspberry Pi part...
 
 ## Dossier "doc"
 
-Contient la documentation du projet en développement et notamment un how-to
+Contient la documentation du projet en dévelopment et notamment un how-to
 
 Voir surtout le Wiki du dépôt GitHub: https://github.com/Artilect-BioTronic/phytotron-rpi/wiki
 
